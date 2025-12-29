@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <!-- PDF Report Template (Placeholder for Phase 5) -->
+        <!--
+        This file will contain:
+        - QR code generation
+        - PDF invoice template with e-invoice data
+        - Email templates
+
+        To be implemented in Phase 5
+        -->
+    </data>
+</odoo>

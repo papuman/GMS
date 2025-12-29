@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Main Menu: Hacienda (under Accounting) -->
+    <menuitem id="menu_hacienda_root"
+              name="Hacienda (CR)"
+              parent="account.menu_finance"
+              sequence="15"
+              groups="account.group_account_invoice"/>
+
+    <!-- Sub-Menu: Electronic Invoices -->
+    <menuitem id="menu_hacienda_einvoices"
+              name="Electronic Invoices"
+              parent="menu_hacienda_root"
+              action="action_einvoice_document"
+              sequence="10"/>
+
+    <!-- Sub-Menu: Pending E-Invoices -->
+    <menuitem id="menu_hacienda_pending_invoices"
+              name="Pending E-Invoices"
+              parent="menu_hacienda_root"
+              action="action_invoices_requiring_einvoice"
+              sequence="20"/>
+
+    <!-- Sub-Menu: E-Invoice Errors -->
+    <menuitem id="menu_hacienda_errors"
+              name="E-Invoice Errors"
+              parent="menu_hacienda_root"
+              action="action_invoices_einvoice_errors"
+              sequence="30"/>
+
+    <!-- Separator -->
+    <menuitem id="menu_hacienda_separator_1"
+              parent="menu_hacienda_root"
+              sequence="40"
+              groups="account.group_account_manager"/>
+
+    <!-- Sub-Menu: Dashboard (Placeholder for future implementation) -->
+    <menuitem id="menu_hacienda_dashboard"
+              name="Dashboard"
+              parent="menu_hacienda_root"
+              sequence="50"
+              groups="account.group_account_manager"/>
+
+    <!-- Sub-Menu: Reports (Placeholder for future implementation) -->
+    <menuitem id="menu_hacienda_reports"
+              name="Reports"
+              parent="menu_hacienda_root"
+              sequence="60"
+              groups="account.group_account_manager"/>
+
+    <!-- Separator -->
+    <menuitem id="menu_hacienda_separator_2"
+              parent="menu_hacienda_root"
+              sequence="70"
+              groups="account.group_account_manager"/>
+
+    <!-- Sub-Menu: Configuration -->
+    <menuitem id="menu_hacienda_configuration"
+              name="Configuration"
+              parent="menu_hacienda_root"
+              sequence="80"
+              groups="account.group_account_manager"/>
+
+</odoo>

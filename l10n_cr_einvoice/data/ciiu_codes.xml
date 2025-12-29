@@ -1,0 +1,727 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+        <!--
+            CIIU 4 Economic Activity Codes for Costa Rica
+            Top 100 codes by industry relevance
+
+            Sections:
+            A = Agriculture
+            C = Manufacturing
+            G = Wholesale/Retail
+            I = Accommodation/Food
+            J = Information/Communication
+            M = Professional Services
+            P = Education
+            Q = Health
+            R = Arts/Entertainment
+            S = Other Services
+        -->
+
+        <!-- SECTION A: Agriculture, Forestry and Fishing -->
+        <record id="ciiu_0111" model="l10n_cr.ciiu.code">
+            <field name="code">0111</field>
+            <field name="name">Cultivo de cereales (excepto arroz), legumbres y semillas oleaginosas</field>
+            <field name="section">A</field>
+            <field name="description">Includes cultivation of wheat, corn, barley, beans, soybeans</field>
+        </record>
+
+        <record id="ciiu_0121" model="l10n_cr.ciiu.code">
+            <field name="code">0121</field>
+            <field name="name">Cultivo de uvas</field>
+            <field name="section">A</field>
+        </record>
+
+        <record id="ciiu_0122" model="l10n_cr.ciiu.code">
+            <field name="code">0122</field>
+            <field name="name">Cultivo de frutas tropicales y subtropicales</field>
+            <field name="section">A</field>
+            <field name="description">Pineapple, banana, mango, papaya cultivation</field>
+        </record>
+
+        <record id="ciiu_0123" model="l10n_cr.ciiu.code">
+            <field name="code">0123</field>
+            <field name="name">Cultivo de cítricos</field>
+            <field name="section">A</field>
+        </record>
+
+        <record id="ciiu_0161" model="l10n_cr.ciiu.code">
+            <field name="code">0161</field>
+            <field name="name">Actividades de apoyo a la agricultura</field>
+            <field name="section">A</field>
+        </record>
+
+        <!-- SECTION C: Manufacturing -->
+        <record id="ciiu_1010" model="l10n_cr.ciiu.code">
+            <field name="code">1010</field>
+            <field name="name">Elaboración y conservación de carne</field>
+            <field name="section">C</field>
+        </record>
+
+        <record id="ciiu_1020" model="l10n_cr.ciiu.code">
+            <field name="code">1020</field>
+            <field name="name">Elaboración y conservación de pescado</field>
+            <field name="section">C</field>
+        </record>
+
+        <record id="ciiu_1030" model="l10n_cr.ciiu.code">
+            <field name="code">1030</field>
+            <field name="name">Elaboración y conservación de frutas, legumbres y hortalizas</field>
+            <field name="section">C</field>
+        </record>
+
+        <record id="ciiu_1050" model="l10n_cr.ciiu.code">
+            <field name="code">1050</field>
+            <field name="name">Elaboración de productos lácteos</field>
+            <field name="section">C</field>
+        </record>
+
+        <record id="ciiu_1071" model="l10n_cr.ciiu.code">
+            <field name="code">1071</field>
+            <field name="name">Elaboración de productos de panadería</field>
+            <field name="section">C</field>
+        </record>
+
+        <record id="ciiu_1104" model="l10n_cr.ciiu.code">
+            <field name="code">1104</field>
+            <field name="name">Elaboración de bebidas no alcohólicas</field>
+            <field name="section">C</field>
+        </record>
+
+        <record id="ciiu_2100" model="l10n_cr.ciiu.code">
+            <field name="code">2100</field>
+            <field name="name">Fabricación de productos farmacéuticos</field>
+            <field name="section">C</field>
+        </record>
+
+        <record id="ciiu_2599" model="l10n_cr.ciiu.code">
+            <field name="code">2599</field>
+            <field name="name">Fabricación de otros productos elaborados de metal n.c.p.</field>
+            <field name="section">C</field>
+        </record>
+
+        <!-- SECTION G: Wholesale and Retail Trade -->
+        <record id="ciiu_4511" model="l10n_cr.ciiu.code">
+            <field name="code">4511</field>
+            <field name="name">Venta de vehículos automotores nuevos</field>
+            <field name="section">G</field>
+        </record>
+
+        <record id="ciiu_4520" model="l10n_cr.ciiu.code">
+            <field name="code">4520</field>
+            <field name="name">Mantenimiento y reparación de vehículos automotores</field>
+            <field name="section">G</field>
+        </record>
+
+        <record id="ciiu_4530" model="l10n_cr.ciiu.code">
+            <field name="code">4530</field>
+            <field name="name">Venta de partes, piezas y accesorios para vehículos automotores</field>
+            <field name="section">G</field>
+        </record>
+
+        <record id="ciiu_4610" model="l10n_cr.ciiu.code">
+            <field name="code">4610</field>
+            <field name="name">Venta al por mayor a cambio de una retribución o por contrata</field>
+            <field name="section">G</field>
+        </record>
+
+        <record id="ciiu_4630" model="l10n_cr.ciiu.code">
+            <field name="code">4630</field>
+            <field name="name">Venta al por mayor de alimentos, bebidas y tabaco</field>
+            <field name="section">G</field>
+        </record>
+
+        <record id="ciiu_4641" model="l10n_cr.ciiu.code">
+            <field name="code">4641</field>
+            <field name="name">Venta al por mayor de productos textiles, prendas de vestir y calzado</field>
+            <field name="section">G</field>
+        </record>
+
+        <record id="ciiu_4646" model="l10n_cr.ciiu.code">
+            <field name="code">4646</field>
+            <field name="name">Venta al por mayor de productos farmacéuticos y medicinales</field>
+            <field name="section">G</field>
+        </record>
+
+        <record id="ciiu_4649" model="l10n_cr.ciiu.code">
+            <field name="code">4649</field>
+            <field name="name">Venta al por mayor de otros enseres domésticos</field>
+            <field name="section">G</field>
+        </record>
+
+        <record id="ciiu_4651" model="l10n_cr.ciiu.code">
+            <field name="code">4651</field>
+            <field name="name">Venta al por mayor de computadoras, equipo periférico y programas informáticos</field>
+            <field name="section">G</field>
+        </record>
+
+        <record id="ciiu_4653" model="l10n_cr.ciiu.code">
+            <field name="code">4653</field>
+            <field name="name">Venta al por mayor de maquinaria, equipo y materiales agropecuarios</field>
+            <field name="section">G</field>
+        </record>
+
+        <record id="ciiu_4690" model="l10n_cr.ciiu.code">
+            <field name="code">4690</field>
+            <field name="name">Venta al por mayor de diversos productos</field>
+            <field name="section">G</field>
+        </record>
+
+        <record id="ciiu_4711" model="l10n_cr.ciiu.code">
+            <field name="code">4711</field>
+            <field name="name">Venta al por menor en comercios no especializados con surtido compuesto principalmente de alimentos, bebidas o tabaco</field>
+            <field name="section">G</field>
+            <field name="description">General retail stores, supermarkets, convenience stores</field>
+        </record>
+
+        <record id="ciiu_4719" model="l10n_cr.ciiu.code">
+            <field name="code">4719</field>
+            <field name="name">Venta al por menor en comercios no especializados, sin predominio de alimentos, bebidas o tabaco</field>
+            <field name="section">G</field>
+        </record>
+
+        <record id="ciiu_4721" model="l10n_cr.ciiu.code">
+            <field name="code">4721</field>
+            <field name="name">Venta al por menor de alimentos en comercios especializados</field>
+            <field name="section">G</field>
+        </record>
+
+        <record id="ciiu_4722" model="l10n_cr.ciiu.code">
+            <field name="code">4722</field>
+            <field name="name">Venta al por menor de bebidas en comercios especializados</field>
+            <field name="section">G</field>
+        </record>
+
+        <record id="ciiu_4741" model="l10n_cr.ciiu.code">
+            <field name="code">4741</field>
+            <field name="name">Venta al por menor de computadoras, equipos periféricos, programas informáticos y equipos de telecomunicaciones en comercios especializados</field>
+            <field name="section">G</field>
+        </record>
+
+        <record id="ciiu_4751" model="l10n_cr.ciiu.code">
+            <field name="code">4751</field>
+            <field name="name">Venta al por menor de productos textiles en comercios especializados</field>
+            <field name="section">G</field>
+        </record>
+
+        <record id="ciiu_4752" model="l10n_cr.ciiu.code">
+            <field name="code">4752</field>
+            <field name="name">Venta al por menor de artículos de ferretería, pinturas y productos de vidrio en comercios especializados</field>
+            <field name="section">G</field>
+        </record>
+
+        <record id="ciiu_4761" model="l10n_cr.ciiu.code">
+            <field name="code">4761</field>
+            <field name="name">Venta al por menor de libros, periódicos y artículos de papelería en comercios especializados</field>
+            <field name="section">G</field>
+        </record>
+
+        <record id="ciiu_4771" model="l10n_cr.ciiu.code">
+            <field name="code">4771</field>
+            <field name="name">Venta al por menor de prendas de vestir, calzado y artículos de cuero en comercios especializados</field>
+            <field name="section">G</field>
+        </record>
+
+        <record id="ciiu_4772" model="l10n_cr.ciiu.code">
+            <field name="code">4772</field>
+            <field name="name">Venta al por menor de productos farmacéuticos y medicinales, cosméticos y artículos de tocador en comercios especializados</field>
+            <field name="section">G</field>
+        </record>
+
+        <record id="ciiu_4773" model="l10n_cr.ciiu.code">
+            <field name="code">4773</field>
+            <field name="name">Venta al por menor de otros productos nuevos en comercios especializados</field>
+            <field name="section">G</field>
+        </record>
+
+        <!-- SECTION H: Transportation and Storage -->
+        <record id="ciiu_4920" model="l10n_cr.ciiu.code">
+            <field name="code">4920</field>
+            <field name="name">Transporte de pasajeros por vía terrestre</field>
+            <field name="section">H</field>
+        </record>
+
+        <record id="ciiu_4923" model="l10n_cr.ciiu.code">
+            <field name="code">4923</field>
+            <field name="name">Transporte de carga por carretera</field>
+            <field name="section">H</field>
+        </record>
+
+        <record id="ciiu_5221" model="l10n_cr.ciiu.code">
+            <field name="code">5221</field>
+            <field name="name">Actividades de servicios vinculadas al transporte terrestre</field>
+            <field name="section">H</field>
+        </record>
+
+        <record id="ciiu_5229" model="l10n_cr.ciiu.code">
+            <field name="code">5229</field>
+            <field name="name">Otras actividades de apoyo al transporte</field>
+            <field name="section">H</field>
+        </record>
+
+        <!-- SECTION I: Accommodation and Food Service -->
+        <record id="ciiu_5510" model="l10n_cr.ciiu.code">
+            <field name="code">5510</field>
+            <field name="name">Actividades de alojamiento de estancias cortas</field>
+            <field name="section">I</field>
+        </record>
+
+        <record id="ciiu_5520" model="l10n_cr.ciiu.code">
+            <field name="code">5520</field>
+            <field name="name">Actividades de campamentos, parques de vehículos recreacionales y parques de caravanas</field>
+            <field name="section">I</field>
+        </record>
+
+        <record id="ciiu_5610" model="l10n_cr.ciiu.code">
+            <field name="code">5610</field>
+            <field name="name">Actividades de restaurantes y de servicio móvil de comidas</field>
+            <field name="section">I</field>
+            <field name="description">Restaurants, food service activities</field>
+        </record>
+
+        <record id="ciiu_5621" model="l10n_cr.ciiu.code">
+            <field name="code">5621</field>
+            <field name="name">Suministro de comidas por encargo</field>
+            <field name="section">I</field>
+        </record>
+
+        <record id="ciiu_5629" model="l10n_cr.ciiu.code">
+            <field name="code">5629</field>
+            <field name="name">Otras actividades de servicio de comidas</field>
+            <field name="section">I</field>
+        </record>
+
+        <record id="ciiu_5630" model="l10n_cr.ciiu.code">
+            <field name="code">5630</field>
+            <field name="name">Actividades de servicio de bebidas</field>
+            <field name="section">I</field>
+            <field name="description">Bars, cafes, beverage service</field>
+        </record>
+
+        <!-- SECTION J: Information and Communication -->
+        <record id="ciiu_5811" model="l10n_cr.ciiu.code">
+            <field name="code">5811</field>
+            <field name="name">Edición de libros</field>
+            <field name="section">J</field>
+        </record>
+
+        <record id="ciiu_5820" model="l10n_cr.ciiu.code">
+            <field name="code">5820</field>
+            <field name="name">Edición de programas informáticos</field>
+            <field name="section">J</field>
+        </record>
+
+        <record id="ciiu_6110" model="l10n_cr.ciiu.code">
+            <field name="code">6110</field>
+            <field name="name">Actividades de telecomunicaciones alámbricas</field>
+            <field name="section">J</field>
+        </record>
+
+        <record id="ciiu_6120" model="l10n_cr.ciiu.code">
+            <field name="code">6120</field>
+            <field name="name">Actividades de telecomunicaciones inalámbricas</field>
+            <field name="section">J</field>
+        </record>
+
+        <record id="ciiu_6201" model="l10n_cr.ciiu.code">
+            <field name="code">6201</field>
+            <field name="name">Actividades de programación informática</field>
+            <field name="section">J</field>
+            <field name="description">Software development, programming</field>
+        </record>
+
+        <record id="ciiu_6202" model="l10n_cr.ciiu.code">
+            <field name="code">6202</field>
+            <field name="name">Actividades de consultoría de informática y de gestión de instalaciones informáticas</field>
+            <field name="section">J</field>
+        </record>
+
+        <record id="ciiu_6209" model="l10n_cr.ciiu.code">
+            <field name="code">6209</field>
+            <field name="name">Otras actividades de tecnología de la información y de servicios informáticos</field>
+            <field name="section">J</field>
+            <field name="description">Other IT services</field>
+        </record>
+
+        <record id="ciiu_6311" model="l10n_cr.ciiu.code">
+            <field name="code">6311</field>
+            <field name="name">Procesamiento de datos, hospedaje y actividades conexas</field>
+            <field name="section">J</field>
+        </record>
+
+        <!-- SECTION K: Financial and Insurance Activities -->
+        <record id="ciiu_6419" model="l10n_cr.ciiu.code">
+            <field name="code">6419</field>
+            <field name="name">Otros tipos de intermediación monetaria</field>
+            <field name="section">K</field>
+        </record>
+
+        <record id="ciiu_6612" model="l10n_cr.ciiu.code">
+            <field name="code">6612</field>
+            <field name="name">Corretaje de valores y de contratos de productos básicos</field>
+            <field name="section">K</field>
+        </record>
+
+        <record id="ciiu_6619" model="l10n_cr.ciiu.code">
+            <field name="code">6619</field>
+            <field name="name">Otras actividades auxiliares de las actividades de servicios financieros</field>
+            <field name="section">K</field>
+        </record>
+
+        <!-- SECTION L: Real Estate Activities -->
+        <record id="ciiu_6810" model="l10n_cr.ciiu.code">
+            <field name="code">6810</field>
+            <field name="name">Actividades inmobiliarias realizadas con bienes propios o arrendados</field>
+            <field name="section">L</field>
+            <field name="description">Real estate activities</field>
+        </record>
+
+        <record id="ciiu_6820" model="l10n_cr.ciiu.code">
+            <field name="code">6820</field>
+            <field name="name">Actividades inmobiliarias realizadas a cambio de una retribución o por contrata</field>
+            <field name="section">L</field>
+        </record>
+
+        <!-- SECTION M: Professional, Scientific and Technical Activities -->
+        <record id="ciiu_6910" model="l10n_cr.ciiu.code">
+            <field name="code">6910</field>
+            <field name="name">Actividades jurídicas</field>
+            <field name="section">M</field>
+        </record>
+
+        <record id="ciiu_6920" model="l10n_cr.ciiu.code">
+            <field name="code">6920</field>
+            <field name="name">Actividades de contabilidad, teneduría de libros y auditoría; consultoría fiscal</field>
+            <field name="section">M</field>
+        </record>
+
+        <record id="ciiu_7010" model="l10n_cr.ciiu.code">
+            <field name="code">7010</field>
+            <field name="name">Actividades de oficinas principales</field>
+            <field name="section">M</field>
+            <field name="description">Head office activities</field>
+        </record>
+
+        <record id="ciiu_7020" model="l10n_cr.ciiu.code">
+            <field name="code">7020</field>
+            <field name="name">Actividades de consultoría de gestión</field>
+            <field name="section">M</field>
+            <field name="description">Management consulting</field>
+        </record>
+
+        <record id="ciiu_7110" model="l10n_cr.ciiu.code">
+            <field name="code">7110</field>
+            <field name="name">Actividades de arquitectura e ingeniería y actividades conexas de consultoría técnica</field>
+            <field name="section">M</field>
+        </record>
+
+        <record id="ciiu_7120" model="l10n_cr.ciiu.code">
+            <field name="code">7120</field>
+            <field name="name">Ensayos y análisis técnicos</field>
+            <field name="section">M</field>
+        </record>
+
+        <record id="ciiu_7210" model="l10n_cr.ciiu.code">
+            <field name="code">7210</field>
+            <field name="name">Investigaciones y desarrollo experimental en el campo de las ciencias naturales y la ingeniería</field>
+            <field name="section">M</field>
+        </record>
+
+        <record id="ciiu_7310" model="l10n_cr.ciiu.code">
+            <field name="code">7310</field>
+            <field name="name">Publicidad</field>
+            <field name="section">M</field>
+        </record>
+
+        <record id="ciiu_7410" model="l10n_cr.ciiu.code">
+            <field name="code">7410</field>
+            <field name="name">Actividades especializadas de diseño</field>
+            <field name="section">M</field>
+        </record>
+
+        <record id="ciiu_7420" model="l10n_cr.ciiu.code">
+            <field name="code">7420</field>
+            <field name="name">Actividades de fotografía</field>
+            <field name="section">M</field>
+        </record>
+
+        <record id="ciiu_7490" model="l10n_cr.ciiu.code">
+            <field name="code">7490</field>
+            <field name="name">Otras actividades profesionales, científicas y técnicas n.c.p.</field>
+            <field name="section">M</field>
+        </record>
+
+        <record id="ciiu_7500" model="l10n_cr.ciiu.code">
+            <field name="code">7500</field>
+            <field name="name">Actividades veterinarias</field>
+            <field name="section">M</field>
+        </record>
+
+        <!-- SECTION N: Administrative and Support Service Activities -->
+        <record id="ciiu_7711" model="l10n_cr.ciiu.code">
+            <field name="code">7711</field>
+            <field name="name">Alquiler de vehículos automotores</field>
+            <field name="section">N</field>
+        </record>
+
+        <record id="ciiu_7721" model="l10n_cr.ciiu.code">
+            <field name="code">7721</field>
+            <field name="name">Alquiler y arrendamiento de equipo recreativo y deportivo</field>
+            <field name="section">N</field>
+        </record>
+
+        <record id="ciiu_7810" model="l10n_cr.ciiu.code">
+            <field name="code">7810</field>
+            <field name="name">Actividades de agencias de empleo</field>
+            <field name="section">N</field>
+        </record>
+
+        <record id="ciiu_8010" model="l10n_cr.ciiu.code">
+            <field name="code">8010</field>
+            <field name="name">Actividades de seguridad privada</field>
+            <field name="section">N</field>
+            <field name="description">Private security services</field>
+        </record>
+
+        <record id="ciiu_8110" model="l10n_cr.ciiu.code">
+            <field name="code">8110</field>
+            <field name="name">Actividades combinadas de apoyo a instalaciones</field>
+            <field name="section">N</field>
+        </record>
+
+        <record id="ciiu_8121" model="l10n_cr.ciiu.code">
+            <field name="code">8121</field>
+            <field name="name">Limpieza general de edificios</field>
+            <field name="section">N</field>
+        </record>
+
+        <record id="ciiu_8220" model="l10n_cr.ciiu.code">
+            <field name="code">8220</field>
+            <field name="name">Actividades de centros de llamadas</field>
+            <field name="section">N</field>
+            <field name="description">Call centers</field>
+        </record>
+
+        <record id="ciiu_8230" model="l10n_cr.ciiu.code">
+            <field name="code">8230</field>
+            <field name="name">Organización de convenciones y exposiciones comerciales</field>
+            <field name="section">N</field>
+        </record>
+
+        <record id="ciiu_8291" model="l10n_cr.ciiu.code">
+            <field name="code">8291</field>
+            <field name="name">Actividades de agencias de cobro y agencias de calificación crediticia</field>
+            <field name="section">N</field>
+        </record>
+
+        <record id="ciiu_8292" model="l10n_cr.ciiu.code">
+            <field name="code">8292</field>
+            <field name="name">Actividades de envasado y empaquetado</field>
+            <field name="section">N</field>
+        </record>
+
+        <!-- SECTION P: Education -->
+        <record id="ciiu_8511" model="l10n_cr.ciiu.code">
+            <field name="code">8511</field>
+            <field name="name">Enseñanza preescolar y primaria</field>
+            <field name="section">P</field>
+            <field name="description">Primary and pre-school education</field>
+        </record>
+
+        <record id="ciiu_8512" model="l10n_cr.ciiu.code">
+            <field name="code">8512</field>
+            <field name="name">Enseñanza secundaria de formación general</field>
+            <field name="section">P</field>
+            <field name="description">Secondary education</field>
+        </record>
+
+        <record id="ciiu_8521" model="l10n_cr.ciiu.code">
+            <field name="code">8521</field>
+            <field name="name">Enseñanza superior no universitaria</field>
+            <field name="section">P</field>
+        </record>
+
+        <record id="ciiu_8522" model="l10n_cr.ciiu.code">
+            <field name="code">8522</field>
+            <field name="name">Enseñanza universitaria</field>
+            <field name="section">P</field>
+        </record>
+
+        <record id="ciiu_8541" model="l10n_cr.ciiu.code">
+            <field name="code">8541</field>
+            <field name="name">Enseñanza deportiva y recreativa</field>
+            <field name="section">P</field>
+        </record>
+
+        <record id="ciiu_8542" model="l10n_cr.ciiu.code">
+            <field name="code">8542</field>
+            <field name="name">Enseñanza cultural</field>
+            <field name="section">P</field>
+        </record>
+
+        <record id="ciiu_8549" model="l10n_cr.ciiu.code">
+            <field name="code">8549</field>
+            <field name="name">Otros tipos de enseñanza n.c.p.</field>
+            <field name="section">P</field>
+        </record>
+
+        <record id="ciiu_8550" model="l10n_cr.ciiu.code">
+            <field name="code">8550</field>
+            <field name="name">Actividades de apoyo a la enseñanza</field>
+            <field name="section">P</field>
+        </record>
+
+        <!-- SECTION Q: Human Health and Social Work Activities -->
+        <record id="ciiu_8610" model="l10n_cr.ciiu.code">
+            <field name="code">8610</field>
+            <field name="name">Actividades de hospitales</field>
+            <field name="section">Q</field>
+        </record>
+
+        <record id="ciiu_8621" model="l10n_cr.ciiu.code">
+            <field name="code">8621</field>
+            <field name="name">Actividades de la práctica médica</field>
+            <field name="section">Q</field>
+            <field name="description">Medical practice, clinics</field>
+        </record>
+
+        <record id="ciiu_8622" model="l10n_cr.ciiu.code">
+            <field name="code">8622</field>
+            <field name="name">Actividades de la práctica odontológica</field>
+            <field name="section">Q</field>
+        </record>
+
+        <record id="ciiu_8690" model="l10n_cr.ciiu.code">
+            <field name="code">8690</field>
+            <field name="name">Otras actividades de atención de la salud humana</field>
+            <field name="section">Q</field>
+            <field name="description">Other health services</field>
+        </record>
+
+        <record id="ciiu_8710" model="l10n_cr.ciiu.code">
+            <field name="code">8710</field>
+            <field name="name">Actividades de atención de enfermería en instituciones</field>
+            <field name="section">Q</field>
+        </record>
+
+        <record id="ciiu_8790" model="l10n_cr.ciiu.code">
+            <field name="code">8790</field>
+            <field name="name">Otras actividades de atención en instituciones</field>
+            <field name="section">Q</field>
+        </record>
+
+        <!-- SECTION R: Arts, Entertainment and Recreation -->
+        <record id="ciiu_9000" model="l10n_cr.ciiu.code">
+            <field name="code">9000</field>
+            <field name="name">Actividades creativas, artísticas y de entretenimiento</field>
+            <field name="section">R</field>
+        </record>
+
+        <record id="ciiu_9200" model="l10n_cr.ciiu.code">
+            <field name="code">9200</field>
+            <field name="name">Actividades de juegos de azar y apuestas</field>
+            <field name="section">R</field>
+        </record>
+
+        <record id="ciiu_9311" model="l10n_cr.ciiu.code">
+            <field name="code">9311</field>
+            <field name="name">Gestión de instalaciones deportivas</field>
+            <field name="section">R</field>
+            <field name="description">Sports facilities management, gyms, fitness centers</field>
+        </record>
+
+        <record id="ciiu_9312" model="l10n_cr.ciiu.code">
+            <field name="code">9312</field>
+            <field name="name">Actividades de clubes deportivos</field>
+            <field name="section">R</field>
+        </record>
+
+        <record id="ciiu_9319" model="l10n_cr.ciiu.code">
+            <field name="code">9319</field>
+            <field name="name">Otras actividades deportivas</field>
+            <field name="section">R</field>
+        </record>
+
+        <record id="ciiu_9321" model="l10n_cr.ciiu.code">
+            <field name="code">9321</field>
+            <field name="name">Actividades de parques de atracciones y parques temáticos</field>
+            <field name="section">R</field>
+        </record>
+
+        <record id="ciiu_9329" model="l10n_cr.ciiu.code">
+            <field name="code">9329</field>
+            <field name="name">Otras actividades de esparcimiento y recreativas n.c.p.</field>
+            <field name="section">R</field>
+        </record>
+
+        <!-- SECTION S: Other Service Activities -->
+        <record id="ciiu_9411" model="l10n_cr.ciiu.code">
+            <field name="code">9411</field>
+            <field name="name">Actividades de asociaciones empresariales y de empleadores</field>
+            <field name="section">S</field>
+        </record>
+
+        <record id="ciiu_9412" model="l10n_cr.ciiu.code">
+            <field name="code">9412</field>
+            <field name="name">Actividades de asociaciones profesionales</field>
+            <field name="section">S</field>
+        </record>
+
+        <record id="ciiu_9499" model="l10n_cr.ciiu.code">
+            <field name="code">9499</field>
+            <field name="name">Actividades de otras asociaciones n.c.p.</field>
+            <field name="section">S</field>
+        </record>
+
+        <record id="ciiu_9511" model="l10n_cr.ciiu.code">
+            <field name="code">9511</field>
+            <field name="name">Reparación de computadoras y equipo periférico</field>
+            <field name="section">S</field>
+        </record>
+
+        <record id="ciiu_9512" model="l10n_cr.ciiu.code">
+            <field name="code">9512</field>
+            <field name="name">Reparación de equipos de comunicación</field>
+            <field name="section">S</field>
+        </record>
+
+        <record id="ciiu_9521" model="l10n_cr.ciiu.code">
+            <field name="code">9521</field>
+            <field name="name">Reparación de aparatos electrónicos de consumo</field>
+            <field name="section">S</field>
+        </record>
+
+        <record id="ciiu_9529" model="l10n_cr.ciiu.code">
+            <field name="code">9529</field>
+            <field name="name">Reparación de otros efectos personales y enseres domésticos</field>
+            <field name="section">S</field>
+        </record>
+
+        <record id="ciiu_9601" model="l10n_cr.ciiu.code">
+            <field name="code">9601</field>
+            <field name="name">Lavado y limpieza de prendas de tela y de piel, incluso la limpieza en seco</field>
+            <field name="section">S</field>
+        </record>
+
+        <record id="ciiu_9602" model="l10n_cr.ciiu.code">
+            <field name="code">9602</field>
+            <field name="name">Peluquería y otros tratamientos de belleza</field>
+            <field name="section">S</field>
+            <field name="description">Beauty salons, hairdressing</field>
+        </record>
+
+        <record id="ciiu_9603" model="l10n_cr.ciiu.code">
+            <field name="code">9603</field>
+            <field name="name">Pompas fúnebres y actividades conexas</field>
+            <field name="section">S</field>
+        </record>
+
+        <record id="ciiu_9609" model="l10n_cr.ciiu.code">
+            <field name="code">9609</field>
+            <field name="name">Otras actividades de servicios personales n.c.p.</field>
+            <field name="section">S</field>
+            <field name="description">Other personal services</field>
+        </record>
+
+    </data>
+</odoo>

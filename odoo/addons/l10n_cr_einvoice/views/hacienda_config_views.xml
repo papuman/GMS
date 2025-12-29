@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <!-- Company Form View Inheritance -->
+        <record id="view_company_form_inherit_hacienda" model="ir.ui.view">
+            <field name="name">res.company.form.inherit.hacienda</field>
+            <field name="model">res.company</field>
+            <field name="inherit_id" ref="base.view_company_form"/>
+            <field name="arch" type="xml">
+                <notebook position="inside">
+                    <page string="Costa Rica E-Invoicing">
+                        <group>
+                            <group string="Hacienda API Configuration">
+                                <field name="l10n_cr_hacienda_env"/>
+                                <field name="l10n_cr_hacienda_username"/>
+                                <field name="l10n_cr_hacienda_password" password="True"/>
+                            </group>
+                            <group string="Location">
+                                <field name="l10n_cr_emisor_location"/>
+                            </group>
+                        </group>
+                        <group>
+                            <group string="Digital Certificate">
+                                <field name="l10n_cr_certificate" filename="l10n_cr_certificate_filename"/>
+                                <field name="l10n_cr_certificate_filename" invisible="1"/>
+                                <field name="l10n_cr_key_password" password="True"/>
+                            </group>
+                            <group string="Automation">
+                                <field name="l10n_cr_auto_generate_einvoice"/>
+                                <field name="l10n_cr_auto_submit_einvoice"/>
+                                <field name="l10n_cr_auto_send_email"/>
+                            </group>
+                        </group>
+                    </page>
+                </notebook>
+            </field>
+        </record>
+
+    </data>
+</odoo>
