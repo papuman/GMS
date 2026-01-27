@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Sales Reports Menu -->
+    <menuitem id="menu_sales_reports"
+              name="Reportes de Ventas"
+              parent="menu_hacienda_reports"
+              sequence="20"/>
+
+    <!-- Invoice Summary Report Action -->
+    <record id="action_invoice_summary_report" model="ir.actions.server">
+        <field name="name">Resumen de Facturación</field>
+        <field name="model_id" ref="model_l10n_cr_einvoice_document"/>
+        <field name="state">code</field>
+        <field name="code">
+action = {
+    'type': 'ir.actions.act_window',
+    'name': 'Resumen de Facturación',
+    'res_model': 'l10n_cr.einvoice.summary.wizard',
+    'view_mode': 'form',
+    'target': 'new',
+}
+        </field>
+    </record>
+
+    <menuitem id="menu_invoice_summary_report"
+              name="Resumen de Facturación"
+              parent="menu_sales_reports"
+              action="action_invoice_summary_report"
+              sequence="10"/>
+
+    <!-- Revenue Analysis Report Action -->
+    <record id="action_revenue_analysis_report" model="ir.actions.server">
+        <field name="name">Análisis de Ingresos</field>
+        <field name="model_id" ref="model_l10n_cr_einvoice_document"/>
+        <field name="state">code</field>
+        <field name="code">
+action = {
+    'type': 'ir.actions.act_window',
+    'name': 'Análisis de Ingresos',
+    'res_model': 'l10n_cr.einvoice.revenue.wizard',
+    'view_mode': 'form',
+    'target': 'new',
+}
+        </field>
+    </record>
+
+    <menuitem id="menu_revenue_analysis_report"
+              name="Análisis de Ingresos"
+              parent="menu_sales_reports"
+              action="action_revenue_analysis_report"
+              sequence="20"/>
+
+    <!-- Tax Collection Report Action -->
+    <record id="action_tax_collection_report" model="ir.actions.server">
+        <field name="name">Recaudación de Impuestos</field>
+        <field name="model_id" ref="model_l10n_cr_einvoice_document"/>
+        <field name="state">code</field>
+        <field name="code">
+action = {
+    'type': 'ir.actions.act_window',
+    'name': 'Recaudación de Impuestos',
+    'res_model': 'l10n_cr.einvoice.tax.wizard',
+    'view_mode': 'form',
+    'target': 'new',
+}
+        </field>
+    </record>
+
+    <menuitem id="menu_tax_collection_report"
+              name="Recaudación de Impuestos"
+              parent="menu_sales_reports"
+              action="action_tax_collection_report"
+              sequence="30"/>
+
+    <!-- Payment Method Report Action -->
+    <record id="action_payment_method_report" model="ir.actions.server">
+        <field name="name">Métodos de Pago"</field>
+        <field name="model_id" ref="model_l10n_cr_einvoice_document"/>
+        <field name="state">code</field>
+        <field name="code">
+action = {
+    'type': 'ir.actions.act_window',
+    'name': 'Análisis Métodos de Pago',
+    'res_model': 'l10n_cr.einvoice.payment.wizard',
+    'view_mode': 'form',
+    'target': 'new',
+}
+        </field>
+    </record>
+
+    <menuitem id="menu_payment_method_report"
+              name="Métodos de Pago"
+              parent="menu_sales_reports"
+              action="action_payment_method_report"
+              sequence="40"/>
+
+    <!-- Customer Transaction Report Action -->
+    <record id="action_customer_transaction_report" model="ir.actions.server">
+        <field name="name">Historial de Cliente</field>
+        <field name="model_id" ref="model_l10n_cr_einvoice_document"/>
+        <field name="state">code</field>
+        <field name="code">
+action = {
+    'type': 'ir.actions.act_window',
+    'name': 'Historial de Transacciones',
+    'res_model': 'l10n_cr.einvoice.customer.wizard',
+    'view_mode': 'form',
+    'target': 'new',
+}
+        </field>
+    </record>
+
+    <menuitem id="menu_customer_transaction_report"
+              name="Historial de Cliente"
+              parent="menu_sales_reports"
+              action="action_customer_transaction_report"
+              sequence="50"/>
+
+</odoo>

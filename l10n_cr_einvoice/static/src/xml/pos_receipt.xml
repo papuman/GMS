@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates id="template" xml:space="preserve">
+
+    <t t-inherit="point_of_sale.OrderReceipt" t-inherit-mode="extension">
+        <!-- Add Clave and QR Code after the contact info (or footer) -->
+        <xpath expr="//div[hasclass('pos-receipt-contact')]" position="after">
+            <t t-if="receipt.l10n_cr_clave">
+                <div class="pos-receipt-center-align" style="margin-top: 20px; border-top: 1px dashed black; padding-top: 10px;">
+                    <div><strong>Documento Electrónico</strong></div>
+                    <div style="font-size: 11px; font-family: monospace; word-break: break-all;">
+                        <t t-esc="receipt.l10n_cr_clave"/>
+                    </div>
+                </div>
+            </t>
+            <t t-if="receipt.l10n_cr_qr_code">
+                <div class="pos-receipt-center-align" style="margin-top: 10px;">
+                    <img t-att-src="'data:image/png;base64,' + receipt.l10n_cr_qr_code" 
+                         style="width: 120px; height: 120px;"/>
+                </div>
+            </t>
+        </xpath>
+    </t>
+
+</templates>

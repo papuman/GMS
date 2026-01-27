@@ -25,6 +25,20 @@ Features:
   - Notas de Crédito (NC)
   - Notas de Débito (ND)
   - Tiquetes Electrónicos (TE)
+* Payment Method Tracking (Phase 1A):
+  - 5 payment methods (Efectivo, Tarjeta, Cheque, Transferencia, SINPE Móvil)
+  - Transaction ID support for SINPE Móvil
+  - XML v4.4 generation with payment method codes
+* Discount Codes Catalog (Phase 1B):
+  - 11 official Hacienda discount codes (01-10, 99)
+  - Discount code validation on invoice lines
+  - Code "99" requires description
+  - XML v4.4 generation with discount codes
+* Recipient Economic Activity (Phase 1C):
+  - 100+ CIIU 4 economic activity codes catalog
+  - Smart code suggestions based on partner category
+  - Bulk assignment wizard for mass updates
+  - Grace period enforcement (mandatory Oct 6, 2025)
 
 Requirements:
 -------------
@@ -56,11 +70,22 @@ Requirements:
         # Security
         'security/ir.model.access.csv',
 
-        # Data
+        # Data (load BEFORE views to ensure catalog exists)
+        'data/document_types.xml',
+        'data/ciiu_codes.xml',
+        'data/payment_methods.xml',
+        'data/discount_codes.xml',
         'data/hacienda_sequences.xml',
+        'data/pos_sequences.xml',
+        'data/tax_report_sequences.xml',
         'data/email_templates.xml',
+        'data/void_confirmation_email.xml',
+        'data/hacienda_cron_jobs.xml',
+        'data/report_cron_jobs.xml',
+        'data/tax_report_cron_jobs.xml',
 
         # Views - Order matters for dependencies
+        'views/res_partner_views.xml',
         'views/einvoice_document_views.xml',
         'views/account_move_views.xml',
         'views/res_config_settings_views.xml',
@@ -68,6 +93,7 @@ Requirements:
         'views/hacienda_menu.xml',
         'views/einvoice_wizard_views.xml',
         'views/einvoice_dashboard_views.xml',
+        'views/ciiu_bulk_assign_views.xml',
 
         # Reports
         'reports/einvoice_report_templates.xml',

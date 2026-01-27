@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo noupdate="1">
+
+        <!-- Cron Job: Automatic Status Polling -->
+        <record id="ir_cron_poll_pending_documents" model="ir.cron">
+            <field name="name">E-Invoice: Poll Pending Documents</field>
+            <field name="model_id" ref="model_l10n_cr_einvoice_document"/>
+            <field name="state">code</field>
+            <field name="code">model._cron_poll_pending_documents()</field>
+            <field name="interval_number">15</field>
+            <field name="interval_type">minutes</field>
+            <field name="numbercall">-1</field>
+            <field name="active" eval="True"/>
+            <field name="doall" eval="False"/>
+            <field name="priority">5</field>
+        </record>
+
+        <!-- Cron Job: Process Retry Queue -->
+        <record id="ir_cron_process_retry_queue" model="ir.cron">
+            <field name="name">E-Invoice: Process Retry Queue</field>
+            <field name="model_id" ref="model_l10n_cr_einvoice_retry_queue"/>
+            <field name="state">code</field>
+            <field name="code">model._cron_process_retry_queue()</field>
+            <field name="interval_number">5</field>
+            <field name="interval_type">minutes</field>
+            <field name="numbercall">-1</field>
+            <field name="active" eval="True"/>
+            <field name="doall" eval="False"/>
+            <field name="priority">10</field>
+        </record>
+
+        <!-- Cron Job: Cleanup Old Response Messages -->
+        <record id="ir_cron_cleanup_response_messages" model="ir.cron">
+            <field name="name">E-Invoice: Cleanup Old Response Messages</field>
+            <field name="model_id" ref="model_l10n_cr_hacienda_response_message"/>
+            <field name="state">code</field>
+            <field name="code">
+# Get retention period from company settings (default 90 days)
+company = env.company
+days = company.l10n_cr_response_retention_days or 90
+model.cleanup_old_messages(days=days)
+            </field>
+            <field name="interval_number">1</field>
+            <field name="interval_type">days</field>
+            <field name="numbercall">-1</field>
+            <field name="active" eval="True"/>
+            <field name="doall" eval="False"/>
+            <field name="priority">20</field>
+            <field name="nextcall" eval="(DateTime.now() + timedelta(days=1)).strftime('%Y-%m-%d 02:00:00')"/>
+        </record>
+
+        <!-- Cron Job: Cleanup Old Retry Queue Entries -->
+        <record id="ir_cron_cleanup_retry_queue" model="ir.cron">
+            <field name="name">E-Invoice: Cleanup Old Retry Queue</field>
+            <field name="model_id" ref="model_l10n_cr_einvoice_retry_queue"/>
+            <field name="state">code</field>
+            <field name="code">model._cleanup_old_entries(days=30)</field>
+            <field name="interval_number">1</field>
+            <field name="interval_type">days</field>
+            <field name="numbercall">-1</field>
+            <field name="active" eval="True"/>
+            <field name="doall" eval="False"/>
+            <field name="priority">20</field>
+            <field name="nextcall" eval="(DateTime.now() + timedelta(days=1)).strftime('%Y-%m-%d 03:00:00')"/>
+        </record>
+
+
+</odoo>

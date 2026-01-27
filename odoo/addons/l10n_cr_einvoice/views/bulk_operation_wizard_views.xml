@@ -1,0 +1,159 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Bulk Sign Wizard Form View -->
+    <record id="view_bulk_sign_wizard_form" model="ir.ui.view">
+        <field name="name">l10n_cr.bulk.sign.wizard.form</field>
+        <field name="model">l10n_cr.bulk.sign.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Bulk Sign Documents">
+                <group>
+                    <group>
+                        <field name="total_documents" readonly="1"/>
+                        <field name="continue_on_error"/>
+                    </group>
+                    <group>
+                        <p class="text-muted">
+                            This wizard will sign all selected documents with the company's digital certificate.
+                            Documents must be in "Generated" state to be signed.
+                        </p>
+                    </group>
+                </group>
+
+                <group string="Documents to Sign">
+                    <field name="document_ids" nolabel="1">
+                        <list string="Documents">
+                            <field name="name"/>
+                            <field name="document_type"/>
+                            <field name="partner_id"/>
+                            <field name="state"/>
+                        </list>
+                    </field>
+                </group>
+
+                <footer>
+                    <button name="action_sign_documents" string="Sign Documents" type="object" class="btn-primary"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <!-- Bulk Submit Wizard Form View -->
+    <record id="view_bulk_submit_wizard_form" model="ir.ui.view">
+        <field name="name">l10n_cr.bulk.submit.wizard.form</field>
+        <field name="model">l10n_cr.bulk.submit.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Bulk Submit Documents">
+                <group>
+                    <group>
+                        <field name="total_documents" readonly="1"/>
+                        <field name="continue_on_error"/>
+                    </group>
+                    <group>
+                        <field name="batch_size"/>
+                        <field name="delay_between_batches"/>
+                    </group>
+                </group>
+
+                <group>
+                    <p class="text-muted">
+                        This wizard will submit all selected documents to Hacienda in batches.
+                        Documents must be in "Signed" state to be submitted.
+                        Rate limiting is applied to avoid API throttling.
+                    </p>
+                </group>
+
+                <group string="Documents to Submit">
+                    <field name="document_ids" nolabel="1">
+                        <list string="Documents">
+                            <field name="name"/>
+                            <field name="document_type"/>
+                            <field name="partner_id"/>
+                            <field name="state"/>
+                        </list>
+                    </field>
+                </group>
+
+                <footer>
+                    <button name="action_submit_documents" string="Submit to Hacienda" type="object" class="btn-primary"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <!-- Bulk Status Check Wizard Form View -->
+    <record id="view_bulk_status_check_wizard_form" model="ir.ui.view">
+        <field name="name">l10n_cr.bulk.status.check.wizard.form</field>
+        <field name="model">l10n_cr.bulk.status.check.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Bulk Check Status">
+                <group>
+                    <group>
+                        <field name="total_documents" readonly="1"/>
+                        <field name="continue_on_error"/>
+                    </group>
+                    <group>
+                        <field name="batch_size"/>
+                        <field name="delay_between_batches"/>
+                    </group>
+                </group>
+
+                <group>
+                    <p class="text-muted">
+                        This wizard will check the status of all selected documents with Hacienda.
+                        Documents must be in "Submitted" state to check their status.
+                        Rate limiting is applied to avoid API throttling.
+                    </p>
+                </group>
+
+                <group string="Documents to Check">
+                    <field name="document_ids" nolabel="1">
+                        <list string="Documents">
+                            <field name="name"/>
+                            <field name="document_type"/>
+                            <field name="partner_id"/>
+                            <field name="state"/>
+                            <field name="hacienda_submission_date"/>
+                        </list>
+                    </field>
+                </group>
+
+                <footer>
+                    <button name="action_check_status" string="Check Status" type="object" class="btn-primary"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <!-- Actions for Bulk Operations -->
+    <record id="action_bulk_sign_wizard" model="ir.actions.act_window">
+        <field name="name">Bulk Sign Documents</field>
+        <field name="res_model">l10n_cr.bulk.sign.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+        <field name="binding_model_id" ref="model_l10n_cr_einvoice_document"/>
+        <field name="binding_view_types">list</field>
+    </record>
+
+    <record id="action_bulk_submit_wizard" model="ir.actions.act_window">
+        <field name="name">Bulk Submit to Hacienda</field>
+        <field name="res_model">l10n_cr.bulk.submit.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+        <field name="binding_model_id" ref="model_l10n_cr_einvoice_document"/>
+        <field name="binding_view_types">list</field>
+    </record>
+
+    <record id="action_bulk_status_check_wizard" model="ir.actions.act_window">
+        <field name="name">Bulk Check Status</field>
+        <field name="res_model">l10n_cr.bulk.status.check.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+        <field name="binding_model_id" ref="model_l10n_cr_einvoice_document"/>
+        <field name="binding_view_types">list</field>
+    </record>
+
+</odoo>

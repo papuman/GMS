@@ -1,0 +1,34 @@
+# Python dependencies for Costa Rica E-Invoicing Module
+# Version: 19.0.1.8.0
+
+# XML Processing and Validation
+lxml==5.1.0
+xmlschema==3.0.1
+
+# Cryptography and Digital Signatures
+cryptography==42.0.2
+pyOpenSSL==24.0.0
+
+# HTTP Client for Hacienda API
+requests==2.31.0
+urllib3==2.1.0
+
+# QR Code Generation
+qrcode==7.4.2
+Pillow==10.2.0
+
+# Data Processing
+python-dateutil==2.8.2
+
+# PDF Generation (already in Odoo but pinning version)
+reportlab==4.0.9
+
+# Optional: Performance and Monitoring
+redis==5.0.1  # For caching
+prometheus-client==0.19.0  # For metrics export
+
+# Optional: Enhanced logging
+python-json-logger==2.0.7
+
+# Security: Pin all dependencies to specific versions
+# Update regularly for security patches

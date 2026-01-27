@@ -1,0 +1,425 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Import Wizard Form View -->
+    <record id="view_einvoice_import_wizard_form" model="ir.ui.view">
+        <field name="name">l10n_cr.einvoice.import.wizard.form</field>
+        <field name="model">l10n_cr.einvoice.import.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Import Historical Invoices">
+                <header>
+                    <button name="action_start_import" string="Start Import" type="object"
+                            class="oe_highlight" invisible="state != 'upload'"/>
+                    <button name="action_view_batch" string="View Batch Details" type="object"
+                            invisible="state != 'done'" class="btn-primary"/>
+                    <button name="action_view_invoices" string="View Invoices" type="object"
+                            invisible="state != 'done' or successful_imports == 0" class="btn-success"/>
+                    <button name="action_view_errors" string="View Errors" type="object"
+                            invisible="state != 'done' or failed_imports == 0" class="btn-warning"/>
+                    <button name="action_close" string="Close" type="object"
+                            invisible="state != 'done'"/>
+                    <field name="state" widget="statusbar" statusbar_visible="upload,processing,done"/>
+                </header>
+
+                <sheet>
+                    <!-- Upload State -->
+                    <div invisible="state != 'upload'">
+                        <div class="oe_title">
+                            <h1>Import Historical Invoices</h1>
+                            <p class="o_form_subtitle">
+                                Import invoices from your previous e-invoicing system
+                            </p>
+                        </div>
+
+                        <group>
+                            <group>
+                                <field name="upload_file" filename="file_name" required="1"/>
+                                <field name="file_name" invisible="1"/>
+                            </group>
+                            <group>
+                                <field name="original_provider"/>
+                                <field name="other_provider_name" invisible="original_provider != 'other'"
+                                       required="original_provider == 'other'"/>
+                            </group>
+                        </group>
+
+                        <group string="Import Options">
+                            <group>
+                                <field name="skip_duplicates"/>
+                                <field name="auto_create_partners"/>
+                            </group>
+                            <group>
+                                <field name="auto_create_products"/>
+                                <field name="validate_signatures"/>
+                            </group>
+                        </group>
+
+                        <div class="alert alert-info" role="alert">
+                            <h4><i class="fa fa-info-circle"/> Requirements</h4>
+                            <ul>
+                                <li>File must be a ZIP archive containing XML files</li>
+                                <li>XML files must be Costa Rica e-invoice format v4.4</li>
+                                <li>Supported document types: FE, TE, NC, ND</li>
+                                <li>Maximum file size: 100 MB</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <!-- Processing State -->
+                    <div invisible="state != 'processing'">
+                        <div class="oe_title">
+                            <h1>Processing Import...</h1>
+                        </div>
+
+                        <group>
+                            <group>
+                                <field name="total_files" readonly="1"/>
+                                <field name="processed_files" readonly="1"/>
+                            </group>
+                            <group>
+                                <field name="successful_imports" readonly="1"/>
+                                <field name="failed_imports" readonly="1"/>
+                                <field name="skipped_duplicates" readonly="1"/>
+                            </group>
+                        </group>
+
+                        <field name="progress_percentage" widget="progressbar"/>
+
+                        <div class="alert alert-warning" role="alert">
+                            <p><i class="fa fa-spinner fa-spin"/> Please wait while we import your invoices.
+                            This may take several minutes depending on the number of files.</p>
+                        </div>
+                    </div>
+
+                    <!-- Done State -->
+                    <div invisible="state != 'done'">
+                        <div class="oe_title">
+                            <h1>Import Complete</h1>
+                        </div>
+
+                        <field name="result_message" nolabel="1" readonly="1"/>
+
+                        <group>
+                            <group>
+                                <field name="total_files" readonly="1"/>
+                                <field name="successful_imports" readonly="1"/>
+                            </group>
+                            <group>
+                                <field name="failed_imports" readonly="1"/>
+                                <field name="skipped_duplicates" readonly="1"/>
+                            </group>
+                        </group>
+
+                        <field name="error_details" invisible="not error_details" readonly="1" nolabel="1"/>
+                    </div>
+
+                    <!-- Hidden fields -->
+                    <field name="batch_id" invisible="1"/>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- Import Batch Tree View -->
+    <record id="view_einvoice_import_batch_list" model="ir.ui.view">
+        <field name="name">l10n_cr.einvoice.import.batch.list</field>
+        <field name="model">l10n_cr.einvoice.import.batch</field>
+        <field name="arch" type="xml">
+            <list decoration-success="state == 'done'" decoration-danger="state == 'error'"
+                  decoration-muted="state == 'draft'">
+                <field name="name"/>
+                <field name="original_provider"/>
+                <field name="total_files"/>
+                <field name="successful_imports"/>
+                <field name="failed_imports"/>
+                <field name="skipped_duplicates"/>
+                <field name="progress_percentage" widget="progressbar"/>
+                <field name="duration"/>
+                <field name="state" widget="badge"
+                       decoration-success="state == 'done'"
+                       decoration-danger="state == 'error'"
+                       decoration-warning="state == 'processing'"
+                       decoration-muted="state == 'draft'"/>
+                <field name="create_date"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Import Batch Form View -->
+    <record id="view_einvoice_import_batch_form" model="ir.ui.view">
+        <field name="name">l10n_cr.einvoice.import.batch.form</field>
+        <field name="model">l10n_cr.einvoice.import.batch</field>
+        <field name="arch" type="xml">
+            <form string="Import Batch">
+                <header>
+                    <button name="action_view_invoices" string="View Invoices" type="object"
+                            class="btn-primary" invisible="successful_imports == 0"/>
+                    <button name="action_view_errors" string="View Errors" type="object"
+                            class="btn-warning" invisible="failed_imports == 0"/>
+                    <button name="action_export_error_report" string="Export Error Report" type="object"
+                            class="btn-secondary" invisible="failed_imports == 0"/>
+                    <field name="state" widget="statusbar"/>
+                </header>
+
+                <sheet>
+                    <div class="oe_title">
+                        <h1><field name="name" readonly="1"/></h1>
+                    </div>
+
+                    <group>
+                        <group>
+                            <field name="company_id" readonly="1"/>
+                            <field name="original_provider" readonly="1"/>
+                            <field name="file_name" readonly="1"/>
+                        </group>
+                        <group>
+                            <field name="start_time" readonly="1"/>
+                            <field name="end_time" readonly="1"/>
+                            <field name="duration" readonly="1" widget="float_time"/>
+                        </group>
+                    </group>
+
+                    <group string="Import Statistics">
+                        <group>
+                            <field name="total_files" readonly="1"/>
+                            <field name="processed_files" readonly="1"/>
+                            <field name="progress_percentage" widget="progressbar" readonly="1"/>
+                        </group>
+                        <group>
+                            <field name="successful_imports" readonly="1"/>
+                            <field name="failed_imports" readonly="1"/>
+                            <field name="skipped_duplicates" readonly="1"/>
+                        </group>
+                    </group>
+
+                    <notebook>
+                        <page string="Imported Invoices" invisible="successful_imports == 0">
+                            <field name="invoice_ids" readonly="1">
+                                <list>
+                                    <field name="name"/>
+                                    <field name="partner_id"/>
+                                    <field name="invoice_date"/>
+                                    <field name="amount_total"/>
+                                    <field name="l10n_cr_original_clave"/>
+                                </list>
+                            </field>
+                        </page>
+
+                        <page string="Errors" invisible="failed_imports == 0">
+                            <field name="import_error_ids" readonly="1">
+                                <list decoration-bf="not is_resolved">
+                                    <field name="file_name"/>
+                                    <field name="error_type"/>
+                                    <field name="severity" widget="badge"
+                                           decoration-danger="severity == 'critical'"
+                                           decoration-warning="severity == 'high'"
+                                           decoration-info="severity == 'medium'"/>
+                                    <field name="error_category"/>
+                                    <field name="can_retry" invisible="1"/>
+                                    <field name="is_resolved"/>
+                                    <button name="action_retry_import" string="Retry" type="object"
+                                            icon="fa-refresh" invisible="not can_retry or is_resolved"/>
+                                </list>
+                            </field>
+                        </page>
+
+                        <page string="Notes">
+                            <field name="notes"/>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- Import Error Tree View -->
+    <record id="view_einvoice_import_error_list" model="ir.ui.view">
+        <field name="name">l10n_cr.einvoice.import.error.list</field>
+        <field name="model">l10n_cr.einvoice.import.error</field>
+        <field name="arch" type="xml">
+            <list decoration-muted="is_resolved">
+                <field name="batch_id"/>
+                <field name="file_name"/>
+                <field name="error_type"/>
+                <field name="error_category"/>
+                <field name="severity" widget="badge"
+                       decoration-danger="severity == 'critical'"
+                       decoration-warning="severity == 'high'"
+                       decoration-info="severity == 'medium'"/>
+                <field name="clave"/>
+                <field name="retry_count"/>
+                <field name="can_retry" invisible="1"/>
+                <field name="is_resolved"/>
+                <field name="create_date"/>
+                <button name="action_retry_import" string="Retry" type="object"
+                        icon="fa-refresh" invisible="not can_retry or is_resolved"/>
+                <button name="action_download_xml" string="Download XML" type="object"
+                        icon="fa-download"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Import Error Form View -->
+    <record id="view_einvoice_import_error_form" model="ir.ui.view">
+        <field name="name">l10n_cr.einvoice.import.error.form</field>
+        <field name="model">l10n_cr.einvoice.import.error</field>
+        <field name="arch" type="xml">
+            <form string="Import Error">
+                <header>
+                    <button name="action_retry_import" string="Retry Import" type="object"
+                            class="btn-primary" invisible="not can_retry or is_resolved"/>
+                    <button name="action_download_xml" string="Download XML" type="object"
+                            class="btn-secondary"/>
+                    <button name="action_mark_resolved" string="Mark as Resolved" type="object"
+                            class="btn-success" invisible="is_resolved"/>
+                </header>
+
+                <sheet>
+                    <div class="oe_title">
+                        <h1><field name="file_name" readonly="1"/></h1>
+                    </div>
+
+                    <div class="oe_button_box" name="button_box">
+                        <field name="severity" widget="badge"
+                               decoration-danger="severity == 'critical'"
+                               decoration-warning="severity == 'high'"
+                               decoration-info="severity == 'medium'"/>
+                        <field name="error_category" widget="badge"/>
+                    </div>
+
+                    <group>
+                        <group>
+                            <field name="batch_id" readonly="1"/>
+                            <field name="error_type" readonly="1"/>
+                            <field name="is_resolved"/>
+                            <field name="can_retry"/>
+                        </group>
+                        <group>
+                            <field name="clave" readonly="1"/>
+                            <field name="consecutive" readonly="1"/>
+                            <field name="retry_count" readonly="1"/>
+                            <field name="last_retry_date" readonly="1"/>
+                        </group>
+                    </group>
+
+                    <group string="Error Details">
+                        <field name="error_message" readonly="1" nolabel="1"/>
+                    </group>
+
+                    <group string="Context" invisible="not error_context">
+                        <field name="error_context" readonly="1" nolabel="1"/>
+                    </group>
+
+                    <group string="Suggested Action">
+                        <div class="alert alert-info">
+                            <field name="suggested_action" readonly="1" nolabel="1"/>
+                        </div>
+                    </group>
+
+                    <group string="Resolution">
+                        <field name="resolution_notes"/>
+                    </group>
+
+                    <group string="Technical Details" groups="base.group_no_one">
+                        <notebook>
+                            <page string="Stack Trace" invisible="not stack_trace">
+                                <field name="stack_trace" readonly="1" nolabel="1" widget="text"/>
+                            </page>
+                            <page string="XML Content" invisible="not xml_content">
+                                <field name="xml_content" filename="xml_file_name"/>
+                            </page>
+                        </notebook>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- Error Search View with Filters -->
+    <record id="view_einvoice_import_error_search" model="ir.ui.view">
+        <field name="name">l10n_cr.einvoice.import.error.search</field>
+        <field name="model">l10n_cr.einvoice.import.error</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="file_name"/>
+                <field name="clave"/>
+                <field name="batch_id"/>
+                <separator/>
+                <filter string="Unresolved" name="unresolved" domain="[('is_resolved', '=', False)]"/>
+                <filter string="Resolved" name="resolved" domain="[('is_resolved', '=', True)]"/>
+                <separator/>
+                <filter string="Can Retry" name="can_retry" domain="[('can_retry', '=', True)]"/>
+                <separator/>
+                <filter string="Critical" name="critical" domain="[('severity', '=', 'critical')]"/>
+                <filter string="High" name="high" domain="[('severity', '=', 'high')]"/>
+                <filter string="Medium" name="medium" domain="[('severity', '=', 'medium')]"/>
+                <filter string="Low" name="low" domain="[('severity', '=', 'low')]"/>
+                <separator/>
+                <group expand="0" string="Group By">
+                    <filter string="Error Type" name="group_error_type" context="{'group_by': 'error_type'}"/>
+                    <filter string="Error Category" name="group_category" context="{'group_by': 'error_category'}"/>
+                    <filter string="Severity" name="group_severity" context="{'group_by': 'severity'}"/>
+                    <filter string="Batch" name="group_batch" context="{'group_by': 'batch_id'}"/>
+                    <filter string="Status" name="group_status" context="{'group_by': 'is_resolved'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- Actions -->
+    <record id="action_einvoice_import_wizard" model="ir.actions.act_window">
+        <field name="name">Import Historical Invoices</field>
+        <field name="res_model">l10n_cr.einvoice.import.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+        <field name="binding_model_id" ref="model_l10n_cr_einvoice_import_wizard"/>
+    </record>
+
+    <record id="action_einvoice_import_batch" model="ir.actions.act_window">
+        <field name="name">Import Batches</field>
+        <field name="res_model">l10n_cr.einvoice.import.batch</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+    <record id="action_einvoice_import_error" model="ir.actions.act_window">
+        <field name="name">Import Errors</field>
+        <field name="res_model">l10n_cr.einvoice.import.error</field>
+        <field name="view_mode">list,form</field>
+        <field name="context">{'search_default_unresolved': 1}</field>
+    </record>
+
+    <!-- Server Action for Bulk Retry -->
+    <record id="action_bulk_retry_errors" model="ir.actions.server">
+        <field name="name">Retry Selected Errors</field>
+        <field name="model_id" ref="model_l10n_cr_einvoice_import_error"/>
+        <field name="binding_model_id" ref="model_l10n_cr_einvoice_import_error"/>
+        <field name="binding_view_types">list</field>
+        <field name="state">code</field>
+        <field name="code">
+action = records.action_bulk_retry()
+        </field>
+    </record>
+
+    <!-- Menu Items -->
+    <menuitem id="menu_einvoice_import"
+              name="Import"
+              parent="hacienda_menu"
+              sequence="50"/>
+
+    <menuitem id="menu_einvoice_import_wizard"
+              name="Import Historical Invoices"
+              parent="menu_einvoice_import"
+              action="action_einvoice_import_wizard"
+              sequence="10"/>
+
+    <menuitem id="menu_einvoice_import_batch"
+              name="Import Batches"
+              parent="menu_einvoice_import"
+              action="action_einvoice_import_batch"
+              sequence="20"/>
+
+    <menuitem id="menu_einvoice_import_error"
+              name="Import Errors"
+              parent="menu_einvoice_import"
+              action="action_einvoice_import_error"
+              sequence="30"/>
+</odoo>

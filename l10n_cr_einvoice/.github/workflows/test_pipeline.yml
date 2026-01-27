@@ -1,0 +1,264 @@
+name: Test Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+env:
+  PYTHON_VERSION: '3.11'
+  ODOO_VERSION: '19.0'
+
+jobs:
+  lint:
+    name: Code Quality Checks
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install linting tools
+        run: |
+          python -m pip install --upgrade pip
+          pip install pylint flake8 black isort mypy
+
+      - name: Run Black (code formatting)
+        run: |
+          black --check --diff models/ wizards/ tests/
+
+      - name: Run isort (import sorting)
+        run: |
+          isort --check-only --diff models/ wizards/ tests/
+
+      - name: Run Flake8 (style guide)
+        run: |
+          flake8 models/ wizards/ tests/ --max-line-length=120 --extend-ignore=E501,W503
+
+      - name: Run Pylint (code analysis)
+        run: |
+          pylint models/ wizards/ tests/ --max-line-length=120 --disable=C0114,C0115,C0116
+        continue-on-error: true
+
+  security:
+    name: Security Scanning
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install security tools
+        run: |
+          pip install bandit safety
+
+      - name: Run Bandit (security linter)
+        run: |
+          bandit -r models/ wizards/ -ll
+
+      - name: Check dependencies for vulnerabilities
+        run: |
+          pip install -r docker/requirements.txt
+          safety check --json
+        continue-on-error: true
+
+      - name: Run Trivy (container scanning)
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+
+  unit-tests:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_DB: test_odoo
+          POSTGRES_USER: odoo
+          POSTGRES_PASSWORD: odoo
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            wkhtmltopdf \
+            python3-dev \
+            libxml2-dev \
+            libxslt1-dev \
+            libjpeg-dev \
+            libpq-dev
+
+      - name: Install Odoo and dependencies
+        run: |
+          pip install --upgrade pip
+          pip install odoo==${{ env.ODOO_VERSION }}
+          pip install -r docker/requirements.txt
+          pip install pytest pytest-cov pytest-odoo
+
+      - name: Run unit tests
+        env:
+          PGHOST: localhost
+          PGPORT: 5432
+          PGUSER: odoo
+          PGPASSWORD: odoo
+          PGDATABASE: test_odoo
+        run: |
+          # Run Odoo tests for this module
+          pytest tests/ -v --cov=models --cov=wizards --cov-report=xml --cov-report=html
+
+      - name: Upload coverage reports
+        uses: codecov/codecov-action@v3
+        with:
+          files: ./coverage.xml
+          flags: unittests
+          name: codecov-umbrella
+
+  integration-tests:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker image
+        run: |
+          cd docker
+          docker-compose build
+
+      - name: Start services
+        run: |
+          cd docker
+          cp .env.example .env
+          docker-compose up -d
+
+      - name: Wait for services
+        run: |
+          timeout 120 bash -c 'until curl -f http://localhost/web/health; do sleep 2; done'
+
+      - name: Run integration tests
+        run: |
+          docker-compose exec -T odoo pytest /mnt/extra-addons/l10n_cr_einvoice/tests/ -v -m integration
+
+      - name: Check logs for errors
+        if: failure()
+        run: |
+          cd docker
+          docker-compose logs odoo
+
+      - name: Cleanup
+        if: always()
+        run: |
+          cd docker
+          docker-compose down -v
+
+  xml-validation:
+    name: XML Schema Validation
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install dependencies
+        run: |
+          pip install lxml xmlschema
+
+      - name: Validate XML data files
+        run: |
+          python3 -c "
+          import os
+          from lxml import etree
+
+          data_dir = 'data'
+          errors = []
+
+          for filename in os.listdir(data_dir):
+              if filename.endswith('.xml'):
+                  filepath = os.path.join(data_dir, filename)
+                  try:
+                      etree.parse(filepath)
+                      print(f'✓ {filename} is valid')
+                  except Exception as e:
+                      errors.append(f'✗ {filename}: {e}')
+
+          if errors:
+              for error in errors:
+                  print(error)
+              exit(1)
+          "
+
+  test-coverage:
+    name: Test Coverage Report
+    runs-on: ubuntu-latest
+    needs: [unit-tests]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download coverage reports
+        uses: actions/download-artifact@v3
+        with:
+          name: coverage-report
+
+      - name: Generate coverage badge
+        run: |
+          echo "Coverage badge generation would go here"
+
+  build-summary:
+    name: Build Summary
+    runs-on: ubuntu-latest
+    needs: [lint, security, unit-tests, integration-tests, xml-validation]
+    if: always()
+    steps:
+      - name: Check all jobs
+        run: |
+          echo "All test jobs completed"
+          echo "Lint: ${{ needs.lint.result }}"
+          echo "Security: ${{ needs.security.result }}"
+          echo "Unit Tests: ${{ needs.unit-tests.result }}"
+          echo "Integration Tests: ${{ needs.integration-tests.result }}"
+          echo "XML Validation: ${{ needs.xml-validation.result }}"
+
+      - name: Fail if any job failed
+        if: |
+          needs.lint.result == 'failure' ||
+          needs.unit-tests.result == 'failure' ||
+          needs.integration-tests.result == 'failure' ||
+          needs.xml-validation.result == 'failure'
+        run: exit 1

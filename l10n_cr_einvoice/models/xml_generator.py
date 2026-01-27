@@ -38,22 +38,34 @@ class XMLGenerator(models.AbstractModel):
             str: XML content
         """
         doc_type = einvoice.document_type
-        move = einvoice.move_id
+
+        # Get source document (either account.move or pos.order)
+        if einvoice.move_id:
+            source_doc = einvoice.move_id
+        elif einvoice.pos_order_id:
+            source_doc = einvoice.pos_order_id
+        else:
+            raise ValidationError(_('E-invoice must have either an Invoice or POS Order linked.'))
 
         # Select the appropriate generator method
         if doc_type == 'FE':
-            return self._generate_factura_electronica(einvoice, move)
+            return self._generate_factura_electronica(einvoice, source_doc)
         elif doc_type == 'TE':
-            return self._generate_tiquete_electronico(einvoice, move)
+            return self._generate_tiquete_electronico(einvoice, source_doc)
         elif doc_type == 'NC':
-            return self._generate_nota_credito(einvoice, move)
+            return self._generate_nota_credito(einvoice, source_doc)
         elif doc_type == 'ND':
-            return self._generate_nota_debito(einvoice, move)
+            return self._generate_nota_debito(einvoice, source_doc)
         else:
             raise ValidationError(_('Unknown document type: %s') % doc_type)
 
-    def _generate_factura_electronica(self, einvoice, move):
-        """Generate Factura Electrónica (FE) XML."""
+    def _generate_factura_electronica(self, einvoice, source_doc):
+        """Generate Factura Electrónica (FE) XML.
+
+        Args:
+            einvoice: l10n_cr.einvoice.document record
+            source_doc: account.move or pos.order record
+        """
         # Create root element with namespace
         ns = self.NAMESPACES['fe']
         root = etree.Element(
@@ -65,7 +77,7 @@ class XMLGenerator(models.AbstractModel):
         etree.SubElement(root, 'Clave').text = einvoice.clave
 
         # 2. CodigoActividad (economic activity code)
-        codigo_actividad = move.company_id.l10n_cr_activity_code or '861201'
+        codigo_actividad = source_doc.company_id.l10n_cr_activity_code or '861201'
         etree.SubElement(root, 'CodigoActividad').text = codigo_actividad
 
         # 3. NumeroConsecutivo (consecutive number)
@@ -73,28 +85,32 @@ class XMLGenerator(models.AbstractModel):
         etree.SubElement(root, 'NumeroConsecutivo').text = numero
 
         # 4. FechaEmision (emission date/time)
-        fecha_emision = move.invoice_date or fields.Date.today()
+        # Handle both account.move (invoice_date) and pos.order (date_order)
+        if hasattr(source_doc, 'invoice_date'):
+            fecha_emision = source_doc.invoice_date or fields.Date.today()
+        else:
+            fecha_emision = source_doc.date_order.date() if source_doc.date_order else fields.Date.today()
         fecha_hora = datetime.combine(fecha_emision, datetime.now().time())
         etree.SubElement(root, 'FechaEmision').text = fecha_hora.isoformat()
 
         # 5. Emisor (sender/company information)
-        self._add_emisor(root, move.company_id)
+        self._add_emisor(root, source_doc.company_id)
 
         # 6. Receptor (receiver/customer information) - Updated for Phase 1C
-        if move.partner_id:
-            self._add_receptor(root, move.partner_id, move.invoice_date)
+        if source_doc.partner_id:
+            self._add_receptor(root, source_doc.partner_id, fecha_emision)
 
         # 7. CondicionVenta (payment terms)
-        self._add_condicion_venta(root, move)
+        self._add_condicion_venta(root, source_doc)
 
         # 8. MedioPago (payment method) - Updated for Phase 1A
-        self._add_medio_pago(root, move)
+        self._add_medio_pago(root, source_doc)
 
         # 9. DetalleServicio (line items)
-        self._add_detalle_servicio(root, move)
+        self._add_detalle_servicio(root, source_doc)
 
         # 10. ResumenFactura (invoice summary)
-        self._add_resumen_factura(root, move)
+        self._add_resumen_factura(root, source_doc)
 
         # Convert to string
         xml_str = etree.tostring(
@@ -106,8 +122,13 @@ class XMLGenerator(models.AbstractModel):
 
         return xml_str
 
-    def _generate_tiquete_electronico(self, einvoice, move):
-        """Generate Tiquete Electrónico (TE) XML."""
+    def _generate_tiquete_electronico(self, einvoice, source_doc):
+        """Generate Tiquete Electrónico (TE) XML.
+
+        Args:
+            einvoice: l10n_cr.einvoice.document record
+            source_doc: account.move or pos.order record
+        """
         # Similar to FE but with simplified structure
         ns = self.NAMESPACES['te']
         root = etree.Element(
@@ -119,15 +140,19 @@ class XMLGenerator(models.AbstractModel):
         etree.SubElement(root, 'Clave').text = einvoice.clave
         etree.SubElement(root, 'NumeroConsecutivo').text = einvoice.name or ''
 
-        fecha_emision = move.invoice_date or fields.Date.today()
+        # Handle both account.move and pos.order
+        if hasattr(source_doc, 'invoice_date'):
+            fecha_emision = source_doc.invoice_date or fields.Date.today()
+        else:
+            fecha_emision = source_doc.date_order.date() if source_doc.date_order else fields.Date.today()
         fecha_hora = datetime.combine(fecha_emision, datetime.now().time())
         etree.SubElement(root, 'FechaEmision').text = fecha_hora.isoformat()
 
-        self._add_emisor(root, move.company_id)
-        self._add_condicion_venta(root, move)
-        self._add_medio_pago(root, move)
-        self._add_detalle_servicio(root, move)
-        self._add_resumen_factura(root, move)
+        self._add_emisor(root, source_doc.company_id)
+        self._add_condicion_venta(root, source_doc)
+        self._add_medio_pago(root, source_doc)
+        self._add_detalle_servicio(root, source_doc)
+        self._add_resumen_factura(root, source_doc)
 
         xml_str = etree.tostring(
             root,

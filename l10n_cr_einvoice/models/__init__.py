@@ -14,3 +14,6 @@ from . import xsd_validator
 from . import certificate_manager
 from . import xml_signer
 from . import qr_generator
+from . import pos_order
+from . import pos_config
+

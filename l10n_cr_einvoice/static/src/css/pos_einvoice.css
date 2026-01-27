@@ -1,0 +1,126 @@
+/* Container Styling */
+.einvoice-payment-container {
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    margin-bottom: 20px;
+    padding: 15px;
+    border-left: 5px solid #714B67;
+    /* Odoo Purple */
+}
+
+.einvoice-header {
+    font-size: 16px;
+    font-weight: bold;
+    color: #444;
+    margin-bottom: 12px;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 8px;
+}
+
+/* Button Group Styling */
+.einvoice-toggle-group {
+    margin-bottom: 15px;
+}
+
+.einvoice-btn {
+    border: 1px solid #ddd;
+    font-weight: 600;
+    transition: all 0.2s;
+    min-height: 48px;
+    /* Touch target size */
+    font-size: 16px;
+}
+
+/* TE (Tiquete) - Blue Theme */
+.einvoice-btn[data-type="TE"].btn-selected {
+    background-color: #0d6efd;
+    color: white;
+    border-color: #0d6efd;
+    box-shadow: 0 2px 4px rgba(13, 110, 253, 0.3);
+}
+
+.einvoice-btn[data-type="TE"]:not(.btn-selected) {
+    color: #0d6efd;
+}
+
+/* FE (Factura) - Purple Theme */
+.einvoice-btn[data-type="FE"].btn-selected {
+    background-color: #714B67;
+    color: white;
+    border-color: #714B67;
+    box-shadow: 0 2px 4px rgba(113, 75, 103, 0.3);
+}
+
+.einvoice-btn[data-type="FE"]:not(.btn-selected) {
+    color: #714B67;
+}
+
+.einvoice-btn.btn-default {
+    background-color: #f8f9fa;
+}
+
+.einvoice-btn.btn-default:hover {
+    background-color: #e9ecef;
+}
+
+/* Partner Section Styling */
+.einvoice-partner-section {
+    background: #f8f9fa;
+    border-radius: 6px;
+    border: 1px solid #eee;
+}
+
+.partner-row {
+    display: flex;
+    align-items: center;
+    padding: 12px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.partner-row:hover {
+    background: #e9ecef;
+}
+
+.partner-row.te-mode {
+    opacity: 0.7;
+    cursor: default;
+}
+
+.partner-icon {
+    font-size: 24px;
+    width: 40px;
+    text-align: center;
+}
+
+.partner-info {
+    flex: 1;
+    padding-left: 10px;
+}
+
+.partner-name {
+    font-weight: bold;
+    color: #333;
+}
+
+.partner-vat {
+    font-size: 12px;
+    color: #666;
+    background: #eee;
+    display: inline-block;
+    padding: 2px 6px;
+    border-radius: 4px;
+    margin-top: 2px;
+}
+
+.partner-action {
+    color: #ccc;
+}
+
+/* Touch Device Optimizations */
+@media (pointer: coarse) {
+    .keyboard-hint-container {
+        display: none;
+    }
+}

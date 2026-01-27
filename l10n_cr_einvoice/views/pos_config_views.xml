@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+
+        <!-- POS Config Form View Extension -->
+        <record id="view_pos_config_form_einvoice" model="ir.ui.view">
+            <field name="name">pos.config.form.einvoice</field>
+            <field name="model">pos.config</field>
+            <field name="inherit_id" ref="point_of_sale.pos_config_view_form"/>
+            <field name="arch" type="xml">
+
+                <!-- Add E-Invoice tab -->
+                <xpath expr="//notebook" position="inside">
+                    <page string="Electronic Invoicing" name="einvoice" invisible="company_id.country_id.code != 'CR'">
+
+                        <group name="einvoice_main">
+                            <group string="Configuration" name="einvoice_config">
+                                <field name="l10n_cr_enable_einvoice"/>
+                                <field name="l10n_cr_require_customer_id" invisible="not l10n_cr_enable_einvoice"/>
+                                <field name="l10n_cr_auto_submit" invisible="not l10n_cr_enable_einvoice"/>
+                                <field name="l10n_cr_offline_mode" invisible="not l10n_cr_enable_einvoice"/>
+                                <field name="l10n_cr_default_email_customer" invisible="not l10n_cr_enable_einvoice"/>
+                                <field name="l10n_cr_allow_anonymous" invisible="not l10n_cr_enable_einvoice"/>
+                            </group>
+
+                            <group string="Technical" name="einvoice_technical">
+                                <field name="l10n_cr_terminal_id" required="l10n_cr_enable_einvoice"/>
+                                <field name="l10n_cr_te_sequence_id" invisible="not l10n_cr_enable_einvoice"/>
+                                <field name="l10n_cr_connection_status" widget="badge" decoration-success="l10n_cr_connection_status == 'online'" decoration-danger="l10n_cr_connection_status == 'offline'"/>
+                                <field name="l10n_cr_queue_count" widget="statinfo"/>
+                                <field name="l10n_cr_last_sync" readonly="1"/>
+                            </group>
+                        </group>
+
+                        <group string="Default Customer (Anonymous)" name="einvoice_defaults" invisible="not l10n_cr_allow_anonymous">
+                            <group>
+                                <field name="l10n_cr_default_customer_id_type"/>
+                                <field name="l10n_cr_default_customer_id_number"/>
+                            </group>
+                        </group>
+
+                        <group name="einvoice_actions">
+                            <group>
+                                <button name="action_test_hacienda_connection"
+                                        string="Test Connection"
+                                        type="object"
+                                        class="btn-primary"
+                                        invisible="not l10n_cr_enable_einvoice"/>
+                                <button name="action_sync_offline_queue"
+                                        string="Sync Offline Queue"
+                                        type="object"
+                                        class="btn-secondary"
+                                        invisible="not l10n_cr_enable_einvoice or l10n_cr_queue_count == 0"/>
+                            </group>
+                            <group>
+                                <button name="action_view_queue"
+                                        string="View Queue"
+                                        type="object"
+                                        class="btn-link"
+                                        invisible="not l10n_cr_enable_einvoice"/>
+                                <button name="action_regenerate_sequence"
+                                        string="Regenerate Sequence"
+                                        type="object"
+                                        class="btn-link"
+                                        confirm="Are you sure you want to regenerate the sequence? The old sequence will be archived."
+                                        invisible="not l10n_cr_enable_einvoice"/>
+                            </group>
+                        </group>
+
+                    </page>
+                </xpath>
+
+            </field>
+        </record>
+
+        <!-- POS Config Tree View Extension -->
+        <record id="view_pos_config_tree_einvoice" model="ir.ui.view">
+            <field name="name">pos.config.tree.einvoice</field>
+            <field name="model">pos.config</field>
+            <field name="inherit_id" ref="point_of_sale.view_pos_config_list"/>
+            <field name="arch" type="xml">
+                <xpath expr="//field[@name='name']" position="after">
+                    <field name="l10n_cr_enable_einvoice" optional="show"/>
+                    <field name="l10n_cr_terminal_id" optional="show"/>
+                    <field name="l10n_cr_connection_status" optional="show" widget="badge"
+                           decoration-success="l10n_cr_connection_status == 'online'"
+                           decoration-danger="l10n_cr_connection_status == 'offline'"/>
+                    <field name="l10n_cr_queue_count" optional="show"/>
+                </xpath>
+            </field>
+        </record>
+
+    </data>
+</odoo>
