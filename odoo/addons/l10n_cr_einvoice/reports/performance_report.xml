@@ -1,0 +1,163 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Performance Metrics Report Template -->
+    <template id="report_performance_metrics">
+        <t t-call="web.html_container">
+            <t t-call="web.external_layout">
+                <div class="page">
+                    <h2>Reporte de Métricas de Rendimiento</h2>
+
+                    <div class="row mt16 mb16">
+                        <div class="col-6">
+                            <p><strong>Período:</strong> <span t-esc="data['date_from']"/> - <span t-esc="data['date_to']"/></p>
+                        </div>
+                        <div class="col-6 text-right">
+                            <p><strong>Estado del Sistema:</strong>
+                                <span t-if="data['health_status'] == 'healthy'" class="badge badge-success">Saludable</span>
+                                <span t-elif="data['health_status'] == 'warning'" class="badge badge-warning">Advertencia</span>
+                                <span t-else="" class="badge badge-danger">Crítico</span>
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="row mt32 mb16">
+                        <div class="col-12">
+                            <h4>Tiempos de Respuesta API Hacienda</h4>
+                            <table class="table table-sm table-bordered">
+                                <tr>
+                                    <td><strong>Total Solicitudes:</strong></td>
+                                    <td class="text-right"><span t-esc="data['api_metrics']['total_requests']"/></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Tiempo Promedio:</strong></td>
+                                    <td class="text-right"><span t-esc="'{:.2f}'.format(data['api_metrics']['avg_response_time_seconds'])"/> segundos</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Tiempo Mínimo:</strong></td>
+                                    <td class="text-right"><span t-esc="'{:.2f}'.format(data['api_metrics']['min_response_time_seconds'])"/> segundos</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Tiempo Máximo:</strong></td>
+                                    <td class="text-right"><span t-esc="'{:.2f}'.format(data['api_metrics']['max_response_time_seconds'])"/> segundos</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Percentil 95:</strong></td>
+                                    <td class="text-right"><span t-esc="'{:.2f}'.format(data['api_metrics']['p95_response_time_seconds'])"/> segundos</td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="row mt32 mb16">
+                        <div class="col-12">
+                            <h4>Eficiencia de Cola de Reintentos</h4>
+                            <table class="table table-sm table-bordered">
+                                <tr>
+                                    <td><strong>Total Elementos:</strong></td>
+                                    <td class="text-right"><span t-esc="data['retry_metrics']['total_retry_items']"/></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Completados:</strong></td>
+                                    <td class="text-right"><span t-esc="data['retry_metrics']['completed_count']"/></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Fallidos:</strong></td>
+                                    <td class="text-right"><span t-esc="data['retry_metrics']['failed_count']"/></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Pendientes:</strong></td>
+                                    <td class="text-right"><span t-esc="data['retry_metrics']['pending_count']"/></td>
+                                </tr>
+                                <tr class="table-success">
+                                    <td><strong>Tasa de Éxito:</strong></td>
+                                    <td class="text-right"><strong><span t-esc="'{:.2f}%'.format(data['retry_metrics']['success_rate'])"/></strong></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Reintentos Promedio:</strong></td>
+                                    <td class="text-right"><span t-esc="'{:.2f}'.format(data['retry_metrics']['avg_retries'])"/></td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="row mt32 mb16">
+                        <div class="col-12">
+                            <h4>Entrega de Correos Electrónicos</h4>
+                            <table class="table table-sm table-bordered">
+                                <tr>
+                                    <td><strong>Documentos Elegibles:</strong></td>
+                                    <td class="text-right"><span t-esc="data['email_metrics']['total_eligible_documents']"/></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Correos Enviados:</strong></td>
+                                    <td class="text-right"><span t-esc="data['email_metrics']['emails_sent']"/></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>No Enviados:</strong></td>
+                                    <td class="text-right"><span t-esc="data['email_metrics']['emails_not_sent']"/></td>
+                                </tr>
+                                <tr class="table-success">
+                                    <td><strong>Tasa de Entrega:</strong></td>
+                                    <td class="text-right"><strong><span t-esc="'{:.2f}%'.format(data['email_metrics']['delivery_rate'])"/></strong></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Tiempo Promedio de Entrega:</strong></td>
+                                    <td class="text-right"><span t-esc="'{:.2f}'.format(data['email_metrics']['avg_delivery_time_minutes'])"/> minutos</td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="row mt32 mb16">
+                        <div class="col-12">
+                            <h4>Volumen de Transacciones POS</h4>
+                            <table class="table table-sm table-bordered">
+                                <tr>
+                                    <td><strong>Total Transacciones:</strong></td>
+                                    <td class="text-right"><span t-esc="data['pos_metrics']['total_transactions']"/></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Aceptadas:</strong></td>
+                                    <td class="text-right"><span t-esc="data['pos_metrics']['accepted_transactions']"/></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Rechazadas:</strong></td>
+                                    <td class="text-right"><span t-esc="data['pos_metrics']['rejected_transactions']"/></td>
+                                </tr>
+                                <tr class="table-success">
+                                    <td><strong>Tasa de Aceptación:</strong></td>
+                                    <td class="text-right"><strong><span t-esc="'{:.2f}%'.format(data['pos_metrics']['acceptance_rate'])"/></strong></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Ingresos Totales:</strong></td>
+                                    <td class="text-right">₡<span t-esc="'{:,.2f}'.format(data['pos_metrics']['total_revenue'])"/></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Valor Promedio Transacción:</strong></td>
+                                    <td class="text-right">₡<span t-esc="'{:,.2f}'.format(data['pos_metrics']['avg_transaction_value'])"/></td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="row mt32">
+                        <div class="col-12">
+                            <p class="text-muted">Reporte generado el <span t-esc="context_timestamp(datetime.datetime.now()).strftime('%Y-%m-%d %H:%M:%S')"/></p>
+                        </div>
+                    </div>
+                </div>
+            </t>
+        </t>
+    </template>
+
+    <!-- Report Action -->
+    <record id="action_report_performance_metrics" model="ir.actions.report">
+        <field name="name">Métricas de Rendimiento</field>
+        <field name="model">l10n_cr.einvoice.document</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">l10n_cr_einvoice.report_performance_metrics</field>
+        <field name="report_file">l10n_cr_einvoice.report_performance_metrics</field>
+        <field name="binding_model_id" ref="model_l10n_cr_einvoice_document"/>
+        <field name="binding_type">report</field>
+    </record>
+</odoo>

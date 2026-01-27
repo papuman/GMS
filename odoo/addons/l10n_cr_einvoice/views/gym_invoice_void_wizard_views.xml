@@ -1,0 +1,239 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Gym Invoice Void Wizard Form View -->
+    <record id="view_gym_invoice_void_wizard_form" model="ir.ui.view">
+        <field name="name">gym.invoice.void.wizard.form</field>
+        <field name="model">l10n_cr.gym.invoice.void.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Anular Factura y Crear Nota de Crédito">
+                <header>
+                    <button name="action_void_invoice"
+                            string="Anular Factura"
+                            type="object"
+                            class="oe_highlight"
+                            invisible="state != 'draft'"
+                            confirm="¿Está seguro de que desea anular esta factura y crear una nota de crédito? Esta acción no se puede deshacer."/>
+                    <button name="action_cancel"
+                            string="Cancelar"
+                            type="object"
+                            class="btn-secondary"
+                            invisible="state != 'draft'"/>
+                    <button name="action_view_credit_note"
+                            string="Ver Nota de Crédito"
+                            type="object"
+                            class="oe_highlight"
+                            invisible="state != 'done'"/>
+                    <button name="action_view_einvoice"
+                            string="Ver E-Factura"
+                            type="object"
+                            invisible="state != 'done'"/>
+                    <field name="state" widget="statusbar" statusbar_visible="draft,processing,done"/>
+                </header>
+
+                <sheet>
+                    <div class="oe_title">
+                        <h1>
+                            <field name="invoice_number" readonly="1"/>
+                        </h1>
+                    </div>
+
+                    <!-- Error Message -->
+                    <div class="alert alert-danger" role="alert" invisible="state != 'error'">
+                        <strong>Error al procesar la anulación:</strong><br/>
+                        <field name="error_message" readonly="1"/>
+                    </div>
+
+                    <!-- Success Message -->
+                    <div class="alert alert-success" role="alert" invisible="state != 'done'">
+                        <strong>Factura anulada exitosamente!</strong><br/>
+                        Nota de Crédito: <field name="credit_note_id" readonly="1"/>
+                    </div>
+
+                    <group>
+                        <!-- Invoice Information -->
+                        <group string="Información de Factura">
+                            <field name="invoice_id" invisible="1"/>
+                            <field name="partner_id"/>
+                            <field name="amount_total" widget="monetary"/>
+                            <field name="currency_id" invisible="1"/>
+                            <field name="einvoice_id" readonly="1"/>
+                            <field name="original_clave" readonly="1" widget="CopyClipboardChar"/>
+                        </group>
+
+                        <!-- Void Reason -->
+                        <group string="Razón de Anulación">
+                            <field name="void_reason" widget="radio" required="1"/>
+                            <field name="void_reason_notes" placeholder="Detalles adicionales sobre la anulación..."/>
+                        </group>
+                    </group>
+
+                    <!-- Membership Section -->
+                    <group string="Gestión de Membresías" invisible="not has_membership">
+                        <field name="has_membership" invisible="1"/>
+                        <field name="subscription_ids" widget="many2many_tags" readonly="1"/>
+                        <field name="cancel_membership"/>
+                        <field name="membership_cancellation_reason"
+                               placeholder="Razón de cancelación de membresía..."
+                               required="cancel_membership and has_membership"
+                               invisible="not cancel_membership"/>
+                    </group>
+
+                    <notebook>
+                        <!-- Refund Details Tab -->
+                        <page string="Detalles de Devolución" name="refund_details">
+                            <group>
+                                <group string="Método de Devolución">
+                                    <field name="refund_method" widget="radio" required="1"/>
+                                    <field name="refund_reference"
+                                           placeholder="Ej: Número de transacción, número de cheque..."
+                                           invisible="refund_method in ['credit', 'no_refund']"/>
+                                    <field name="refund_bank_account"
+                                           placeholder="Número de cuenta IBAN o cuenta cliente..."
+                                           required="refund_method == 'transfer'"
+                                           invisible="refund_method != 'transfer'"/>
+                                </group>
+                                <group string="Notas de Devolución">
+                                    <field name="refund_notes"
+                                           nolabel="1"
+                                           placeholder="Información adicional sobre la devolución..."/>
+                                </group>
+                            </group>
+
+                            <!-- Refund Amount Summary -->
+                            <group>
+                                <group>
+                                    <field name="amount_total" string="Monto a Devolver" widget="monetary" readonly="1"/>
+                                </group>
+                                <group/>
+                            </group>
+                        </page>
+
+                        <!-- Processing Options Tab -->
+                        <page string="Opciones de Procesamiento" name="processing_options">
+                            <group>
+                                <group string="Hacienda">
+                                    <field name="auto_submit_to_hacienda"/>
+                                    <div class="text-muted" invisible="not auto_submit_to_hacienda">
+                                        <p>La nota de crédito será:</p>
+                                        <ul>
+                                            <li>Generada como XML v4.4</li>
+                                            <li>Firmada digitalmente</li>
+                                            <li>Enviada a Hacienda automáticamente</li>
+                                        </ul>
+                                    </div>
+                                </group>
+
+                                <group string="Notificaciones">
+                                    <field name="send_email_notification"/>
+                                    <div class="text-muted" invisible="not send_email_notification">
+                                        <p>Se enviará un correo al cliente con:</p>
+                                        <ul>
+                                            <li>Confirmación de anulación</li>
+                                            <li>Nota de crédito en PDF</li>
+                                            <li>XML firmado</li>
+                                            <li>Detalles de devolución</li>
+                                        </ul>
+                                    </div>
+                                </group>
+                            </group>
+                        </page>
+
+                        <!-- Results Tab (visible after processing) -->
+                        <page string="Resultados" name="results" invisible="state not in ['done', 'error']">
+                            <group>
+                                <group string="Documentos Creados">
+                                    <field name="credit_note_id" readonly="1"/>
+                                    <field name="credit_note_einvoice_id" readonly="1"/>
+                                </group>
+                                <group string="Estado Hacienda">
+                                    <field name="credit_note_einvoice_id.state"
+                                           string="Estado E-Factura"
+                                           readonly="1"
+                                           invisible="not credit_note_einvoice_id"/>
+                                    <field name="credit_note_einvoice_id.clave"
+                                           string="Clave Hacienda"
+                                           readonly="1"
+                                           widget="CopyClipboardChar"
+                                           invisible="not credit_note_einvoice_id"/>
+                                </group>
+                            </group>
+
+                            <group string="Membresías Canceladas" invisible="not cancel_membership or not has_membership">
+                                <field name="subscription_ids" nolabel="1" readonly="1">
+                                    <tree>
+                                        <field name="code"/>
+                                        <field name="partner_id"/>
+                                        <field name="stage_id"/>
+                                        <field name="recurring_total"/>
+                                    </list>
+                                </field>
+                            </group>
+                        </page>
+
+                        <!-- Help & Documentation Tab -->
+                        <page string="Ayuda" name="help">
+                            <group>
+                                <div class="alert alert-info" role="alert">
+                                    <h4>¿Qué hace este asistente?</h4>
+                                    <p>Este asistente le permite anular una factura existente y crear automáticamente una Nota de Crédito Electrónica conforme a los requisitos de Hacienda.</p>
+
+                                    <h5>Proceso:</h5>
+                                    <ol>
+                                        <li><strong>Anulación de Factura:</strong> Se crea una Nota de Crédito que reversa la factura original</li>
+                                        <li><strong>Cancelación de Membresías:</strong> Opcionalmente cancela las membresías relacionadas</li>
+                                        <li><strong>Procesamiento de Devolución:</strong> Registra el método y detalles de devolución al cliente</li>
+                                        <li><strong>Envío a Hacienda:</strong> Genera, firma y envía la Nota de Crédito a Hacienda</li>
+                                        <li><strong>Notificación al Cliente:</strong> Envía un correo con la confirmación y documentos</li>
+                                    </ol>
+
+                                    <h5>Razones Comunes de Anulación:</h5>
+                                    <ul>
+                                        <li><strong>Cancelación de membresía:</strong> Cliente decide cancelar su membresía</li>
+                                        <li><strong>Error en facturación:</strong> Se facturó incorrectamente (monto, servicio, etc.)</li>
+                                        <li><strong>Devolución solicitada:</strong> Cliente solicita devolución de dinero</li>
+                                        <li><strong>Factura duplicada:</strong> Se emitió la misma factura dos veces</li>
+                                    </ul>
+
+                                    <h5>Métodos de Devolución:</h5>
+                                    <ul>
+                                        <li><strong>Efectivo:</strong> Devolución en efectivo en caja</li>
+                                        <li><strong>Transferencia bancaria:</strong> Devolución a cuenta bancaria del cliente</li>
+                                        <li><strong>Crédito:</strong> Crédito para futuras compras o servicios</li>
+                                        <li><strong>Tarjeta:</strong> Reversión en tarjeta de crédito/débito</li>
+                                        <li><strong>Sin devolución:</strong> Cortesía o caso especial sin devolución de dinero</li>
+                                    </ul>
+
+                                    <h5>Importante:</h5>
+                                    <ul>
+                                        <li>Esta acción NO se puede deshacer</li>
+                                        <li>La factura original quedará marcada como anulada</li>
+                                        <li>La Nota de Crédito debe ser aceptada por Hacienda</li>
+                                        <li>Se recomienda siempre enviar notificación por email al cliente</li>
+                                    </ul>
+                                </div>
+                            </group>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- Action to open wizard -->
+    <record id="action_gym_invoice_void_wizard" model="ir.actions.act_window">
+        <field name="name">Anular Factura</field>
+        <field name="res_model">l10n_cr.gym.invoice.void.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+        <field name="binding_model_id" ref="account.model_account_move"/>
+        <field name="binding_view_types">form</field>
+    </record>
+
+    <!-- Add menu item under Hacienda menu -->
+    <menuitem id="menu_gym_invoice_void_wizard"
+              name="Anular Factura"
+              parent="l10n_cr_einvoice.menu_hacienda_operations"
+              action="action_gym_invoice_void_wizard"
+              sequence="50"/>
+
+</odoo>

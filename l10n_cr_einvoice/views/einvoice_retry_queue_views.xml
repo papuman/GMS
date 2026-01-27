@@ -1,0 +1,264 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- E-Invoice Retry Queue Tree View -->
+    <record id="view_einvoice_retry_queue_list" model="ir.ui.view">
+        <field name="name">l10n_cr.einvoice.retry.queue.list</field>
+        <field name="model">l10n_cr.einvoice.retry.queue</field>
+        <field name="arch" type="xml">
+            <list string="Retry Queue" default_order="next_attempt asc, priority desc"
+                  decoration-danger="state == 'failed'"
+                  decoration-warning="is_overdue == True and state == 'pending'"
+                  decoration-success="state == 'completed'"
+                  decoration-muted="state == 'cancelled'">
+
+                <field name="display_name" string="Document"/>
+                <field name="document_id" invisible="1"/>
+                <field name="operation" widget="badge"/>
+                <field name="priority" widget="badge"
+                       decoration-danger="priority == '3'"
+                       decoration-warning="priority == '2'"
+                       decoration-info="priority == '1'"/>
+                <field name="state" widget="badge"
+                       decoration-success="state == 'completed'"
+                       decoration-danger="state == 'failed'"
+                       decoration-warning="state == 'processing'"
+                       decoration-info="state == 'pending'"
+                       decoration-muted="state == 'cancelled'"/>
+                <field name="error_category" widget="badge"/>
+                <field name="retry_count"/>
+                <field name="max_retries"/>
+                <field name="retry_progress" widget="progressbar"/>
+                <field name="next_attempt"/>
+                <field name="last_attempt"/>
+                <field name="is_overdue" invisible="1"/>
+                <field name="company_id" groups="base.group_multi_company"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- E-Invoice Retry Queue Form View -->
+    <record id="view_einvoice_retry_queue_form" model="ir.ui.view">
+        <field name="name">l10n_cr.einvoice.retry.queue.form</field>
+        <field name="model">l10n_cr.einvoice.retry.queue</field>
+        <field name="arch" type="xml">
+            <form string="Retry Queue Entry">
+                <header>
+                    <button name="action_retry_now" type="object" string="Retry Now"
+                            class="oe_highlight"
+                            invisible="state not in ['pending', 'failed']"/>
+                    <button name="action_cancel_retry" type="object" string="Cancel"
+                            invisible="state in ['completed', 'cancelled']"
+                            confirm="Are you sure you want to cancel this retry?"/>
+                    <field name="state" widget="statusbar"
+                           statusbar_visible="pending,processing,completed"/>
+                </header>
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="%(action_einvoice_document)d" type="action"
+                                class="oe_stat_button" icon="fa-file-text-o"
+                                context="{'search_default_document_id': document_id}">
+                            <div class="o_field_widget o_stat_info">
+                                <span class="o_stat_text">View</span>
+                                <span class="o_stat_text">Document</span>
+                            </div>
+                        </button>
+                    </div>
+
+                    <div class="oe_title">
+                        <label for="display_name" class="oe_edit_only"/>
+                        <h1>
+                            <field name="display_name"/>
+                        </h1>
+                    </div>
+
+                    <group>
+                        <group name="operation_info" string="Operation Details">
+                            <field name="document_id"/>
+                            <field name="operation" widget="badge"/>
+                            <field name="priority" widget="badge"/>
+                            <field name="error_category" widget="badge"/>
+                        </group>
+
+                        <group name="retry_info" string="Retry Information">
+                            <field name="retry_count"/>
+                            <field name="max_retries"/>
+                            <field name="retry_progress" widget="progressbar"/>
+                            <field name="last_attempt"/>
+                            <field name="next_attempt"/>
+                            <field name="is_overdue" widget="boolean"/>
+                        </group>
+                    </group>
+
+                    <group name="metadata" string="Metadata">
+                        <field name="company_id" groups="base.group_multi_company"/>
+                        <field name="create_date" readonly="1"/>
+                    </group>
+
+                    <notebook>
+                        <page name="error_details" string="Error Details">
+                            <group>
+                                <field name="last_error" widget="text" readonly="1" nolabel="1"/>
+                            </group>
+                        </page>
+
+                        <page name="retry_history" string="Retry History">
+                            <p class="text-muted">
+                                Retry attempt <field name="retry_count" readonly="1"/> of <field name="max_retries" readonly="1"/>
+                            </p>
+                            <p class="text-muted" invisible="state != 'failed'">
+                                <strong>Maximum retries exceeded.</strong> Manual intervention required.
+                            </p>
+                            <p class="text-muted" invisible="state != 'completed'">
+                                <strong>Retry successful!</strong> Operation completed successfully.
+                            </p>
+                        </page>
+                    </notebook>
+                </sheet>
+                <div class="oe_chatter">
+                    <field name="message_follower_ids"/>
+                    <field name="message_ids"/>
+                </div>
+            </form>
+        </field>
+    </record>
+
+    <!-- E-Invoice Retry Queue Search View -->
+    <record id="view_einvoice_retry_queue_search" model="ir.ui.view">
+        <field name="name">l10n_cr.einvoice.retry.queue.search</field>
+        <field name="model">l10n_cr.einvoice.retry.queue</field>
+        <field name="arch" type="xml">
+            <search string="Search Retry Queue">
+                <field name="document_id"/>
+                <field name="operation"/>
+                <field name="error_category"/>
+
+                <filter name="filter_pending" string="Pending"
+                        domain="[('state', '=', 'pending')]"/>
+                <filter name="filter_processing" string="Processing"
+                        domain="[('state', '=', 'processing')]"/>
+                <filter name="filter_failed" string="Failed"
+                        domain="[('state', '=', 'failed')]"/>
+                <filter name="filter_completed" string="Completed"
+                        domain="[('state', '=', 'completed')]"/>
+
+                <separator/>
+                <filter name="filter_overdue" string="Overdue"
+                        domain="[('is_overdue', '=', True), ('state', '=', 'pending')]"/>
+                <filter name="filter_high_priority" string="High Priority"
+                        domain="[('priority', 'in', ['2', '3'])]"/>
+
+                <separator/>
+                <filter name="filter_sign" string="Sign Operations"
+                        domain="[('operation', '=', 'sign')]"/>
+                <filter name="filter_submit" string="Submit Operations"
+                        domain="[('operation', '=', 'submit')]"/>
+                <filter name="filter_check_status" string="Status Check"
+                        domain="[('operation', '=', 'check_status')]"/>
+
+                <group expand="0" string="Group By">
+                    <filter name="group_state" string="State"
+                            context="{'group_by': 'state'}"/>
+                    <filter name="group_operation" string="Operation"
+                            context="{'group_by': 'operation'}"/>
+                    <filter name="group_priority" string="Priority"
+                            context="{'group_by': 'priority'}"/>
+                    <filter name="group_error_category" string="Error Category"
+                            context="{'group_by': 'error_category'}"/>
+                    <filter name="group_next_attempt" string="Next Attempt"
+                            context="{'group_by': 'next_attempt:day'}"/>
+                    <filter name="group_company" string="Company"
+                            context="{'group_by': 'company_id'}"
+                            groups="base.group_multi_company"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- E-Invoice Retry Queue Kanban View -->
+    <record id="view_einvoice_retry_queue_kanban" model="ir.ui.view">
+        <field name="name">l10n_cr.einvoice.retry.queue.kanban</field>
+        <field name="model">l10n_cr.einvoice.retry.queue</field>
+        <field name="arch" type="xml">
+            <kanban default_group_by="state" class="o_kanban_small_column">
+                <field name="document_id"/>
+                <field name="operation"/>
+                <field name="priority"/>
+                <field name="state"/>
+                <field name="error_category"/>
+                <field name="retry_count"/>
+                <field name="max_retries"/>
+                <field name="next_attempt"/>
+                <field name="is_overdue"/>
+                <field name="display_name"/>
+
+                <templates>
+                    <t t-name="kanban-box">
+                        <div t-attf-class="oe_kanban_card oe_kanban_global_click
+                                          #{record.state.raw_value == 'failed' ? 'oe_kanban_color_2' : ''}
+                                          #{record.is_overdue.raw_value and record.state.raw_value == 'pending' ? 'oe_kanban_color_3' : ''}">
+                            <div class="oe_kanban_content">
+                                <div class="o_kanban_record_top">
+                                    <div class="o_kanban_record_headings">
+                                        <strong class="o_kanban_record_title">
+                                            <field name="document_id"/>
+                                        </strong>
+                                        <div class="o_kanban_record_subtitle">
+                                            <field name="operation" widget="badge"/>
+                                        </div>
+                                    </div>
+                                    <div class="o_dropdown_kanban dropdown">
+                                        <a class="dropdown-toggle o-no-caret btn" role="button" data-bs-toggle="dropdown" href="#" aria-label="Dropdown menu" title="Dropdown menu">
+                                            <span class="fa fa-ellipsis-v"/>
+                                        </a>
+                                        <div class="dropdown-menu" role="menu">
+                                            <a role="menuitem" type="object" name="action_retry_now" class="dropdown-item">Retry Now</a>
+                                            <a role="menuitem" type="object" name="action_cancel_retry" class="dropdown-item">Cancel</a>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="o_kanban_record_body">
+                                    <field name="error_category" widget="badge"/>
+                                    <field name="priority" widget="badge"/>
+                                    <div class="mt-2">
+                                        <strong>Retry:</strong>
+                                        <field name="retry_count"/> / <field name="max_retries"/>
+                                    </div>
+                                    <div>
+                                        <strong>Next:</strong>
+                                        <field name="next_attempt" widget="relative"/>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
+
+    <!-- Action: E-Invoice Retry Queue -->
+    <record id="action_einvoice_retry_queue" model="ir.actions.act_window">
+        <field name="name">Retry Queue</field>
+        <field name="res_model">l10n_cr.einvoice.retry.queue</field>
+        <field name="view_mode">kanban,list,form</field>
+        <field name="context">{'search_default_filter_pending': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                No items in retry queue
+            </p>
+            <p>
+                Failed e-invoice operations will automatically be added to the retry queue
+                and processed according to configured retry policies.
+            </p>
+        </field>
+    </record>
+
+    <!-- Menu Item: Retry Queue -->
+    <menuitem id="menu_einvoice_retry_queue"
+              name="Retry Queue"
+              parent="menu_hacienda_main"
+              action="action_einvoice_retry_queue"
+              sequence="50"/>
+
+</odoo>

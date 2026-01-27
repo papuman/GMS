@@ -1,0 +1,261 @@
+# Alert Rules for Odoo E-Invoicing System
+# Defines critical, warning, and business alerts
+
+groups:
+  - name: critical_alerts
+    interval: 30s
+    rules:
+      # Service down alerts
+      - alert: OdooServiceDown
+        expr: up{job="odoo"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          component: odoo
+        annotations:
+          summary: "Odoo service is down"
+          description: "Odoo has been down for more than 2 minutes"
+
+      - alert: PostgreSQLDown
+        expr: up{job="postgresql"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          component: database
+        annotations:
+          summary: "PostgreSQL is down"
+          description: "PostgreSQL database has been down for more than 1 minute"
+
+      - alert: NginxDown
+        expr: up{job="nginx"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          component: proxy
+        annotations:
+          summary: "Nginx reverse proxy is down"
+          description: "Nginx has been down for more than 2 minutes"
+
+      # Database connection alerts
+      - alert: DatabaseConnectionsFull
+        expr: pg_stat_database_numbackends / pg_settings_max_connections > 0.9
+        for: 5m
+        labels:
+          severity: critical
+          component: database
+        annotations:
+          summary: "PostgreSQL connections nearly exhausted"
+          description: "Database is using {{ $value | humanizePercentage }} of max connections"
+
+      - alert: DatabaseDeadlocks
+        expr: rate(pg_stat_database_deadlocks[5m]) > 0
+        for: 5m
+        labels:
+          severity: critical
+          component: database
+        annotations:
+          summary: "Database deadlocks detected"
+          description: "{{ $value }} deadlocks detected in the last 5 minutes"
+
+      # Disk space alerts
+      - alert: DiskSpaceCritical
+        expr: (node_filesystem_avail_bytes / node_filesystem_size_bytes) * 100 < 10
+        for: 5m
+        labels:
+          severity: critical
+          component: system
+        annotations:
+          summary: "Critical disk space"
+          description: "Disk space is below 10% on {{ $labels.mountpoint }}"
+
+  - name: warning_alerts
+    interval: 60s
+    rules:
+      # Memory alerts
+      - alert: HighMemoryUsage
+        expr: (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) > 0.85
+        for: 10m
+        labels:
+          severity: warning
+          component: system
+        annotations:
+          summary: "High memory usage"
+          description: "Memory usage is above 85%: {{ $value | humanizePercentage }}"
+
+      - alert: OdooMemoryUsage
+        expr: container_memory_usage_bytes{name="gms_odoo"} / container_spec_memory_limit_bytes{name="gms_odoo"} > 0.85
+        for: 10m
+        labels:
+          severity: warning
+          component: odoo
+        annotations:
+          summary: "Odoo container high memory usage"
+          description: "Odoo is using {{ $value | humanizePercentage }} of allocated memory"
+
+      # CPU alerts
+      - alert: HighCPUUsage
+        expr: (100 - (avg by (instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100)) > 80
+        for: 10m
+        labels:
+          severity: warning
+          component: system
+        annotations:
+          summary: "High CPU usage"
+          description: "CPU usage is above 80%: {{ $value }}%"
+
+      # Disk space warnings
+      - alert: DiskSpaceWarning
+        expr: (node_filesystem_avail_bytes / node_filesystem_size_bytes) * 100 < 20
+        for: 10m
+        labels:
+          severity: warning
+          component: system
+        annotations:
+          summary: "Low disk space"
+          description: "Disk space is below 20% on {{ $labels.mountpoint }}"
+
+      # SSL certificate expiry
+      - alert: SSLCertificateExpiringSoon
+        expr: (ssl_certificate_expiry_seconds - time()) / 86400 < 30
+        for: 1h
+        labels:
+          severity: warning
+          component: security
+        annotations:
+          summary: "SSL certificate expiring soon"
+          description: "SSL certificate expires in {{ $value }} days"
+
+      # Database performance
+      - alert: SlowQueries
+        expr: rate(pg_stat_statements_mean_time_seconds[5m]) > 1
+        for: 10m
+        labels:
+          severity: warning
+          component: database
+        annotations:
+          summary: "Slow database queries detected"
+          description: "Average query time is {{ $value }}s"
+
+      # Cache hit ratio
+      - alert: LowCacheHitRatio
+        expr: pg_stat_database_blks_hit / (pg_stat_database_blks_hit + pg_stat_database_blks_read) < 0.95
+        for: 10m
+        labels:
+          severity: warning
+          component: database
+        annotations:
+          summary: "Low database cache hit ratio"
+          description: "Cache hit ratio is {{ $value | humanizePercentage }}"
+
+  - name: business_alerts
+    interval: 120s
+    rules:
+      # E-Invoice specific alerts
+      - alert: HighInvoiceRejectionRate
+        expr: |
+          sum(rate(einvoice_documents_total{status="rejected"}[1h])) /
+          sum(rate(einvoice_documents_total[1h])) > 0.1
+        for: 15m
+        labels:
+          severity: warning
+          component: einvoice
+        annotations:
+          summary: "High e-invoice rejection rate"
+          description: "More than 10% of invoices are being rejected by Hacienda"
+
+      - alert: HaciendaAPIErrors
+        expr: sum(rate(hacienda_api_errors_total[5m])) > 10
+        for: 10m
+        labels:
+          severity: warning
+          component: einvoice
+        annotations:
+          summary: "High Hacienda API error rate"
+          description: "{{ $value }} API errors in the last 5 minutes"
+
+      - alert: EmailDeliveryFailures
+        expr: sum(rate(einvoice_email_failures_total[1h])) > 50
+        for: 15m
+        labels:
+          severity: warning
+          component: email
+        annotations:
+          summary: "High email delivery failure rate"
+          description: "{{ $value }} email failures in the last hour"
+
+      - alert: RetryQueueBacklog
+        expr: einvoice_retry_queue_size > 100
+        for: 30m
+        labels:
+          severity: warning
+          component: einvoice
+        annotations:
+          summary: "Large retry queue backlog"
+          description: "{{ $value }} documents in retry queue"
+
+      - alert: POSOfflineQueueBacklog
+        expr: pos_offline_queue_size > 50
+        for: 30m
+        labels:
+          severity: warning
+          component: pos
+        annotations:
+          summary: "Large POS offline queue"
+          description: "{{ $value }} POS transactions waiting to be submitted"
+
+      # Business metrics
+      - alert: NoInvoicesGenerated
+        expr: sum(rate(einvoice_documents_total[4h])) == 0
+        for: 4h
+        labels:
+          severity: warning
+          component: business
+        annotations:
+          summary: "No invoices generated in 4 hours"
+          description: "This may indicate a business issue or system problem"
+
+      - alert: BackupNotRunning
+        expr: (time() - last_backup_timestamp) > 86400
+        for: 1h
+        labels:
+          severity: warning
+          component: backup
+        annotations:
+          summary: "Database backup has not run in 24 hours"
+          description: "Last backup was {{ $value | humanizeDuration }} ago"
+
+  - name: performance_alerts
+    interval: 60s
+    rules:
+      # Response time alerts
+      - alert: SlowHTTPResponses
+        expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m])) > 5
+        for: 10m
+        labels:
+          severity: warning
+          component: performance
+        annotations:
+          summary: "Slow HTTP response times"
+          description: "95th percentile response time is {{ $value }}s"
+
+      # Transaction rate
+      - alert: HighTransactionRate
+        expr: rate(pg_stat_database_xact_commit[5m]) > 1000
+        for: 10m
+        labels:
+          severity: info
+          component: database
+        annotations:
+          summary: "High database transaction rate"
+          description: "{{ $value }} transactions per second"
+
+      # Connection pool
+      - alert: DatabasePoolExhaustion
+        expr: odoo_db_pool_used / odoo_db_pool_size > 0.9
+        for: 5m
+        labels:
+          severity: warning
+          component: database
+        annotations:
+          summary: "Database connection pool nearly exhausted"
+          description: "Using {{ $value | humanizePercentage }} of connection pool"

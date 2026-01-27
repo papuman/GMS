@@ -1,0 +1,278 @@
+# -*- coding: utf-8 -*-
+import logging
+from odoo import models, fields, api, _
+from odoo.exceptions import ValidationError
+
+_logger = logging.getLogger(__name__)
+
+
+class ResPartner(models.Model):
+    _inherit = 'res.partner'
+
+    # CIIU Economic Activity Code (Phase 1C)
+    l10n_cr_activity_code = fields.Many2one(
+        'l10n_cr.ciiu.code',
+        string='Economic Activity (CIIU)',
+        help='Costa Rica economic activity code (mandatory for e-invoicing from Oct 6, 2025)',
+        company_dependent=True,
+    )
+
+    l10n_cr_other_signs = fields.Char(
+        string='Address Details',
+        help='Additional address information (e.g., "100m north of church")',
+        size=250,
+    )
+
+    l10n_cr_email_opt_out = fields.Boolean(
+        string='Opt-out E-Invoice Emails',
+        default=False,
+        help='Customer opted out of automatic e-invoice email delivery',
+    )
+
+    # Tax Report Configuration (Phase 9)
+    l10n_cr_regime_type = fields.Selection([
+        ('traditional', 'Traditional Regime'),
+        ('simplified', 'Simplified Regime'),
+    ], string='Tax Regime',
+        default='traditional',
+        help='Tax regime type for Costa Rica tax reports (D-151 only reports simplified regime transactions)'
+    )
+
+    l10n_cr_free_zone = fields.Boolean(
+        string='Free Trade Zone Entity',
+        default=False,
+        help='Partner is a free trade zone entity (sales are exempt with credit rights)'
+    )
+
+    l10n_cr_expense_category = fields.Selection([
+        ('SP', 'Professional Services'),
+        ('A', 'Rentals'),
+        ('M', 'Commissions'),
+        ('I', 'Interest'),
+    ], string='Expense Category',
+        help='Specific expense category for D-151 informative report'
+    )
+
+    @api.model
+    def l10n_cr_validate_customer_id(self, id_value):
+        """
+        Validate Costa Rica customer ID and check if customer exists.
+        Called from POS membership quick actions.
+
+        Args:
+            id_value (str): Customer ID to validate
+
+        Returns:
+            dict: Validation result with customer data if found
+        """
+        try:
+            # Clean the ID
+            cleaned_id = id_value.replace('-', '').replace(' ', '').strip()
+
+            if not cleaned_id:
+                return {
+                    'valid': False,
+                    'message': _('ID cannot be empty'),
+                }
+
+            # Detect ID type based on format
+            id_type, formatted_id, validation_msg = self._l10n_cr_detect_and_validate_id(cleaned_id)
+
+            if not id_type:
+                return {
+                    'valid': False,
+                    'message': validation_msg or _('Invalid ID format'),
+                }
+
+            # Search for existing customer
+            partner = self.search([
+                ('vat', '=', cleaned_id),
+                ('customer_rank', '>', 0),
+            ], limit=1)
+
+            result = {
+                'valid': True,
+                'message': validation_msg,
+                'formatted': formatted_id,
+                'id_type': id_type,
+            }
+
+            if partner:
+                result.update({
+                    'partner_id': partner.id,
+                    'partner_name': partner.name,
+                    'partner_email': partner.email,
+                    'partner_phone': partner.phone or partner.mobile,
+                    'partner_vat': partner.vat,
+                })
+            else:
+                result.update({
+                    'partner_id': None,
+                    'partner_name': None,
+                    'partner_email': None,
+                    'partner_phone': None,
+                })
+
+            return result
+
+        except Exception as e:
+            _logger.error('Error validating customer ID: %s', str(e))
+            return {
+                'valid': False,
+                'message': _('Validation error: %s') % str(e),
+            }
+
+    def _l10n_cr_detect_and_validate_id(self, cleaned_id):
+        """
+        Detect and validate Costa Rica ID type.
+
+        Args:
+            cleaned_id (str): Cleaned ID (no dashes/spaces)
+
+        Returns:
+            tuple: (id_type, formatted_id, message)
+        """
+        # Cédula Física (9 digits)
+        if len(cleaned_id) == 9 and cleaned_id.isdigit():
+            formatted = f"{cleaned_id[0]}-{cleaned_id[1:5]}-{cleaned_id[5:9]}"
+            return ('01', formatted, _('Valid Cédula Física'))
+
+        # Cédula Jurídica (10 digits)
+        if len(cleaned_id) == 10 and cleaned_id.isdigit():
+            formatted = f"{cleaned_id[0]}-{cleaned_id[1:4]}-{cleaned_id[4:10]}"
+            return ('02', formatted, _('Valid Cédula Jurídica'))
+
+        # DIMEX (11-12 digits)
+        if len(cleaned_id) in (11, 12) and cleaned_id.isdigit():
+            return ('03', cleaned_id, _('Valid DIMEX'))
+
+        # NITE (10 digits)
+        # Note: NITE format overlaps with Jurídica - would need additional validation
+        # For now, 10 digits defaults to Jurídica
+
+        # Extranjero (alphanumeric, 1-20 characters)
+        if 1 <= len(cleaned_id) <= 20 and cleaned_id.replace('-', '').replace('_', '').isalnum():
+            return ('05', cleaned_id.upper(), _('Valid foreign ID'))
+
+        # Invalid format
+        return (
+            None,
+            None,
+            _('Invalid ID format. Expected: 9 digits (Física), 10 digits (Jurídica), 11-12 digits (DIMEX), or alphanumeric (Extranjero)')
+        )
+
+    @api.constrains('l10n_cr.ciiu.code')
+    def _check_activity_code_mandatory(self):
+        """
+        Check if economic activity code is mandatory.
+        Becomes mandatory on October 6, 2025 for Costa Rica companies.
+        """
+        from datetime import date
+
+        grace_period_end = date(2025, 10, 6)
+        today = date.today()
+
+        # Only enforce after grace period
+        if today <= grace_period_end:
+            return
+
+        for partner in self:
+            # Only check for Costa Rica customers
+            if partner.country_id and partner.country_id.code == 'CR':
+                if partner.customer_rank > 0 and not partner.l10n_cr_activity_code:
+                    raise ValidationError(_(
+                        'Economic Activity Code is mandatory for Costa Rica customers as of October 6, 2025.\n'
+                        'Please assign a CIIU code to customer: %s'
+                    ) % partner.name)
+
+    def action_suggest_activity_codes(self):
+        """
+        Suggest economic activity codes based on partner category tags.
+        """
+        self.ensure_one()
+
+        # Get categories from partner
+        categories = self.category_id
+
+        if not categories:
+            return {
+                'type': 'ir.actions.client',
+                'tag': 'display_notification',
+                'params': {
+                    'title': _('No Categories'),
+                    'message': _('Add category tags to get code suggestions'),
+                    'type': 'warning',
+                }
+            }
+
+        # Map common category keywords to CIIU codes
+        suggestions = []
+        ActivityCode = self.env['l10n_cr.ciiu.code']
+
+        for category in categories:
+            cat_name = category.name.lower()
+
+            # Gym/Fitness related
+            if any(word in cat_name for word in ['gym', 'fitness', 'deporte', 'sport']):
+                suggestions.extend([
+                    '931190',  # Activities of fitness centers
+                    '931120',  # Activities of sports clubs
+                ])
+
+            # Restaurant/Food
+            if any(word in cat_name for word in ['restaurant', 'food', 'comida', 'café']):
+                suggestions.extend([
+                    '561010',  # Restaurants and mobile food service
+                    '561020',  # Event catering
+                ])
+
+            # Retail
+            if any(word in cat_name for word in ['retail', 'tienda', 'store', 'shop']):
+                suggestions.extend([
+                    '471110',  # Retail sale in non-specialized stores
+                    '477810',  # Retail sale of clothing, footwear and leather articles
+                ])
+
+        if not suggestions:
+            return {
+                'type': 'ir.actions.client',
+                'tag': 'display_notification',
+                'params': {
+                    'title': _('No Suggestions'),
+                    'message': _('Could not find matching codes for categories: %s') % ', '.join(categories.mapped('name')),
+                    'type': 'info',
+                }
+            }
+
+        # Find codes
+        codes = ActivityCode.search([('code', 'in', suggestions)])
+
+        if codes:
+            return {
+                'name': _('Suggested Activity Codes'),
+                'type': 'ir.actions.act_window',
+                'res_model': 'l10n_cr.ciiu.code',
+                'view_mode': 'tree,form',
+                'domain': [('id', 'in', codes.ids)],
+                'context': {'default_partner_id': self.id},
+            }
+
+        return {
+            'type': 'ir.actions.client',
+            'tag': 'display_notification',
+            'params': {
+                'title': _('No Codes Found'),
+                'message': _('No matching activity codes found'),
+                'type': 'warning',
+            }
+        }
+
+
+class ResPartnerCategory(models.Model):
+    _inherit = 'res.partner.category'
+
+    l10n_cr_default_activity_code = fields.Many2one(
+        'l10n_cr.ciiu.code',
+        string='Default Activity Code',
+        help='Default economic activity code for partners in this category',
+    )

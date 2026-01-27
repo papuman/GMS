@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates id="template" xml:space="preserve">
+    
+    <!-- 1. Extend Payment Screen to add the Toggle and Validation UI -->
+    <t t-inherit="point_of_sale.PaymentScreen" t-inherit-mode="extension">
+        <xpath expr="//div[hasclass('payment-methods')]" position="before">
+            <div class="einvoice-payment-container">
+                <div class="einvoice-header">
+                    <i class="fa fa-file-text-o me-2"/> Comprobante Electrónico
+                </div>
+                
+                <!-- Toggle Button Group -->
+                <div class="einvoice-toggle-group">
+                    <div class="keyboard-hint-container text-center mb-2">
+                        <small class="text-muted keyboard-hint"><i class="fa fa-keyboard-o"/> Presione F2 para cambiar</small>
+                    </div>
+                    <div class="btn-group w-100" role="group" aria-label="Tipo de Comprobante">
+                        <button type="button" 
+                                data-type="TE"
+                                t-attf-class="btn btn-lg einvoice-btn {{currentOrder.einvoice_type === 'TE' ? 'btn-selected' : 'btn-default'}}"
+                                t-on-click="() => this.setEinvoiceType('TE')">
+                            <i class="fa fa-ticket me-2"/> Tiquete
+                        </button>
+                        <button type="button" 
+                                data-type="FE"
+                                t-attf-class="btn btn-lg einvoice-btn {{currentOrder.einvoice_type === 'FE' ? 'btn-selected' : 'btn-default'}}"
+                                t-on-click="() => this.setEinvoiceType('FE')">
+                            <i class="fa fa-building me-2"/> Factura
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Validation / Partner Selection Area -->
+                <div class="einvoice-partner-section">
+                    <t t-if="currentOrder.einvoice_type === 'FE'">
+                        <div class="partner-row" t-on-click="selectPartner">
+                            <div class="partner-icon">
+                                <i class="fa" t-att-class="currentOrder.get_partner() ? 'fa-check-circle text-success' : 'fa-exclamation-circle text-danger'"/>
+                            </div>
+                            <div class="partner-info">
+                                <t t-if="currentOrder.get_partner()">
+                                    <div class="partner-name"><t t-esc="currentOrder.get_partner().name"/></div>
+                                    <div class="partner-vat"><t t-esc="currentOrder.get_partner().vat || 'Sin Cédula'"/></div>
+                                </t>
+                                <t t-else="">
+                                    <div class="partner-placeholder text-danger">Seleccionar Cliente (F4)</div>
+                                    <div class="partner-subtext">Requerido para Factura Electrónica</div>
+                                </t>
+                            </div>
+                            <div class="partner-action">
+                                <i class="fa fa-chevron-right"/>
+                            </div>
+                        </div>
+                    </t>
+                    <t t-else="">
+                        <div class="partner-row te-mode">
+                            <div class="partner-icon"><i class="fa fa-user-secret text-muted"/></div>
+                            <div class="partner-info">
+                                <div class="partner-name text-muted">Tiquete Anónimo</div>
+                                <div class="partner-vat" style="background: transparent; padding: 0;">No requiere datos del cliente</div>
+                            </div>
+                        </div>
+                    </t>
+                </div>
+            </div>
+        </xpath>
+    </t>
+
+</templates>

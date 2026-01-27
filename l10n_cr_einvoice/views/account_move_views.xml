@@ -114,7 +114,7 @@
     <record id="view_invoice_line_tree_discount_code" model="ir.ui.view">
         <field name="name">account.move.line.tree.discount.code</field>
         <field name="model">account.move.line</field>
-        <field name="inherit_id" ref="account.view_invoice_line_tree"/>
+        <field name="inherit_id" ref="account.view_invoice_line_list"/>
         <field name="arch" type="xml">
             <!-- Add Discount Code Column After Discount -->
             <xpath expr="//field[@name='discount']" position="after">
@@ -130,7 +130,7 @@
     <record id="view_move_tree_einvoice" model="ir.ui.view">
         <field name="name">account.move.tree.einvoice</field>
         <field name="model">account.move</field>
-        <field name="inherit_id" ref="account.view_invoice_tree"/>
+        <field name="inherit_id" ref="account.view_invoice_list"/>
         <field name="arch" type="xml">
             <!-- Add E-Invoice Status Column -->
             <xpath expr="//field[@name='payment_state']" position="after">
@@ -193,7 +193,7 @@
     <record id="action_invoices_requiring_einvoice" model="ir.actions.act_window">
         <field name="name">Invoices Requiring E-Invoice</field>
         <field name="res_model">account.move</field>
-        <field name="view_mode">tree,form</field>
+        <field name="view_mode">list,form</field>
         <field name="domain">[('l10n_cr_requires_einvoice', '=', True), ('state', '=', 'posted')]</field>
         <field name="context">{'search_default_einvoice_pending': 1}</field>
         <field name="help" type="html">
@@ -210,7 +210,7 @@
     <record id="action_invoices_einvoice_errors" model="ir.actions.act_window">
         <field name="name">E-Invoice Errors</field>
         <field name="res_model">account.move</field>
-        <field name="view_mode">tree,form</field>
+        <field name="view_mode">list,form</field>
         <field name="domain">[('l10n_cr_einvoice_state', '=', 'error')]</field>
         <field name="help" type="html">
             <p class="o_view_nocontent_smiling_face">

@@ -29,10 +29,19 @@ class EInvoiceDocument(models.Model):
     move_id = fields.Many2one(
         'account.move',
         string='Invoice',
-        required=True,
+        required=False,  # Optional to support POS orders without immediate invoice
         ondelete='cascade',
         index=True,
         tracking=True,
+    )
+
+    pos_order_id = fields.Many2one(
+        'pos.order',
+        string='POS Order',
+        ondelete='cascade',
+        index=True,
+        copy=False,
+        help='Link to POS order for e-invoices generated from Point of Sale',
     )
 
     company_id = fields.Many2one(
@@ -45,7 +54,7 @@ class EInvoiceDocument(models.Model):
     partner_id = fields.Many2one(
         'res.partner',
         string='Customer',
-        related='move_id.partner_id',
+        compute='_compute_partner_id',
         store=True,
     )
 
@@ -155,21 +164,72 @@ class EInvoiceDocument(models.Model):
     # Computed Fields
     amount_total = fields.Monetary(
         string='Total Amount',
-        related='move_id.amount_total',
+        compute='_compute_amount_total',
         store=True,
     )
 
     currency_id = fields.Many2one(
         'res.currency',
-        related='move_id.currency_id',
+        compute='_compute_currency_id',
         store=True,
     )
 
     invoice_date = fields.Date(
         string='Invoice Date',
-        related='move_id.invoice_date',
+        compute='_compute_invoice_date',
         store=True,
     )
+
+    @api.depends('move_id', 'pos_order_id')
+    def _compute_partner_id(self):
+        """Compute partner from either invoice or POS order."""
+        for doc in self:
+            if doc.move_id:
+                doc.partner_id = doc.move_id.partner_id
+            elif doc.pos_order_id:
+                doc.partner_id = doc.pos_order_id.partner_id
+            else:
+                doc.partner_id = False
+
+    @api.depends('move_id.amount_total', 'pos_order_id.amount_total')
+    def _compute_amount_total(self):
+        """Compute amount from either invoice or POS order."""
+        for doc in self:
+            if doc.move_id:
+                doc.amount_total = doc.move_id.amount_total
+            elif doc.pos_order_id:
+                doc.amount_total = doc.pos_order_id.amount_total
+            else:
+                doc.amount_total = 0.0
+
+    @api.depends('move_id.currency_id', 'pos_order_id.currency_id')
+    def _compute_currency_id(self):
+        """Compute currency from either invoice or POS order."""
+        for doc in self:
+            if doc.move_id:
+                doc.currency_id = doc.move_id.currency_id
+            elif doc.pos_order_id:
+                doc.currency_id = doc.pos_order_id.currency_id
+            else:
+                doc.currency_id = doc.company_id.currency_id
+
+    @api.depends('move_id.invoice_date', 'pos_order_id.date_order')
+    def _compute_invoice_date(self):
+        """Compute invoice date from either invoice or POS order."""
+        for doc in self:
+            if doc.move_id:
+                doc.invoice_date = doc.move_id.invoice_date
+            elif doc.pos_order_id:
+                doc.invoice_date = doc.pos_order_id.date_order.date() if doc.pos_order_id.date_order else fields.Date.today()
+            else:
+                doc.invoice_date = fields.Date.today()
+
+    @api.constrains('move_id', 'pos_order_id')
+    def _check_source_document(self):
+        """Ensure at least one source document exists."""
+        for doc in self:
+            if not doc.move_id and not doc.pos_order_id:
+                raise ValidationError(_('E-invoice document must be linked to either an Invoice or a POS Order.'))
 
     @api.model
     def create(self, vals):

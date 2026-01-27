@@ -1,0 +1,181 @@
+version: '3.8'
+
+services:
+  postgres-staging:
+    image: postgres:15-alpine
+    container_name: gms_postgres_staging
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-staging_gms}
+      POSTGRES_USER: ${POSTGRES_USER:-odoo_staging}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - postgres-staging-data:/var/lib/postgresql/data
+      - ./postgres-backup-staging:/backups
+    ports:
+      - "5433:5432"
+    networks:
+      - staging-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-odoo_staging} -d ${POSTGRES_DB:-staging_gms}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  redis-staging:
+    image: redis:7-alpine
+    container_name: gms_redis_staging
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis-staging-data:/data
+    networks:
+      - staging-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+    restart: unless-stopped
+
+  odoo-staging:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: gms_odoo_staging
+    depends_on:
+      postgres-staging:
+        condition: service_healthy
+      redis-staging:
+        condition: service_healthy
+    environment:
+      - HOST=postgres-staging
+      - PORT=5432
+      - USER=${POSTGRES_USER:-odoo_staging}
+      - PASSWORD=${POSTGRES_PASSWORD}
+      - DATABASE=${POSTGRES_DB:-staging_gms}
+      - ODOO_VERSION=19.0
+      - ENVIRONMENT=staging
+      - ADMIN_PASSWD=${ODOO_ADMIN_PASSWD}
+      - DB_FILTER=^${POSTGRES_DB:-staging_gms}$
+      - DB_MAXCONN=32
+      - DB_TEMPLATE=template0
+      - WORKERS=2
+      - MAX_CRON_THREADS=1
+      - LIMIT_MEMORY_SOFT=2147483648
+      - LIMIT_MEMORY_HARD=2684354560
+      - LIMIT_TIME_CPU=300
+      - LIMIT_TIME_REAL=600
+      - LOG_LEVEL=debug
+      - LOG_HANDLER=:DEBUG
+      - PROXY_MODE=True
+      - WITHOUT_DEMO=True
+      - REDIS_HOST=redis-staging
+      - REDIS_PORT=6379
+      # Hacienda Sandbox Configuration
+      - HACIENDA_ENV=sandbox
+      - HACIENDA_API_URL=${HACIENDA_SANDBOX_URL:-https://api-sandbox.comprobanteselectronicos.go.cr/recepcion/v1}
+      - HACIENDA_USERNAME=${HACIENDA_SANDBOX_USERNAME}
+      - HACIENDA_PASSWORD=${HACIENDA_SANDBOX_PASSWORD}
+      # SMTP Configuration (Mailtrap or similar)
+      - SMTP_SERVER=${SMTP_SERVER:-smtp.mailtrap.io}
+      - SMTP_PORT=${SMTP_PORT:-2525}
+      - SMTP_USER=${SMTP_USER}
+      - SMTP_PASSWORD=${SMTP_PASSWORD}
+      - SMTP_SSL=${SMTP_SSL:-False}
+      - EMAIL_FROM=${EMAIL_FROM:-noreply@staging.gms-cr.com}
+    volumes:
+      - odoo-staging-data:/var/lib/odoo
+      - odoo-staging-logs:/var/log/odoo
+      - ../:/mnt/extra-addons/l10n_cr_einvoice:ro
+      - ./odoo.conf:/etc/odoo/odoo.conf:ro
+    ports:
+      - "8070:8069"
+      - "8072:8072"  # Longpolling
+    networks:
+      - staging-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8069/web/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    restart: unless-stopped
+
+  nginx-staging:
+    image: nginx:1.25-alpine
+    container_name: gms_nginx_staging
+    depends_on:
+      - odoo-staging
+    volumes:
+      - ./nginx-staging.conf:/etc/nginx/nginx.conf:ro
+      - nginx-staging-logs:/var/log/nginx
+    ports:
+      - "8080:80"
+    networks:
+      - staging-network
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+
+  prometheus-staging:
+    image: prom/prometheus:v2.47.0
+    container_name: gms_prometheus_staging
+    volumes:
+      - ../monitoring/prometheus-staging.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-staging-data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=7d'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+    ports:
+      - "9091:9090"
+    networks:
+      - staging-network
+    restart: unless-stopped
+
+  grafana-staging:
+    image: grafana/grafana:10.1.5
+    container_name: gms_grafana_staging
+    depends_on:
+      - prometheus-staging
+    environment:
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER:-admin}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD}
+      - GF_SERVER_ROOT_URL=http://localhost:3001
+      - GF_INSTALL_PLUGINS=
+    volumes:
+      - grafana-staging-data:/var/lib/grafana
+      - ../monitoring/grafana-staging-dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ../monitoring/grafana-datasources.yml:/etc/grafana/provisioning/datasources/datasources.yml:ro
+    ports:
+      - "3001:3000"
+    networks:
+      - staging-network
+    restart: unless-stopped
+
+networks:
+  staging-network:
+    driver: bridge
+    name: gms-staging-network
+
+volumes:
+  postgres-staging-data:
+    name: gms-postgres-staging-data
+  redis-staging-data:
+    name: gms-redis-staging-data
+  odoo-staging-data:
+    name: gms-odoo-staging-data
+  odoo-staging-logs:
+    name: gms-odoo-staging-logs
+  nginx-staging-logs:
+    name: gms-nginx-staging-logs
+  prometheus-staging-data:
+    name: gms-prometheus-staging-data
+  grafana-staging-data:
+    name: gms-grafana-staging-data
