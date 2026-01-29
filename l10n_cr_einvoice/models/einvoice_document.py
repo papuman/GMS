@@ -100,11 +100,14 @@ class EInvoiceDocument(models.Model):
     state = fields.Selection([
         ('draft', 'Draft'),
         ('generated', 'XML Generated'),
+        ('generation_error', 'Generation Failed'),
         ('signed', 'Digitally Signed'),
+        ('signing_error', 'Signing Failed'),
         ('submitted', 'Submitted to Hacienda'),
+        ('submission_error', 'Submission Failed'),
         ('accepted', 'Accepted by Hacienda'),
         ('rejected', 'Rejected by Hacienda'),
-        ('error', 'Error'),
+        ('error', 'Error'),  # Keep for backward compatibility
     ], string='Status', default='draft', required=True, tracking=True, copy=False)
 
     hacienda_response = fields.Text(
@@ -242,7 +245,13 @@ class EInvoiceDocument(models.Model):
         """Generate the XML content for the electronic invoice."""
         self.ensure_one()
 
-        if self.state not in ['draft', 'error']:
+        # Acquire database lock to prevent concurrent modifications
+        self.env.cr.execute(
+            'SELECT id FROM l10n_cr_einvoice_document WHERE id = %s FOR UPDATE NOWAIT',
+            (self.id,)
+        )
+
+        if self.state not in ['draft', 'error', 'generation_error']:
             raise UserError(_('Can only generate XML for draft or error documents.'))
 
         try:
@@ -269,7 +278,7 @@ class EInvoiceDocument(models.Model):
             error_msg = str(e)
             _logger.error(f'Error generating XML for {self.name}: {error_msg}')
             self.write({
-                'state': 'error',
+                'state': 'generation_error',
                 'error_message': error_msg,
             })
             raise UserError(_('Error generating XML: %s') % error_msg)
@@ -278,7 +287,13 @@ class EInvoiceDocument(models.Model):
         """Digitally sign the XML content."""
         self.ensure_one()
 
-        if self.state != 'generated':
+        # Acquire database lock to prevent concurrent modifications
+        self.env.cr.execute(
+            'SELECT id FROM l10n_cr_einvoice_document WHERE id = %s FOR UPDATE NOWAIT',
+            (self.id,)
+        )
+
+        if self.state not in ['generated', 'signing_error']:
             raise UserError(_('Can only sign generated XML documents.'))
 
         if not self.xml_content:
@@ -312,16 +327,112 @@ class EInvoiceDocument(models.Model):
             error_msg = str(e)
             _logger.error(f'Error signing XML for {self.name}: {error_msg}')
             self.write({
-                'state': 'error',
+                'state': 'signing_error',
                 'error_message': error_msg,
             })
             raise UserError(_('Error signing XML: %s') % error_msg)
+
+    def _validate_before_submission(self):
+        """
+        Validate all required data before submission to Hacienda.
+
+        This comprehensive validation ensures all critical fields are properly
+        configured before attempting to submit to the Hacienda API, preventing
+        submission failures and improving user experience.
+
+        Raises:
+            ValidationError: If any validation check fails, with a detailed
+                           message listing all issues found.
+        """
+        self.ensure_one()
+        errors = []
+
+        # Company validation
+        if not self.company_id.l10n_cr_hacienda_username:
+            errors.append(_('Hacienda API username is missing - configure in Company settings'))
+
+        if not self.company_id.l10n_cr_hacienda_password:
+            errors.append(_('Hacienda API password is missing - configure in Company settings'))
+
+        if not self.company_id.vat:
+            errors.append(_('Company Tax ID (VAT/Cédula Jurídica) is required'))
+
+        # Digital certificate validation
+        if not self.company_id.l10n_cr_certificate:
+            errors.append(_('Digital certificate not configured - upload in Company settings'))
+
+        if not self.company_id.l10n_cr_private_key:
+            errors.append(_('Private key not configured - upload in Company settings'))
+
+        # Partner/Customer validation
+        if not self.partner_id:
+            errors.append(_('Customer is required for e-invoice'))
+        else:
+            if not self.partner_id.vat:
+                errors.append(
+                    _('Customer Tax ID (VAT/Cédula) is required for customer "%s"') %
+                    self.partner_id.name
+                )
+
+        # Document validation
+        if not self.clave:
+            errors.append(_('Hacienda key (clave) is missing - generate XML first'))
+
+        if not self.signed_xml:
+            errors.append(_('Signed XML is missing - sign the document first'))
+
+        # Currency validation
+        if not self.currency_id:
+            errors.append(_('Currency is required'))
+
+        # Amount validation
+        if self.amount_total <= 0:
+            errors.append(_('Invoice total must be greater than zero'))
+
+        # Source document validation
+        if not self.move_id and not self.pos_order_id:
+            errors.append(_('E-invoice must be linked to either an Invoice or POS Order'))
+
+        # Line items validation
+        if self.move_id:
+            if not self.move_id.invoice_line_ids:
+                errors.append(_('Invoice has no line items'))
+        elif self.pos_order_id:
+            if not self.pos_order_id.lines:
+                errors.append(_('POS order has no line items'))
+
+        # Emisor location validation (required for clave generation)
+        if not self.company_id.l10n_cr_emisor_location:
+            errors.append(_('Emisor location code is missing - configure in Company settings'))
+
+        # Environment configuration check
+        if not self.company_id.l10n_cr_hacienda_env:
+            errors.append(_('Hacienda environment (sandbox/production) not configured'))
+
+        # If there are errors, raise ValidationError with all issues
+        if errors:
+            error_message = _('Cannot submit to Hacienda due to the following issues:\n\n') + '\n'.join(
+                '• %s' % error for error in errors
+            )
+            raise ValidationError(error_message)
+
+        _logger.info(f'Pre-flight validation passed for document {self.name}')
+        return True
 
     def action_submit_to_hacienda(self):
         """Submit the signed XML to Hacienda API."""
         self.ensure_one()
 
-        if self.state != 'signed':
+        # Run comprehensive pre-flight validation
+        self._validate_before_submission()
+
+        # Acquire database lock to prevent concurrent submissions (double-click protection)
+        self.env.cr.execute(
+            'SELECT id FROM l10n_cr_einvoice_document WHERE id = %s FOR UPDATE NOWAIT',
+            (self.id,)
+        )
+
+        if self.state not in ['signed', 'submission_error']:
             raise UserError(_('Can only submit signed documents.'))
 
         if not self.signed_xml:
@@ -348,7 +459,7 @@ class EInvoiceDocument(models.Model):
             error_msg = str(e)
             _logger.error(f'Error submitting {self.name} to Hacienda: {error_msg}')
             self.write({
-                'state': 'error',
+                'state': 'submission_error',
                 'error_message': error_msg,
                 'retry_count': self.retry_count + 1,
             })
@@ -358,7 +469,13 @@ class EInvoiceDocument(models.Model):
         """Check the status of a submitted document with Hacienda."""
         self.ensure_one()
 
-        if self.state not in ['submitted']:
+        # Acquire database lock to prevent concurrent status checks
+        self.env.cr.execute(
+            'SELECT id FROM l10n_cr_einvoice_document WHERE id = %s FOR UPDATE NOWAIT',
+            (self.id,)
+        )
+
+        if self.state not in ['submitted', 'submission_error']:
             raise UserError(_('Can only check status for submitted documents.'))
 
         try:

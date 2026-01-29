@@ -43,6 +43,9 @@ class XMLGenerator(models.AbstractModel):
         doc_type = einvoice.document_type
         move = einvoice.move_id
 
+        _logger.info(f'Generating XML for {doc_type} invoice {move.name} (ID: {move.id})')
+        _logger.debug(f'Invoice date: {move.invoice_date}, Amount: {move.amount_total} {move.currency_id.name}')
+
         # Select the appropriate generator method
         if doc_type == 'FE':
             return self._generate_factura_electronica(einvoice, move)
@@ -53,10 +56,13 @@ class XMLGenerator(models.AbstractModel):
         elif doc_type == 'ND':
             return self._generate_nota_debito(einvoice, move)
         else:
+            _logger.error(f'Unknown document type: {doc_type}')
             raise ValidationError(_('Unknown document type: %s') % doc_type)
 
     def _generate_factura_electronica(self, einvoice, move):
         """Generate Factura Electrónica (FE) XML."""
+        _logger.debug(f'Generating Factura Electrónica for {einvoice.name}')
+
         # Create root element with namespace
         ns = self.NAMESPACES['fe']
         root = etree.Element(
@@ -66,10 +72,12 @@ class XMLGenerator(models.AbstractModel):
 
         # 1. Clave (50-digit key)
         etree.SubElement(root, 'Clave').text = einvoice.clave
+        _logger.debug(f'Added Clave: {einvoice.clave}')
 
         # 2. CodigoActividad (economic activity code)
         codigo_actividad = str(getattr(move.company_id, 'l10n_cr_activity_code', False) or '861201')
         etree.SubElement(root, 'CodigoActividad').text = codigo_actividad
+        _logger.debug(f'Using CIIU/Activity code: {codigo_actividad}')
 
         # 3. NumeroConsecutivo (consecutive number)
         numero = einvoice.name or ''
@@ -81,10 +89,12 @@ class XMLGenerator(models.AbstractModel):
         etree.SubElement(root, 'FechaEmision').text = fecha_hora.isoformat()
 
         # 5. Emisor (sender/company information)
+        _logger.debug(f'Adding Emisor: {move.company_id.name}')
         self._add_emisor(root, move.company_id)
 
         # 6. Receptor (receiver/customer information)
         if move.partner_id:
+            _logger.debug(f'Adding Receptor: {move.partner_id.name}')
             self._add_receptor(root, move.partner_id)
 
         # 7. CondicionVenta (payment terms)
@@ -94,6 +104,8 @@ class XMLGenerator(models.AbstractModel):
         self._add_medio_pago(root, move)
 
         # 9. DetalleServicio (line items)
+        line_count = len(move.invoice_line_ids.filtered(lambda l: l.display_type == 'product'))
+        _logger.debug(f'Adding {line_count} line items')
         self._add_detalle_servicio(root, move)
 
         # 10. ResumenFactura (invoice summary)
@@ -107,6 +119,7 @@ class XMLGenerator(models.AbstractModel):
             pretty_print=True,
         ).decode('utf-8')
 
+        _logger.info(f'Successfully generated FE XML, size: {len(xml_str)} bytes')
         return xml_str
 
     def _generate_tiquete_electronico(self, einvoice, move):
@@ -232,6 +245,7 @@ class XMLGenerator(models.AbstractModel):
         etree.SubElement(identificacion, 'Tipo').text = tipo_id
         numero_id = (company.vat or '').replace('-', '').replace(' ', '')
         etree.SubElement(identificacion, 'Numero').text = numero_id
+        _logger.debug(f'Emisor ID: Type={tipo_id}, Number={numero_id}')
 
         # Commercial name (if different)
         commercial_name = getattr(company, 'commercial_name', False)
@@ -247,6 +261,7 @@ class XMLGenerator(models.AbstractModel):
         etree.SubElement(ubicacion, 'Canton').text = self._safe_text(location_code[1:3], '01')
         etree.SubElement(ubicacion, 'Distrito').text = self._safe_text(location_code[3:5], '01')
         etree.SubElement(ubicacion, 'Barrio').text = self._safe_text(location_code[5:7], '00')
+        _logger.debug(f'Emisor location: {location_code}')
 
         # Address details
         if company.street:
@@ -275,6 +290,7 @@ class XMLGenerator(models.AbstractModel):
             etree.SubElement(identificacion, 'Tipo').text = tipo_id
             numero_id = partner.vat.replace('-', '').replace(' ', '')
             etree.SubElement(identificacion, 'Numero').text = numero_id
+            _logger.debug(f'Receptor ID: Type={tipo_id}, Number={numero_id}')
 
         # Email
         if partner.email:
