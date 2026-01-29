@@ -187,11 +187,15 @@ class EInvoiceDocument(models.Model):
             raise UserError(_('Can only generate XML for draft or error documents.'))
 
         try:
+            _logger.info(f'Starting XML generation for document {self.name}')
+
             # Generate the clave (50-digit key)
             clave = self._generate_clave()
+            _logger.debug(f'Generated clave: {clave}')
 
             # Generate XML content
             xml_content = self._build_xml_content(clave)
+            _logger.debug(f'XML content generated, length: {len(xml_content)} bytes')
 
             # Validate XML against XSD (disabled for Phase 1 testing due to CDN access issues)
             # self._validate_xml(xml_content)
@@ -205,16 +209,30 @@ class EInvoiceDocument(models.Model):
                 'error_message': False,
             })
 
+            # Post success message to chatter
+            self.message_post(
+                body=_('✓ XML generated successfully<br/>Clave: %s') % clave,
+                message_type='notification',
+            )
+
             _logger.info(f'Generated XML for document {self.name}, clave: {clave}')
             return True
 
         except Exception as e:
             error_msg = str(e)
-            _logger.error(f'Error generating XML for {self.name}: {error_msg}')
+            _logger.error(f'Error generating XML for {self.name}: {error_msg}', exc_info=True)
+
+            # Update state and post error to chatter
             self.write({
                 'state': 'error',
                 'error_message': error_msg,
             })
+
+            self.message_post(
+                body=_('✗ XML generation failed: %s') % error_msg,
+                message_type='notification',
+            )
+
             raise UserError(_('Error generating XML: %s') % error_msg)
 
     def action_sign_xml(self):
@@ -228,6 +246,8 @@ class EInvoiceDocument(models.Model):
             raise UserError(_('No XML content to sign.'))
 
         try:
+            _logger.info(f'Starting XML signing for document {self.name}')
+
             # Get company certificate
             certificate = self.company_id.l10n_cr_certificate
             private_key = self.company_id.l10n_cr_private_key
@@ -235,11 +255,15 @@ class EInvoiceDocument(models.Model):
             if not certificate or not private_key:
                 raise UserError(_('Company certificate and private key must be configured.'))
 
+            _logger.debug(f'Certificate and private key loaded for company {self.company_id.name}')
+
             # Sign the XML
             signed_xml = self._sign_xml_content(self.xml_content, certificate, private_key)
+            _logger.debug(f'XML signed, length: {len(signed_xml)} bytes')
 
             # Create XML attachment
             attachment = self._create_xml_attachment(signed_xml)
+            _logger.debug(f'XML attachment created with ID: {attachment.id}')
 
             # Update document
             self.write({
@@ -249,15 +273,29 @@ class EInvoiceDocument(models.Model):
                 'error_message': False,
             })
 
+            # Post success message to chatter
+            self.message_post(
+                body=_('✓ XML signed successfully<br/>Attachment: %s') % attachment.name,
+                message_type='notification',
+            )
+
             _logger.info(f'Signed XML for document {self.name}')
 
         except Exception as e:
             error_msg = str(e)
-            _logger.error(f'Error signing XML for {self.name}: {error_msg}')
+            _logger.error(f'Error signing XML for {self.name}: {error_msg}', exc_info=True)
+
+            # Update state and post error to chatter
             self.write({
                 'state': 'error',
                 'error_message': error_msg,
             })
+
+            self.message_post(
+                body=_('✗ XML signing failed: %s') % error_msg,
+                message_type='notification',
+            )
+
             raise UserError(_('Error signing XML: %s') % error_msg)
 
     def action_submit_to_hacienda(self):
@@ -271,6 +309,11 @@ class EInvoiceDocument(models.Model):
             raise UserError(_('No signed XML to submit.'))
 
         try:
+            _logger.info(f'Starting submission to Hacienda for document {self.name}')
+            _logger.debug(f'Clave: {self.clave}')
+            _logger.debug(f'Sender ID: {self.company_id.vat}')
+            _logger.debug(f'Receiver ID: {self.partner_id.vat or "N/A"}')
+
             # Get API client
             api_client = self.env['l10n_cr.hacienda.api']
 
@@ -282,19 +325,42 @@ class EInvoiceDocument(models.Model):
                 receiver_id=self.partner_id.vat or '',
             )
 
+            _logger.debug(f'Hacienda response: {response}')
+
             # Update document based on response
             self._process_hacienda_response(response)
 
-            _logger.info(f'Submitted document {self.name} to Hacienda')
+            # Post success message to chatter
+            status = response.get('ind-estado', 'unknown')
+            self.message_post(
+                body=_('✓ Submitted to Hacienda<br/>Status: %s<br/>Response: %s') % (
+                    status,
+                    response.get('respuesta-xml', 'N/A')
+                ),
+                message_type='notification',
+            )
+
+            _logger.info(f'Submitted document {self.name} to Hacienda with status: {status}')
 
         except Exception as e:
             error_msg = str(e)
-            _logger.error(f'Error submitting {self.name} to Hacienda: {error_msg}')
+            _logger.error(f'Error submitting {self.name} to Hacienda: {error_msg}', exc_info=True)
+
+            # Update state and post error to chatter
             self.write({
                 'state': 'error',
                 'error_message': error_msg,
                 'retry_count': self.retry_count + 1,
             })
+
+            self.message_post(
+                body=_('✗ Hacienda submission failed (attempt %s): %s') % (
+                    self.retry_count + 1,
+                    error_msg
+                ),
+                message_type='notification',
+            )
+
             raise UserError(_('Error submitting to Hacienda: %s') % error_msg)
 
     def action_check_status(self):
@@ -305,15 +371,35 @@ class EInvoiceDocument(models.Model):
             raise UserError(_('Can only check status for submitted documents.'))
 
         try:
+            _logger.info(f'Checking status with Hacienda for document {self.name}')
+            _logger.debug(f'Clave: {self.clave}')
+
             api_client = self.env['l10n_cr.hacienda.api']
 
             response = api_client.check_status(self.clave)
+            _logger.debug(f'Status response: {response}')
 
             self._process_hacienda_response(response)
 
+            # Post status update to chatter
+            status = response.get('ind-estado', 'unknown')
+            self.message_post(
+                body=_('✓ Status checked<br/>Current status: %s') % status,
+                message_type='notification',
+            )
+
+            _logger.info(f'Status check completed for {self.name}: {status}')
+
         except Exception as e:
-            _logger.error(f'Error checking status for {self.name}: {str(e)}')
-            raise UserError(_('Error checking status: %s') % str(e))
+            error_msg = str(e)
+            _logger.error(f'Error checking status for {self.name}: {error_msg}', exc_info=True)
+
+            self.message_post(
+                body=_('✗ Status check failed: %s') % error_msg,
+                message_type='notification',
+            )
+
+            raise UserError(_('Error checking status: %s') % error_msg)
 
     def _generate_clave(self):
         """

@@ -37,7 +37,10 @@ class CertificateManager(models.AbstractModel):
         Raises:
             UserError: If certificate is missing or invalid
         """
+        _logger.info(f'Loading certificate for company: {company.name}')
+
         if not company.l10n_cr_certificate:
+            _logger.error(f'No certificate configured for company {company.name}')
             raise UserError(_(
                 'Digital certificate not configured for company %s. '
                 'Please upload your X.509 certificate in company settings.'
@@ -46,29 +49,35 @@ class CertificateManager(models.AbstractModel):
         try:
             # Decode certificate data
             cert_data = base64.b64decode(company.l10n_cr_certificate)
+            _logger.debug(f'Certificate data decoded, size: {len(cert_data)} bytes')
 
             # Determine format from filename or try both
             filename = company.l10n_cr_certificate_filename or ''
+            _logger.debug(f'Certificate filename: {filename}')
 
             if filename.endswith('.p12') or filename.endswith('.pfx'):
+                _logger.info('Loading certificate as PKCS#12 format')
                 return self._load_pkcs12_certificate(
                     cert_data,
                     company.l10n_cr_key_password
                 )
             elif filename.endswith('.pem') or filename.endswith('.crt'):
+                _logger.info('Loading certificate as PEM format')
                 return self._load_pem_certificate(
                     cert_data,
                     company.l10n_cr_private_key,
                     company.l10n_cr_key_password
                 )
             else:
+                _logger.info('Certificate format unknown, trying PKCS#12 first')
                 # Try PKCS#12 first (most common for Hacienda)
                 try:
                     return self._load_pkcs12_certificate(
                         cert_data,
                         company.l10n_cr_key_password
                     )
-                except Exception:
+                except Exception as pkcs_error:
+                    _logger.debug(f'PKCS#12 failed, trying PEM: {str(pkcs_error)}')
                     # Fallback to PEM
                     return self._load_pem_certificate(
                         cert_data,
@@ -77,7 +86,7 @@ class CertificateManager(models.AbstractModel):
                     )
 
         except Exception as e:
-            _logger.error(f'Failed to load certificate: {str(e)}')
+            _logger.error(f'Failed to load certificate for {company.name}: {str(e)}', exc_info=True)
             raise UserError(_(
                 'Failed to load digital certificate: %s\n'
                 'Please verify the certificate file and password are correct.'
@@ -95,10 +104,15 @@ class CertificateManager(models.AbstractModel):
             tuple: (certificate, private_key)
         """
         try:
+            _logger.debug('Attempting to load PKCS#12 certificate')
+
             # Convert password to bytes if provided
             pwd_bytes = None
             if password:
                 pwd_bytes = password.encode('utf-8')
+                _logger.debug('Password provided for PKCS#12')
+            else:
+                _logger.debug('No password provided for PKCS#12')
 
             # Load PKCS#12
             private_key, certificate, additional_certs = pkcs12.load_key_and_certificates(
@@ -107,10 +121,14 @@ class CertificateManager(models.AbstractModel):
                 backend=default_backend()
             )
 
+            _logger.debug(f'PKCS#12 parsed - Certificate: {certificate is not None}, Private Key: {private_key is not None}, Additional certs: {len(additional_certs) if additional_certs else 0}')
+
             if not certificate:
+                _logger.error('No certificate found in PKCS#12 file')
                 raise ValidationError(_('No certificate found in PKCS#12 file'))
 
             if not private_key:
+                _logger.error('No private key found in PKCS#12 file')
                 raise ValidationError(_('No private key found in PKCS#12 file'))
 
             # Validate certificate
@@ -120,7 +138,7 @@ class CertificateManager(models.AbstractModel):
             return certificate, private_key
 
         except Exception as e:
-            _logger.error(f'PKCS#12 loading failed: {str(e)}')
+            _logger.error(f'PKCS#12 loading failed: {str(e)}', exc_info=True)
             raise
 
     def _load_pem_certificate(self, cert_data, private_key_data, password):
@@ -177,17 +195,24 @@ class CertificateManager(models.AbstractModel):
         Raises:
             ValidationError: If certificate is invalid or expired
         """
+        _logger.debug('Validating certificate')
+
         # Check expiration
         now = datetime.utcnow()
         not_before = certificate.not_valid_before
         not_after = certificate.not_valid_after
 
+        _logger.debug(f'Certificate validity: {not_before} to {not_after}')
+        _logger.debug(f'Current time: {now}')
+
         if now < not_before:
+            _logger.error(f'Certificate not yet valid. Valid from: {not_before}')
             raise ValidationError(_(
                 'Certificate is not yet valid. Valid from: %s'
             ) % not_before.strftime('%Y-%m-%d'))
 
         if now > not_after:
+            _logger.error(f'Certificate expired on: {not_after}')
             raise ValidationError(_(
                 'Certificate has expired. Expired on: %s'
             ) % not_after.strftime('%Y-%m-%d'))
@@ -197,6 +222,10 @@ class CertificateManager(models.AbstractModel):
         if days_until_expiry < 30:
             _logger.warning(
                 f'Certificate expires soon! Days remaining: {days_until_expiry}'
+            )
+        elif days_until_expiry < 7:
+            _logger.critical(
+                f'Certificate expires very soon! Days remaining: {days_until_expiry}'
             )
 
         _logger.info(
