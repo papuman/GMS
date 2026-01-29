@@ -91,11 +91,14 @@ class EInvoiceDocument(models.Model):
     state = fields.Selection([
         ('draft', 'Draft'),
         ('generated', 'XML Generated'),
+        ('generation_error', 'Generation Failed'),
         ('signed', 'Digitally Signed'),
+        ('signing_error', 'Signing Failed'),
         ('submitted', 'Submitted to Hacienda'),
+        ('submission_error', 'Submission Failed'),
         ('accepted', 'Accepted by Hacienda'),
         ('rejected', 'Rejected by Hacienda'),
-        ('error', 'Error'),
+        ('error', 'Error'),  # Keep for backward compatibility
     ], string='Status', default='draft', required=True, tracking=True, copy=False)
 
     hacienda_response = fields.Text(
@@ -132,6 +135,12 @@ class EInvoiceDocument(models.Model):
         string='Retry Count',
         default=0,
         readonly=True,
+    )
+
+    retry_button_visible = fields.Boolean(
+        compute='_compute_retry_button_visible',
+        string='Show Retry Button',
+        help='Indicates if the retry button should be visible based on error state',
     )
 
     # PDF and Email
@@ -179,11 +188,21 @@ class EInvoiceDocument(models.Model):
                 vals['name'] = self.env['ir.sequence'].next_by_code('l10n_cr.einvoice') or _('New')
         return super(EInvoiceDocument, self).create(vals_list)
 
+    @api.depends('state')
+    def _compute_retry_button_visible(self):
+        """Determine if the retry button should be visible based on error state."""
+        for doc in self:
+            doc.retry_button_visible = doc.state in [
+                'generation_error',
+                'signing_error',
+                'submission_error',
+            ]
+
     def action_generate_xml(self):
         """Generate the XML content for the electronic invoice."""
         self.ensure_one()
 
-        if self.state not in ['draft', 'error']:
+        if self.state not in ['draft', 'error', 'generation_error']:
             raise UserError(_('Can only generate XML for draft or error documents.'))
 
         try:
@@ -224,7 +243,7 @@ class EInvoiceDocument(models.Model):
 
             # Update state and post error to chatter
             self.write({
-                'state': 'error',
+                'state': 'generation_error',
                 'error_message': error_msg,
             })
 
@@ -239,7 +258,7 @@ class EInvoiceDocument(models.Model):
         """Digitally sign the XML content."""
         self.ensure_one()
 
-        if self.state != 'generated':
+        if self.state not in ['generated', 'signing_error']:
             raise UserError(_('Can only sign generated XML documents.'))
 
         if not self.xml_content:
@@ -287,7 +306,7 @@ class EInvoiceDocument(models.Model):
 
             # Update state and post error to chatter
             self.write({
-                'state': 'error',
+                'state': 'signing_error',
                 'error_message': error_msg,
             })
 
@@ -302,7 +321,7 @@ class EInvoiceDocument(models.Model):
         """Submit the signed XML to Hacienda API."""
         self.ensure_one()
 
-        if self.state != 'signed':
+        if self.state not in ['signed', 'submission_error']:
             raise UserError(_('Can only submit signed documents.'))
 
         if not self.signed_xml:
@@ -348,7 +367,7 @@ class EInvoiceDocument(models.Model):
 
             # Update state and post error to chatter
             self.write({
-                'state': 'error',
+                'state': 'submission_error',
                 'error_message': error_msg,
                 'retry_count': self.retry_count + 1,
             })
@@ -367,7 +386,7 @@ class EInvoiceDocument(models.Model):
         """Check the status of a submitted document with Hacienda."""
         self.ensure_one()
 
-        if self.state not in ['submitted']:
+        if self.state not in ['submitted', 'submission_error']:
             raise UserError(_('Can only check status for submitted documents.'))
 
         try:
@@ -400,6 +419,19 @@ class EInvoiceDocument(models.Model):
             )
 
             raise UserError(_('Error checking status: %s') % error_msg)
+
+    def action_retry(self):
+        """Retry failed operation based on current error state."""
+        self.ensure_one()
+
+        if self.state == 'generation_error':
+            return self.action_generate_xml()
+        elif self.state == 'signing_error':
+            return self.action_sign_xml()
+        elif self.state == 'submission_error':
+            return self.action_submit_to_hacienda()
+        else:
+            raise UserError(_('No failed operation to retry. Current state: %s') % self.state)
 
     def _generate_clave(self):
         """

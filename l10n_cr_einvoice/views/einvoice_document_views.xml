@@ -56,6 +56,14 @@
                             type="object"
                             invisible="state != 'submitted'"/>
 
+                    <!-- Retry Button for Error States -->
+                    <button name="action_retry"
+                            type="object"
+                            string="Retry"
+                            class="btn-warning"
+                            invisible="not retry_button_visible"
+                            confirm="Retry the failed operation? This will attempt to continue the e-invoice process from the point of failure."/>
+
                     <!-- PDF and Email Buttons -->
                     <button name="action_generate_pdf" string="Generate PDF"
                             type="object" class="oe_highlight"
@@ -66,7 +74,8 @@
 
                     <!-- Status Bar -->
                     <field name="state" widget="statusbar"
-                           statusbar_visible="draft,generated,signed,submitted,accepted"/>
+                           statusbar_visible="draft,generated,signed,submitted,accepted"
+                           statusbar_colors='{"rejected":"danger","error":"danger","generation_error":"danger","signing_error":"danger","submission_error":"danger"}'/>
                 </header>
 
                 <sheet>
@@ -267,6 +276,7 @@
                 <field name="move_id"/>
                 <field name="hacienda_message"/>
                 <field name="error_message"/>
+                <field name="retry_button_visible"/>
 
                 <templates>
                     <t t-name="kanban-box">
@@ -323,6 +333,13 @@
                                 </div>
                                 <div class="oe_kanban_bottom_right">
                                     <!-- Quick Actions -->
+                                    <button t-if="record.retry_button_visible.raw_value"
+                                            name="action_retry"
+                                            type="object"
+                                            class="btn btn-sm btn-warning"
+                                            title="Retry Failed Operation">
+                                        <i class="fa fa-repeat"/>
+                                    </button>
                                     <button t-if="record.state.raw_value == 'draft' || record.state.raw_value == 'error'"
                                             name="action_generate_xml"
                                             type="object"
