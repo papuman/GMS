@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+        <!-- Google Tag Manager -->
+    <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+    new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+    j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+    'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+    })(window,document,'script','dataLayer','GTM-WQ53W829');</script>
+    <!-- End Google Tag Manager -->
+    
+    
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <link rel="icon" type="image/x-icon"
+        href="https://storage.googleapis.com/tilo-uploads/assets/logos/badge-icon-color.ico?generation=1742262214125800">
+    <!-- The following is only required when using a CSP. If a CSP is used, the collection will not
+run without the following. -->
+    <!-- <meta http-equiv="Content-Security-Policy" content="https://*.kaptcha.com"> -->
+    <!-- end comment -->
+    <!-- CSRF Token -->
+    <meta name="csrf-token" content="ULLfwYK1NbKeWxiI32ss1xKa6ZVsvftaS39AXIoP">
+        <title>Tilopay - TiloPay</title>
+
+
+    <!-- =============== BOOTSTRAP STYLES ===============-->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.0/css/all.min.css">
+    <link rel="stylesheet"
+        href="https://storage.googleapis.com/tilo-uploads/assets/theme/vendor/simple-line-icons/css/simple-line-icons.css?generation=1669751622407149">
+    <link rel="stylesheet"
+        href="https://storage.googleapis.com/tilo-uploads/assets/theme/vendor/animate.css/animate.css?generation=1669751365260686">
+    <link rel="stylesheet"
+        href="https://storage.googleapis.com/tilo-uploads/assets/theme/vendor/whirl/dist/whirl.css?generation=1669751642388163">
+    <link rel="stylesheet"
+        href="https://storage.googleapis.com/tilo-uploads/assets/theme/vendor/bootstrap-datepicker/dist/css/bootstrap-datepicker.css?generation=1669751370236809">
+    <link rel="stylesheet"
+        href="https://storage.googleapis.com/tilo-uploads/assets/theme/css/bootstrap.css?generation=1669751315874871"
+        id="bscss">
+    <link rel="stylesheet"
+        href="https://storage.googleapis.com/tilo-uploads/assets/theme/css/app.css?generation=1711571619861081"
+        id="maincss">
+    <link rel="stylesheet"
+        href="https://storage.googleapis.com/tilo-uploads/assets/css/admin.css?generation=1669751074818046"
+        id="maincss">
+                
+        
+</head>
+
+<body class='kaxsdc' data-event='load' style="background-color: #fff!important;">
+        <!-- Google Tag Manager (noscript) -->
+    <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-WQ53W829"
+    height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+    <!-- End Google Tag Manager (noscript) -->
+    
+    
+        
+    <div class="wrapper">
+
+        
+        <div class="block-center mt-4 wd-xl">
+
+            <div class="card card-flat">
+                <div class="card-header text-center bg-dark">
+                    <a href="https://admin.tilopay.com">
+                        <img class="block-center rounded loginLogo" style="width: 150px;"
+                            src="https://storage.googleapis.com/tilo-uploads/assets/logos/full_tilopay_logo_color.png?generation=1742251033853495"
+                            alt="Tilopay">
+                    </a>
+                </div>
+                <div class="card-body">
+                    <p class="text-center py-2">Login</p>
+                    
+                    <form id="loginform" action="https://admin.tilopay.com/login" method="post" autocomplete="off">
+
+                        <input type="hidden" name="_token" value="ULLfwYK1NbKeWxiI32ss1xKa6ZVsvftaS39AXIoP" autocomplete="off">                                                <input type="hidden" id="_token" name="_token" value="ULLfwYK1NbKeWxiI32ss1xKa6ZVsvftaS39AXIoP">
+                        <div class="form-group">
+                            <div class="input-group with-focus"><input class="form-control border-right-0" id="email"
+                                    type="email" name="email" placeholder="Email"
+                                    autocomplete="off"
+                                     value=""
+                                >
+                                <div class="input-group-append">
+                                    <span class="input-group-text text-muted bg-transparent border-left-0">
+                                        <em class="fa fa-envelope"></em>
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <div class="input-group with-focus"><input class="form-control border-right-0" id="password"
+                                    name="password" type="password" placeholder="Password"
+                                    value="" required>
+                                <div class="input-group-append">
+                                    <span class="input-group-text text-muted bg-transparent border-left-0">
+                                        <em class="fa fa-lock"></em>
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                        <button class="btn btn-block btn-primary mt-3 g-recaptcha" type="submit"
+                            id="login">Login</button>
+                    </form>
+
+                    <div class="d-flex justify-content-between px-3 pt-4" style="text-align: center!important;">
+                                                <a type="button" id="resetPasswordlink" class="btn btn-block mt-3" style="color: #ff3544;"
+                            href="https://admin.tilopay.com/forgot">
+                            Forgot your password
+                        </a>
+                    </div>
+
+                </div>
+            </div><!-- END card-->
+            <div class="p-3 text-center">
+                <a href="https://tilopay.com">
+                    <img src="https://storage.googleapis.com/tilo-uploads/assets/logos/full_tilopay_logo_color.png?generation=1742251033853495"
+                        id="tiloLogo">
+                </a>
+
+                <p style="font-size: 14px !important;color: #9F9F9F;">
+                    <span>If you any have questions or comments related to TiloPay, please send us your thoughts at
+                        <a href="mailto:sac@tilopay.com?subject=Comentarios%20sobre%20TiloPay" style="color: #ff3544;">
+                            sac@tilopay.com
+                        </a>
+                    </span>
+                </p>
+
+                <p style="font-size: 14px !important;color: #9F9F9F;">
+                    2026 © Tilo Commerce.
+                </p>
+            </div>
+        </div>
+    </div>
+    <!-- MODERNIZR-->
+    <script
+        src="https://storage.googleapis.com/tilo-uploads/assets/theme/vendor/modernizr/modernizr.custom.js?generation=1669751568617476">
+    </script><!-- STORAGE API-->
+    <script
+        src="https://storage.googleapis.com/tilo-uploads/assets/theme/vendor/js-storage/js.storage.js?generation=1669751558013318">
+    </script><!-- SCREENFULL-->
+    <script
+        src="https://storage.googleapis.com/tilo-uploads/assets/theme/vendor/screenfull/dist/screenfull.js?generation=1669751616590172">
+    </script>
+    <script
+        src="https://storage.googleapis.com/tilo-uploads/assets/theme/vendor/jquery/dist/jquery.js?generation=1669751554284657">
+    </script>
+    <script
+        src="https://storage.googleapis.com/tilo-uploads/assets/theme/vendor/popper.js/dist/umd/popper.js?generation=1669751606014274">
+    </script>
+    <script
+        src="https://storage.googleapis.com/tilo-uploads/assets/theme/vendor/bootstrap/dist/js/bootstrap.js?generation=1669751391959008">
+    </script>
+    <!-- =============== PAGE VENDOR SCRIPTS ===============-->
+    <!-- SLIMSCROLL-->
+    <script
+        src="https://storage.googleapis.com/tilo-uploads/assets/theme/vendor/bootstrap-filestyle/src/bootstrap-filestyle.js?generation=1669751377132416">
+    </script>
+    <script
+        src="https://storage.googleapis.com/tilo-uploads/assets/theme/vendor/bootstrap-tagsinput/dist/bootstrap-tagsinput.js?generation=1669751384322012">
+    </script>
+    <script
+        src="https://storage.googleapis.com/tilo-uploads/assets/theme/vendor/bootstrap-datepicker/dist/js/bootstrap-datepicker.js?generation=1669751372944011">
+    </script>
+    <script
+        src="https://storage.googleapis.com/tilo-uploads/assets/theme/vendor/chosen-js/chosen.jquery.js?generation=1669751404420043">
+    </script>
+    <script
+        src="https://storage.googleapis.com/tilo-uploads/assets/theme/vendor/jquery-slimscroll/jquery.slimscroll.js?generation=1669751528667144">
+    </script><!-- SPARKLINE-->
+    <script
+        src="https://storage.googleapis.com/tilo-uploads/assets/theme/vendor/jquery-sparkline/jquery.sparkline.js?generation=1669751532071305">
+    </script><!-- FLOT CHART-->
+    <script
+        src="https://storage.googleapis.com/tilo-uploads/assets/theme/vendor/flot/jquery.flot.js?generation=1669751481694175">
+    </script>
+    <script
+        src="https://storage.googleapis.com/tilo-uploads/assets/theme/vendor/jquery.flot.tooltip/js/jquery.flot.tooltip.js?generation=1669751547237607">
+    </script>
+    <script
+        src="https://storage.googleapis.com/tilo-uploads/assets/theme/vendor/flot/jquery.flot.resize.js?generation=1669751486623681">
+    </script>
+    <script
+        src="https://storage.googleapis.com/tilo-uploads/assets/theme/vendor/flot/jquery.flot.pie.js?generation=1669751484308640">
+    </script>
+    <script
+        src="https://storage.googleapis.com/tilo-uploads/assets/theme/vendor/flot/jquery.flot.time.js?generation=1669751489972567">
+    </script>
+    <script
+        src="https://storage.googleapis.com/tilo-uploads/assets/theme/vendor/flot/jquery.flot.categories.js?generation=1669751480198440">
+    </script>
+    <script
+        src="https://storage.googleapis.com/tilo-uploads/assets/theme/vendor/bootstrap-slider/dist/bootstrap-slider.js?generation=1669751379914002">
+    </script>
+    <script
+        src="https://storage.googleapis.com/tilo-uploads/assets/theme/vendor/inputmask/dist/jquery.inputmask.bundle.js?generation=1669751515514425">
+    </script>
+    <script
+        src="https://storage.googleapis.com/tilo-uploads/assets/theme/vendor/bootstrap-wysiwyg/js/bootstrap-wysiwyg.min.js?generation=1669751387491837">
+    </script>
+    <script
+        src="https://storage.googleapis.com/tilo-uploads/assets/theme/vendor/jquery.flot.spline/jquery.flot.spline.js?generation=1669751545297529">
+    </script><!-- EASY PIE CHART-->
+    <script
+        src="https://storage.googleapis.com/tilo-uploads/assets/theme/vendor/easy-pie-chart/dist/jquery.easypiechart.js?generation=1669751473562831">
+    </script><!-- MOMENT JS-->
+    <script
+        src="https://storage.googleapis.com/tilo-uploads/assets/theme/vendor/moment/min/moment-with-locales.js?generation=1669751572926552">
+    </script>
+    <!-- =============== APP SCRIPTS ===============-->
+    <script
+        src="https://storage.googleapis.com/tilo-uploads/assets/theme/js/app.js?generation=1669751328553395">
+    </script>
+    <script
+        src="https://storage.googleapis.com/tilo-uploads/assets/plugins/overlay/loadingoverlay.min.js?generation=1669751250252526">
+    </script>
+
+        <script
+        src="https://storage.googleapis.com/tilo-uploads/assets/theme/vendor/sweetalert/dist/sweetalert.min.js?generation=1669751632314401">
+    </script>
+    <script
+        src="https://storage.googleapis.com/tilo-uploads/assets/plugins/formvalidate/validateinput.js?generation=1669751245557501">
+    </script>
+    <script src="https://www.google.com/recaptcha/enterprise.js?render=6Lfr-sAeAAAAAM7DTVoRHM2u4ygRvy_BKNtgjg5b"></script>
+    <script>
+        $(function() {
+            $("#email").keyup(function() {
+                var div_parent = $(this).parent("div");
+                validateSpecialCharacters(div_parent, "email", $(this).val(), "email",
+                    'Invalid email format.');
+            });
+
+            $("#login").click(function(e) {
+                checkCaptcha(e);
+            });
+        });
+
+        function checkCaptcha(e) {
+            e.preventDefault();
+            grecaptcha.enterprise.ready(function() {
+                grecaptcha.enterprise.execute("6Lfr-sAeAAAAAM7DTVoRHM2u4ygRvy_BKNtgjg5b", {
+                    action: 'login'
+                }).then(function(token) {
+                    // Add your logic to submit to your backend server here.
+                    $('#loginform').submit();
+                });
+            });
+        }
+
+        $(document).ready(function() {
+            var pyamentUrl = "0";
+            if (pyamentUrl != 0) {
+                var span = document.createElement("span");
+                span.innerHTML = '<div class="row">' +
+                    '<div class="col-md-12 text-center" style="height:100%;">' +
+                    '<span id="unpaidServiceAddcard">Account has been deactivated due an unpaid invoice , add valid card to process the payments and activate it.</span>' +
+                    '<iframe id="tokenizeIframe" src="' + pyamentUrl +
+                    '" frameborder="0" height="850px" width="100%" title="Card Form"></iframe>' +
+                    '</div>' +
+                    '</div>';
+                swal({
+                    html: true,
+                    title: "Due invoice",
+                    content: span,
+                    buttons: false,
+                    customClass: ".swal-cards"
+                }).then(function(isConfirm) {
+                    'call tokineze'
+                    if (isConfirm) {
+                        console.log('oki confirm');
+                    }
+                });
+            } else {
+                var txtError = '';
+
+                
+                if (txtError == '') {
+                                    }
+
+                if (txtError != '') {
+                    swal("Review the following issues", txtError, 'error');
+                }
+            }
+        });
+    </script>
+</body>
+
+</html>

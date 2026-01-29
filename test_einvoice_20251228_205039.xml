@@ -1,0 +1,64 @@
+<?xml version='1.0' encoding='utf-8'?>
+<TiqueteElectronico xmlns="https://cdn.comprobanteselectronicos.go.cr/xml-schemas/v4.4/tiqueteElectronico" xmlns:ds="http://www.w3.org/2000/09/xmldsig#">
+  <Clave>50601051281225040031012345670010000000171976631921</Clave>
+  <NumeroConsecutivo>FE-0000000017</NumeroConsecutivo>
+  <FechaEmision>2025-12-28T02:50:31.923345</FechaEmision>
+  <Emisor>
+    <Nombre>GMS Gym</Nombre>
+    <Identificacion>
+      <Tipo>02</Tipo>
+      <Numero>3101234567</Numero>
+    </Identificacion>
+    <Ubicacion>
+      <Provincia>0</Provincia>
+      <Canton>10</Canton>
+      <Distrito>51</Distrito>
+      <Barrio>00</Barrio>
+    </Ubicacion>
+    <Telefono>
+      <CodigoPais>506</CodigoPais>
+      <NumTelefono>00000000</NumTelefono>
+    </Telefono>
+  </Emisor>
+  <CondicionVenta>01</CondicionVenta>
+  <MedioPago>01</MedioPago>
+  <DetalleServicio>
+    <LineaDetalle>
+      <NumeroLinea>1</NumeroLinea>
+      <Codigo>
+        <Tipo>04</Tipo>
+        <Codigo>8611</Codigo>
+      </Codigo>
+      <Cantidad>1.0</Cantidad>
+      <UnidadMedida>Unid</UnidadMedida>
+      <Detalle>Test Product for Signature</Detalle>
+      <PrecioUnitario>50000.00000</PrecioUnitario>
+      <MontoTotal>50000.00000</MontoTotal>
+      <SubTotal>50000.00000</SubTotal>
+      <Impuesto>
+        <Codigo>01</Codigo>
+        <CodigoTarifa>01</CodigoTarifa>
+        <Tarifa>15.0</Tarifa>
+        <Monto>7500.00000</Monto>
+      </Impuesto>
+      <MontoTotalLinea>57500.00000</MontoTotalLinea>
+    </LineaDetalle>
+  </DetalleServicio>
+  <ResumenFactura>
+    <CodigoTipoMoneda>
+      <CodigoMoneda>CRC</CodigoMoneda>
+      <TipoCambio>1.00000</TipoCambio>
+    </CodigoTipoMoneda>
+    <TotalServGravados>50000.00000</TotalServGravados>
+    <TotalServExentos>0.00000</TotalServExentos>
+    <TotalMercanciasGravadas>0.00000</TotalMercanciasGravadas>
+    <TotalMercanciasExentas>0.00000</TotalMercanciasExentas>
+    <TotalGravado>50000.00000</TotalGravado>
+    <TotalExento>0.00000</TotalExento>
+    <TotalVenta>50000.00000</TotalVenta>
+    <TotalDescuentos>0.00000</TotalDescuentos>
+    <TotalVentaNeta>50000.00000</TotalVentaNeta>
+    <TotalImpuesto>7500.00000</TotalImpuesto>
+    <TotalComprobante>57500.00000</TotalComprobante>
+  </ResumenFactura>
+</TiqueteElectronico>

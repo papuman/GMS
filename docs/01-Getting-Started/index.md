@@ -1,0 +1,627 @@
+---
+title: "Getting Started Documentation - Onboarding & Quick Start Index"
+category: "getting-started"
+domain: "getting-started"
+layer: "index"
+audience: ["all"]
+last_updated: "2026-01-02"
+status: "production-ready"
+version: "1.0.0"
+maintainer: "Onboarding Team"
+description: "Master index for onboarding new users, developers, and team members to the GMS platform"
+keywords: ["getting-started", "onboarding", "quick-start", "introduction", "first-steps", "new-user"]
+---
+
+# 📍 Navigation Breadcrumb
+[Home](../index.md) > Getting Started Documentation
+
+---
+
+# 🚀 Getting Started Documentation
+**Onboarding & Quick Start - Master Index**
+
+**Version:** 1.0.0
+**Last Updated:** 2026-01-01
+**Status:** ✅ Production Ready - Fast Onboarding Paths
+**Onboarding Lead:** Training & Documentation Team
+
+---
+
+## 📊 Executive Summary
+
+The Getting Started Documentation provides fast onboarding paths for all user types - gym owners, front desk staff, developers, and system administrators. Choose your role below to get started quickly.
+
+**Quick Onboarding:**
+- **⏱️ 5-Minute Start:** Basic system navigation
+- **⏱️ 30-Minute Start:** Create your first invoice
+- **⏱️ 2-Hour Start:** Complete system configuration
+- **⏱️ 1-Day Start:** Full feature proficiency
+
+**Target Audiences:**
+- **Gym Owners:** Business overview, strategic features
+- **Front Desk Staff:** Daily operations (invoicing, POS, payments)
+- **Developers:** Technical setup, coding standards, architecture
+- **System Admins:** Infrastructure, security, deployment
+
+---
+
+## 🎯 Choose Your Path
+
+### 👤 I'm a Gym Owner
+**Goal:** Understand business value, access reports, manage gym operations
+
+**Your Journey:**
+1. ⏱️ **5 min** - [Business Overview](#business-overview) - What GMS does for your gym
+2. ⏱️ **10 min** - [Costa Rica E-Invoicing 101](#costa-rica-e-invoicing-101) - Compliance explained
+3. ⏱️ **15 min** - [Analytics Dashboard Tour](#analytics-dashboard) - View your numbers
+4. ⏱️ **30 min** - [Payment Gateway Setup](#payment-gateway-setup) - Accept credit cards
+5. ⏱️ **Ongoing** - [User Guides](../09-user-guides/index.md) - Detailed help
+
+**Most Important Features:**
+- ✅ Automated e-invoicing (Costa Rica compliant)
+- ✅ Payment gateway (TiloPay credit cards)
+- ✅ Member management and discounts
+- ✅ Revenue analytics and reports
+- ✅ Tax reports (D-101, D-150, D-151)
+
+---
+
+### 👩‍💼 I'm Front Desk Staff
+**Goal:** Create invoices, process payments, handle daily operations
+
+**Your Journey:**
+1. ⏱️ **5 min** - [System Login & Navigation](#system-login) - Access the system
+2. ⏱️ **15 min** - [Create Your First Invoice](#create-invoice-tutorial) - Step-by-step
+3. ⏱️ **10 min** - [Accept Payments](#accept-payments-tutorial) - Cash, card, SINPE
+4. ⏱️ **10 min** - [POS Quick Start](#pos-quick-start) - Point-of-sale sales
+5. ⏱️ **10 min** - [Apply Member Discounts](#member-discounts) - Discount codes
+6. ⏱️ **15 min** - [Void/Cancel Invoices](#void-wizard-tutorial) - Handle corrections
+
+**Daily Cheat Sheet:** [Front Desk Quick Reference](#front-desk-quick-reference)
+
+**Common Tasks:**
+- Create invoice for membership
+- Process credit card payment
+- Apply member discount
+- Email invoice to customer
+- Make POS sale
+- Void incorrect invoice
+
+---
+
+### 👨‍💻 I'm a Developer
+**Goal:** Set up dev environment, understand architecture, start coding
+
+**Your Journey:**
+1. ⏱️ **30 min** - [Development Environment Setup](../11-development/index.md#environment-setup) - Install Odoo 18
+2. ⏱️ **20 min** - [Architecture Overview](../04-architecture/index.md) - System design
+3. ⏱️ **30 min** - [Coding Standards](../11-development/index.md#coding-standards) - Python, XML, JS
+4. ⏱️ **20 min** - [Git Workflow](../11-development/index.md#git-workflow) - Branching, commits
+5. ⏱️ **1 hour** - [Module Cloning Guide](../GMS_MODULE_ARCHITECTURE_GUIDE.md) - Extend modules
+6. ⏱️ **30 min** - [Testing Setup](../07-testing/index.md) - Run tests
+
+**Developer Quick Links:**
+- [Development Domain](../11-development/index.md) - All dev resources
+- [API Integration](../10-api-integration/index.md) - Hacienda, TiloPay APIs
+- [Feature Documentation](../12-features/index.md) - Feature specs
+- [Implementation Phases](../05-implementation/index.md) - How it was built
+
+**Tech Stack:**
+- **Framework:** Odoo 18.0 (Python 3.10+)
+- **Database:** PostgreSQL 15
+- **Cache:** Redis 7
+- **Frontend:** Odoo Owl (Vue-like)
+- **Deployment:** Docker + Nginx
+
+---
+
+### 🔧 I'm a System Administrator
+**Goal:** Deploy, configure, secure, and maintain the system
+
+**Your Journey:**
+1. ⏱️ **1 hour** - [Infrastructure Setup](../06-deployment/index.md) - Docker, PostgreSQL, Nginx
+2. ⏱️ **30 min** - [Security Configuration](../06-deployment/index.md#security-configuration) - SSL, firewall
+3. ⏱️ **45 min** - [Certificate Management](#certificate-management-admin) - BCCR certificates
+4. ⏱️ **30 min** - [Monitoring Setup](../06-deployment/index.md#monitoring--observability) - Health checks
+5. ⏱️ **20 min** - [Backup Configuration](../06-deployment/index.md#database-configuration) - Automated backups
+
+**Admin Resources:**
+- [Deployment Domain](../06-deployment/index.md) - Full deployment guide
+- [Admin Guide](../../l10n_cr_einvoice/docs/ADMIN_GUIDE.md) - System administration
+- [Production Readiness](../../PRODUCTION-READINESS-REPORT.md) - Deployment checklist
+- [Security Setup](../../l10n_cr_einvoice/security/) - Security guides
+
+---
+
+## 📚 Core Concepts
+
+### Business Overview
+
+**What is GMS?**
+
+GMS (Gym Management System) is an Odoo-based platform specifically designed for Costa Rican gyms, providing:
+
+1. **Costa Rica E-Invoicing Compliance**
+   - Hacienda v4.4 mandatory compliance (since Sept 1, 2025)
+   - Digital signature with BCCR certificates
+   - Automatic XML generation and submission
+   - Real-time Hacienda validation
+   - PDF invoices with QR codes
+
+2. **Payment Processing**
+   - TiloPay payment gateway (credit/debit cards)
+   - SINPE Móvil integration
+   - Cash, check, bank transfer
+   - Recurring billing (memberships)
+
+3. **Member Management**
+   - Member profiles and contracts
+   - Attendance tracking
+   - Member portal (self-service)
+   - Automated discounts
+
+4. **Point of Sale (POS)**
+   - Quick sales (supplements, apparel)
+   - Member quick lookup
+   - Auto e-invoice generation
+   - Offline mode
+
+5. **Reporting & Analytics**
+   - Revenue analytics dashboard
+   - Tax reports (D-101, D-150, D-151)
+   - Customer behavior analysis
+   - Hacienda compliance tracking
+
+**Why GMS?**
+- ✅ **100% Costa Rica Compliant:** No penalties, no stress
+- ✅ **Automated:** Save 2+ hours/day on admin work
+- ✅ **Proven UX:** Patterns from successful competitors (HuliPractice)
+- ✅ **Odoo Native:** Leverage world-class ERP platform
+- ✅ **All-in-One:** Invoicing, payments, members, POS in one system
+
+---
+
+### Costa Rica E-Invoicing 101
+
+**What is Electronic Invoicing (Facturación Electrónica)?**
+
+Costa Rica requires all businesses to send invoices electronically to the Ministry of Finance (Hacienda) for validation.
+
+**Key Requirements:**
+1. **XML Format:** Invoices must be in Hacienda v4.4 XML format
+2. **Digital Signature:** Must sign with BCCR-issued certificate
+3. **50-Digit Clave:** Unique identifier for each invoice
+4. **Hacienda Submission:** Submit within 24 hours of sale
+5. **Legal Invoice:** Only Hacienda-accepted invoices are legally valid
+
+**Invoice Types:**
+- **01 - Factura Electrónica:** Standard invoice (> ₡500,000)
+- **04 - Tiquete Electrónico:** Simplified invoice (≤ ₡500,000)
+- **03 - Nota de Crédito:** Credit note (voids/refunds)
+- **02 - Nota de Débito:** Debit note (additional charges)
+
+**Workflow:**
+```
+1. Create Invoice in GMS
+   ↓
+2. Generate XML (Hacienda v4.4 format)
+   ↓
+3. Sign XML (BCCR digital certificate)
+   ↓
+4. Submit to Hacienda API
+   ↓
+5. Poll for Response (every 5 min, max 3 hours)
+   ↓
+6. Hacienda Accepts or Rejects
+   ↓
+7. If Accepted: Generate PDF with QR code
+   ↓
+8. Email PDF to Customer
+```
+
+**Common Statuses:**
+- 🟢 **Accepted (Aceptado):** Legal invoice, customer receives PDF
+- 🔴 **Rejected (Rechazado):** Fix errors and resubmit
+- 🔵 **Submitted (Enviado):** Waiting for Hacienda response
+- ⚪ **Draft (Borrador):** Not yet submitted
+
+---
+
+## 🎓 Tutorials
+
+### Create Invoice Tutorial
+
+**⏱️ Time:** 15 minutes
+**Prerequisites:** System access, customer data
+
+**Step 1: Navigate to Invoices**
+```
+Main Menu → Invoicing → Customers → Invoices
+```
+
+**Step 2: Create New Invoice**
+```
+Click [Create] button
+```
+
+**Step 3: Fill Invoice Details**
+- **Customer:** Select existing or create new
+  - Name, Tax ID (cédula)
+  - Email address (for PDF delivery)
+  - Province, Canton, District
+
+- **Invoice Lines:** Add products/services
+  - Product: Select from catalog (e.g., "Monthly Membership")
+  - Quantity: 1
+  - Price: ₡50,000
+  - Tax: 4% (Costa Rica reduced rate for gyms)
+
+- **Payment Method:** Cash, Card, SINPE
+- **Discount Code:** (optional) Apply if member
+
+**Step 4: Preview Invoice**
+```
+Click [Preview] button → Review XML content
+```
+
+**Step 5: Submit to Hacienda**
+```
+Click [Submit to Hacienda] button
+Status changes to "Submitted" (blue)
+```
+
+**Step 6: Wait for Hacienda Response**
+```
+Hacienda polls every 5 minutes (automatic)
+Check status: Should change to "Accepted" (green) within 15 minutes
+```
+
+**Step 7: Send PDF to Customer**
+```
+Once accepted, click [Send by Email]
+Customer receives PDF with QR code
+```
+
+**Troubleshooting:**
+- If rejected: Check error message, fix issue, resubmit
+- If stuck in "Submitted": Check Hacienda API status, retry if needed
+- If PDF not generating: Check certificate is valid
+
+---
+
+### Accept Payments Tutorial
+
+**⏱️ Time:** 10 minutes
+**Prerequisites:** Invoice created
+
+**Payment Methods:**
+
+**1. Cash Payment**
+```
+Invoice → [Register Payment] button
+- Payment Method: Cash
+- Amount: Full or partial
+- Click [Create Payment]
+```
+
+**2. Credit Card (TiloPay)**
+```
+Invoice → [Pay with TiloPay] button
+- Redirects to TiloPay gateway
+- Customer enters card details
+- Payment confirmed automatically
+```
+
+**3. SINPE Móvil**
+```
+Invoice → [Register Payment] button
+- Payment Method: SINPE Móvil
+- Reference: SINPE transaction ID
+- Click [Create Payment]
+```
+
+**4. Multiple Payments**
+```
+Invoice → [Register Payment] button
+- Amount: Partial (e.g., ₡25,000 cash)
+- Click [Create Payment]
+- Repeat for remaining amount with different method
+```
+
+**Payment Status:**
+- ✅ **Paid:** Full payment received
+- 🟡 **Partial:** Partial payment received
+- ⚪ **Not Paid:** No payment received
+
+---
+
+### POS Quick Start
+
+**⏱️ Time:** 10 minutes
+**Prerequisites:** POS configured
+
+**Step 1: Open POS**
+```
+Main Menu → Point of Sale → [Your POS] → New Session
+```
+
+**Step 2: Make Sale**
+- Scan barcode or select product from catalog
+- Adjust quantity if needed
+- Apply member discount (if applicable)
+  - Click [Member] → Search by name/phone
+  - Discount applied automatically
+
+**Step 3: Payment**
+- Select payment method (Cash, Card)
+- Click [Payment]
+- Print receipt
+
+**Step 4: Auto E-Invoice**
+- GMS automatically:
+  - Generates XML
+  - Signs with certificate
+  - Submits to Hacienda (background)
+  - Sends PDF to customer (if email on file)
+
+**Offline Mode:**
+- If internet disconnects, POS continues working
+- Sales queued for later submission
+- When internet returns, click [Sync Offline Queue]
+
+---
+
+### Void Wizard Tutorial
+
+**⏱️ Time:** 15 minutes
+**Prerequisites:** Invoice accepted by Hacienda
+
+**When to Void:**
+- Wrong customer
+- Wrong amount
+- Wrong products
+- Customer requests cancellation
+
+**Step 1: Open Invoice**
+```
+Invoicing → Find invoice to void
+```
+
+**Step 2: Launch Void Wizard**
+```
+Click [Void Invoice] button
+```
+
+**Step 3: Select Void Reason**
+- ✅ Customer error
+- ✅ Wrong amount
+- ✅ Wrong product
+- ✅ Duplicate
+- ✅ Other (specify)
+
+**Step 4: Review Credit Note**
+```
+Wizard auto-generates credit note (Nota de Crédito)
+Review details, click [Confirm]
+```
+
+**Step 5: Automatic Process**
+- GMS automatically:
+  - Generates credit note XML
+  - Signs with certificate
+  - Submits to Hacienda
+  - Emails customer
+
+**Step 6: Create Corrected Invoice**
+```
+If needed, create new invoice with correct details
+```
+
+**Important:**
+- Can only void Hacienda-accepted invoices
+- Cannot void draft or rejected invoices
+- Credit note must reference original invoice clave
+
+---
+
+## 🔐 Certificate Management (Admin)
+
+### Install BCCR Certificate
+
+**⏱️ Time:** 30 minutes
+**Prerequisites:** .p12 certificate from BCCR
+
+**Step 1: Obtain Certificate**
+- Apply through your bank (BCCR authorized)
+- Download .p12 file
+- Save password securely
+
+**Step 2: Upload to Odoo**
+```
+Settings → E-Invoice → Certificates → [Upload]
+- Select .p12 file
+- Enter password
+- Click [Upload]
+```
+
+**Step 3: Test Certificate**
+```
+Settings → E-Invoice → Certificates → [Test]
+- System attempts signing test XML
+- Should show "Certificate Valid ✓"
+```
+
+**Step 4: Monitor Expiration**
+```
+Settings → E-Invoice → Certificates
+- Shows expiration date
+- 30-day warning before expiration
+- Automated email alerts
+```
+
+**Certificate Renewal (Every 2 Years):**
+1. Apply for renewal 60 days before expiration
+2. Download new .p12 file
+3. Upload to Odoo (old cert remains until expiration)
+4. System auto-switches on expiration date
+
+---
+
+## 📊 Analytics Dashboard
+
+**Access:** Main Menu → E-Invoice → Analytics Dashboard
+
+**Key Metrics:**
+
+**Revenue KPIs:**
+- Total revenue (today, week, month, year)
+- Average invoice amount
+- Payment method breakdown
+- Revenue by product category
+
+**E-Invoice KPIs:**
+- Total invoices submitted
+- Hacienda acceptance rate (target: 99%+)
+- Average submission time (target: < 3 seconds)
+- Rejected invoices (track errors)
+
+**Customer Analytics:**
+- Top customers by revenue
+- Customer retention rate
+- New vs returning customers
+- Payment behavior (on-time, late, defaulted)
+
+**Tax Compliance:**
+- Tax collected (4% reduced rate)
+- Tax reports ready for download
+- Hacienda submission history
+
+**Filters:**
+- Date range (custom, today, week, month, quarter, year)
+- Customer segment
+- Payment method
+- Document type
+
+---
+
+## ⚡ Front Desk Quick Reference
+
+**Create Invoice (5 steps):**
+1. Invoicing → Invoices → [Create]
+2. Customer → Invoice Lines → Payment Method
+3. [Preview] → [Submit to Hacienda]
+4. Wait for "Accepted" status (green badge)
+5. [Send by Email]
+
+**Accept Payment (3 steps):**
+1. Invoice → [Register Payment]
+2. Select method (Cash, Card, SINPE)
+3. [Create Payment]
+
+**POS Sale (4 steps):**
+1. POS → New Session
+2. Add products → Apply member discount
+3. [Payment] → Select method
+4. Auto e-invoice sent
+
+**Void Invoice (4 steps):**
+1. Invoice → [Void Invoice]
+2. Select reason
+3. Review credit note → [Confirm]
+4. Auto-sent to Hacienda + customer
+
+**Check Invoice Status:**
+- 🟢 Green = Accepted (legal invoice)
+- 🔴 Red = Rejected (fix and resubmit)
+- 🔵 Blue = Submitted (waiting for Hacienda)
+- ⚪ Gray = Draft (not submitted)
+
+**Emergency Contacts:**
+- System Admin: [admin@gym.cr]
+- Technical Support: [support@gms.cr]
+- Hacienda Helpline: 800-HACIENDA
+
+---
+
+## 🔍 Search Keywords (For LLM Agents)
+
+**Onboarding:**
+- `getting-started`, `onboarding`, `quick-start`, `first-steps`
+- `new-user`, `introduction`, `beginner`, `tutorial`
+
+**Roles:**
+- `gym-owner`, `front-desk`, `developer`, `administrator`
+- `user-journey`, `role-based`, `persona`
+
+**Tutorials:**
+- `how-to`, `step-by-step`, `walkthrough`, `guide`
+- `create-invoice`, `accept-payment`, `void-invoice`, `pos`
+
+---
+
+## 🔗 Related Documentation
+
+**For Daily Operations:**
+- [User Guides Domain](../09-user-guides/index.md) - Detailed help
+- [Feature Documentation](../12-features/index.md) - Feature-specific guides
+
+**For Developers:**
+- [Development Domain](../11-development/index.md) - Setup and coding
+- [Architecture Domain](../04-architecture/index.md) - System design
+- [Implementation Domain](../05-implementation/index.md) - How it was built
+
+**For Admins:**
+- [Deployment Domain](../06-deployment/index.md) - Infrastructure
+- [Admin Guide](../../l10n_cr_einvoice/docs/ADMIN_GUIDE.md) - System configuration
+
+**For Understanding Context:**
+- [Research Hub](../02-research/index.md) - Market research
+- [Planning Domain](../03-planning/index.md) - Product strategy
+
+---
+
+## 🔄 Maintenance & Updates
+
+### Update Schedule
+
+- **After feature release** - Update onboarding tutorials
+- **Monthly** - Review quick start guides
+- **Quarterly** - User feedback incorporation
+- **Annually** - Complete onboarding refresh
+
+### Document Ownership
+
+| Category | Owner |
+|----------|-------|
+| Onboarding Paths | Training Team |
+| Tutorials | Documentation Team |
+| Quick References | Support Team |
+| Role Guides | Product Team |
+
+---
+
+## ✅ Getting Started Documentation Status
+
+**Status:** ✅ **PRODUCTION READY - v1.0.0**
+**Coverage:**
+- ✅ Role-based onboarding paths (4 personas)
+- ✅ Core concept explanations
+- ✅ Step-by-step tutorials (5 major tasks)
+- ✅ Quick reference cards
+- ✅ Certificate management guide
+- ✅ Analytics dashboard overview
+
+**Quality Indicators:**
+- ✅ Time estimates for all tutorials
+- ✅ Prerequisites clearly stated
+- ✅ Troubleshooting sections included
+- ✅ Emergency contacts provided
+
+**Last Update:** 2026-01-01
+**Next Review:** 2026-02-01 (Monthly)
+
+---
+
+**🚀 Getting Started Documentation Maintained By:** GMS Onboarding Team
+**Version:** 1.0.0
+**Last Updated:** 2026-01-01

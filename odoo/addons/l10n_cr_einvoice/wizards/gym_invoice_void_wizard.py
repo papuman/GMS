@@ -117,12 +117,14 @@ class GymInvoiceVoidWizard(models.TransientModel):
         help='Indicates if this invoice has related gym memberships',
     )
 
-    subscription_ids = fields.Many2many(
-        'sale.subscription',
-        string='Related Memberships',
-        compute='_compute_has_membership',
-        help='Gym memberships related to this invoice',
-    )
+    # TODO: Re-enable when sale.subscription model is available in Odoo 19
+    # Temporarily disabled to allow module installation without sale.subscription dependency
+    # subscription_ids = fields.Many2many(
+    #     'sale.subscription',
+    #     string='Related Memberships',
+    #     compute='_compute_has_membership',
+    #     help='Gym memberships related to this invoice',
+    # )
 
     cancel_membership = fields.Boolean(
         string='Cancel Membership',
@@ -208,25 +210,28 @@ class GymInvoiceVoidWizard(models.TransientModel):
     @api.depends('invoice_id')
     def _compute_has_membership(self):
         """Check if invoice has related gym memberships."""
+        # TODO: Re-enable when sale.subscription model is available in Odoo 19
         for wizard in self:
-            if wizard.invoice_id:
-                # Find subscriptions related to this invoice
-                subscriptions = self.env['sale.subscription'].search([
-                    '|',
-                    ('partner_id', '=', wizard.invoice_id.partner_id.id),
-                    ('invoice_ids', 'in', wizard.invoice_id.ids),
-                ])
-
-                # Filter to active or recently active subscriptions
-                active_subscriptions = subscriptions.filtered(
-                    lambda s: s.stage_category in ['progress', 'closed']
-                )
-
-                wizard.has_membership = bool(active_subscriptions)
-                wizard.subscription_ids = [(6, 0, active_subscriptions.ids)]
-            else:
-                wizard.has_membership = False
-                wizard.subscription_ids = [(5, 0, 0)]
+            # Temporarily disabled subscription detection
+            wizard.has_membership = False
+            # if wizard.invoice_id:
+            #     # Find subscriptions related to this invoice
+            #     subscriptions = self.env['sale.subscription'].search([
+            #         '|',
+            #         ('partner_id', '=', wizard.invoice_id.partner_id.id),
+            #         ('invoice_ids', 'in', wizard.invoice_id.ids),
+            #     ])
+            #
+            #     # Filter to active or recently active subscriptions
+            #     active_subscriptions = subscriptions.filtered(
+            #         lambda s: s.stage_category in ['progress', 'closed']
+            #     )
+            #
+            #     wizard.has_membership = bool(active_subscriptions)
+            #     wizard.subscription_ids = [(6, 0, active_subscriptions.ids)]
+            # else:
+            #     wizard.has_membership = False
+            #     wizard.subscription_ids = [(5, 0, 0)]
 
     # ============================================================
     # VALIDATION
@@ -483,45 +488,50 @@ class GymInvoiceVoidWizard(models.TransientModel):
 
     def _cancel_memberships(self):
         """Cancel related gym memberships."""
+        # TODO: Re-enable when sale.subscription model is available in Odoo 19
         self.ensure_one()
 
-        if not self.subscription_ids:
-            return
+        # Temporarily disabled - subscription cancellation not available
+        _logger.info('Membership cancellation temporarily disabled (sale.subscription not available)')
+        return
 
-        cancellation_reason = self.membership_cancellation_reason or self.void_reason_notes or \
-                             'Cancelado por anulación de factura'
-
-        for subscription in self.subscription_ids:
-            try:
-                # Set subscription to close
-                subscription.write({
-                    'to_renew': False,
-                    'description': f'{subscription.description or ""}\n\n'
-                                 f'CANCELADO: {cancellation_reason}'
-                })
-
-                # Close the subscription
-                if hasattr(subscription, 'set_close'):
-                    subscription.set_close()
-
-                _logger.info(f'Canceled membership {subscription.code or subscription.id}')
-
-                # Log note on subscription
-                subscription.message_post(
-                    body=_(
-                        '<p><strong>Membresía Cancelada</strong></p>'
-                        '<p>Razón: %s</p>'
-                        '<p>Factura anulada: %s</p>'
-                        '<p>Nota de crédito: %s</p>'
-                    ) % (cancellation_reason, self.invoice_id.name,
-                         self.credit_note_id.name if self.credit_note_id else 'Pendiente'),
-                    subject='Membresía Cancelada',
-                )
-
-            except Exception as e:
-                _logger.error(f'Error canceling subscription {subscription.id}: {e}')
-                # Don't fail the whole process if membership cancellation fails
-                continue
+        # if not self.subscription_ids:
+        #     return
+        #
+        # cancellation_reason = self.membership_cancellation_reason or self.void_reason_notes or \
+        #                      'Cancelado por anulación de factura'
+        #
+        # for subscription in self.subscription_ids:
+        #     try:
+        #         # Set subscription to close
+        #         subscription.write({
+        #             'to_renew': False,
+        #             'description': f'{subscription.description or ""}\n\n'
+        #                          f'CANCELADO: {cancellation_reason}'
+        #         })
+        #
+        #         # Close the subscription
+        #         if hasattr(subscription, 'set_close'):
+        #             subscription.set_close()
+        #
+        #         _logger.info(f'Canceled membership {subscription.code or subscription.id}')
+        #
+        #         # Log note on subscription
+        #         subscription.message_post(
+        #             body=_(
+        #                 '<p><strong>Membresía Cancelada</strong></p>'
+        #                 '<p>Razón: %s</p>'
+        #                 '<p>Factura anulada: %s</p>'
+        #                 '<p>Nota de crédito: %s</p>'
+        #             ) % (cancellation_reason, self.invoice_id.name,
+        #                  self.credit_note_id.name if self.credit_note_id else 'Pendiente'),
+        #             subject='Membresía Cancelada',
+        #         )
+        #
+        #     except Exception as e:
+        #         _logger.error(f'Error canceling subscription {subscription.id}: {e}')
+        #         # Don't fail the whole process if membership cancellation fails
+        #         continue
 
     def _process_refund(self, credit_note):
         """Process the refund according to selected method."""
@@ -678,8 +688,9 @@ class GymInvoiceVoidWizard(models.TransientModel):
             dict(self._fields['refund_method'].selection).get(self.refund_method),
         )
 
-        if self.cancel_membership:
-            message += _('\nMembresías canceladas: %d') % len(self.subscription_ids)
+        # TODO: Re-enable when sale.subscription model is available in Odoo 19
+        # if self.cancel_membership:
+        #     message += _('\nMembresías canceladas: %d') % len(self.subscription_ids)
 
         if self.auto_submit_to_hacienda:
             message += _('\nEstado Hacienda: %s') % (

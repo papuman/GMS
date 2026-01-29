@@ -1,0 +1,5 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_payment_transaction_tilopay_user,payment.transaction.tilopay.user,payment.model_payment_transaction,base.group_user,1,0,0,0
+access_payment_transaction_tilopay_portal,payment.transaction.tilopay.portal,payment.model_payment_transaction,base.group_portal,1,0,0,0
+access_payment_provider_tilopay_user,payment.provider.tilopay.user,payment.model_payment_provider,base.group_user,1,0,0,0
+access_payment_provider_tilopay_system,payment.provider.tilopay.system,payment.model_payment_provider,base.group_system,1,1,1,1

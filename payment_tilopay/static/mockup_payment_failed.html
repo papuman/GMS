@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TiloPay - Pago Fallido - Mockup</title>
+
+    <!-- FontAwesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+
+    <!-- Our custom styles -->
+    <link rel="stylesheet" href="src/css/payment_portal.css">
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: #f9fafb;
+            padding: 20px 0;
+        }
+
+        .mockup-header {
+            background: white;
+            padding: 1rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            margin-bottom: 2rem;
+        }
+
+        .mockup-header h1 {
+            font-size: 1.5rem;
+            color: #ef4444;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <!-- Simple header -->
+    <div class="mockup-header">
+        <h1>
+            <i class="fa fa-times-circle"></i>
+            Pago No Procesado
+        </h1>
+    </div>
+
+    <!-- Main container -->
+    <div class="tilopay-payment-container">
+        <div class="tilopay-payment-card tilopay-payment-status" data-payment-status="failed">
+            <!-- Header -->
+            <div class="tilopay-payment-card-header danger">
+                <h1>
+                    <i class="fa fa-times-circle" aria-hidden="true"></i>
+                    Pago No Procesado
+                </h1>
+            </div>
+
+            <!-- Body -->
+            <div class="tilopay-payment-card-body tilopay-text-center">
+                <!-- Error Icon -->
+                <div class="tilopay-status-icon danger">
+                    <i class="fa fa-exclamation-triangle" aria-hidden="true"></i>
+                </div>
+
+                <h2 class="tilopay-mb-md" style="font-size: 1.5rem; color: var(--tilopay-gray-900);">
+                    No pudimos procesar su pago
+                </h2>
+
+                <p class="tilopay-mb-lg" style="font-size: 1.125rem; color: var(--tilopay-gray-600);">
+                    Lamentablemente, su transacción no pudo ser completada.
+                </p>
+
+                <!-- Error Details -->
+                <div class="tilopay-alert tilopay-alert-danger" role="alert">
+                    <i class="fa fa-exclamation-circle tilopay-alert-icon" aria-hidden="true"></i>
+                    <div class="tilopay-alert-content">
+                        <div class="tilopay-alert-title">Detalles del Error</div>
+                        <p style="margin: 0;">La transacción fue rechazada por el banco emisor. Código de error: DECLINED_INSUFFICIENT_FUNDS</p>
+                    </div>
+                </div>
+
+                <!-- Common Reasons -->
+                <div class="tilopay-alert tilopay-alert-info tilopay-text-left">
+                    <i class="fa fa-info-circle tilopay-alert-icon" aria-hidden="true"></i>
+                    <div class="tilopay-alert-content">
+                        <div class="tilopay-alert-title">Razones Comunes</div>
+                        <ul style="margin: 0.5rem 0 0; padding-left: 1.5rem;">
+                            <li>Fondos insuficientes en la cuenta</li>
+                            <li>Datos de la tarjeta incorrectos</li>
+                            <li>Transacción rechazada por el banco</li>
+                            <li>Límite de transacción excedido</li>
+                            <li>Problemas de conexión durante el proceso</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- What to Do -->
+                <div class="tilopay-transaction-details tilopay-text-left tilopay-mt-lg">
+                    <h3 style="font-size: 1rem; margin-bottom: 1rem; color: var(--tilopay-gray-900);">
+                        ¿Qué puede hacer?
+                    </h3>
+                    <ul style="margin: 0; padding-left: 1.5rem; color: var(--tilopay-gray-700);">
+                        <li class="tilopay-mb-sm">Verifique que tiene fondos suficientes</li>
+                        <li class="tilopay-mb-sm">Intente con otro método de pago</li>
+                        <li class="tilopay-mb-sm">Contacte a su banco si el problema persiste</li>
+                        <li class="tilopay-mb-sm">Contáctenos para asistencia personalizada</li>
+                    </ul>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="tilopay-btn-group tilopay-mt-xl">
+                    <a href="mockup_payment_form.html" class="tilopay-btn tilopay-btn-primary tilopay-btn-retry">
+                        <i class="fa fa-refresh tilopay-btn-icon" aria-hidden="true"></i>
+                        Intentar Nuevamente
+                    </a>
+
+                    <a href="#" class="tilopay-btn tilopay-btn-secondary">
+                        <i class="fa fa-arrow-left tilopay-btn-icon" aria-hidden="true"></i>
+                        Volver a Mis Facturas
+                    </a>
+                </div>
+
+                <!-- Support Contact -->
+                <div class="tilopay-mt-xl" style="padding-top: 1.5rem; border-top: 1px solid var(--tilopay-gray-200);">
+                    <p style="margin-bottom: 0.5rem; color: var(--tilopay-gray-700);">
+                        <strong>¿Necesita ayuda?</strong>
+                    </p>
+                    <p style="margin: 0; color: var(--tilopay-gray-600);">
+                        Contáctenos al <a href="tel:+50612345678" style="color: var(--tilopay-primary);">+506 1234-5678</a>
+                        o escriba a <a href="mailto:soporte@gym.cr" style="color: var(--tilopay-primary);">soporte@gym.cr</a>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

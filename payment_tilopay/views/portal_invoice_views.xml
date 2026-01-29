@@ -1,0 +1,579 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ========================================
+         ENHANCED PORTAL INVOICE INTEGRATION
+         ======================================== -->
+
+    <!-- Add "Pay Now" button to portal invoice view -->
+    <template id="portal_invoice_tilopay_button" name="TiloPay Pay Now Button" inherit_id="account.portal_invoice_page">
+        <xpath expr="//t[@t-set='actions']" position="inside">
+            <t t-if="invoice.can_pay_online">
+                <a role="button"
+                   class="tilopay-btn tilopay-btn-primary tilopay-btn-lg mb-2"
+                   t-att-href="'/my/invoices/%s/pay' % invoice.id"
+                   aria-label="Pagar factura en línea">
+                    <i class="fa fa-credit-card tilopay-btn-icon" aria-hidden="true"/>
+                    Pagar Ahora
+                </a>
+            </t>
+        </xpath>
+
+        <!-- Show TiloPay payment status if exists -->
+        <xpath expr="//div[hasclass('o_portal_invoice_details')]" position="inside">
+            <t t-if="invoice.has_tilopay_payment">
+                <div class="tilopay-alert tilopay-alert-info mb-3" role="alert">
+                    <i class="fa fa-info-circle tilopay-alert-icon" aria-hidden="true"/>
+                    <div class="tilopay-alert-content">
+                        <strong>Pago en Línea:</strong>
+                        <t t-if="invoice.payment_state == 'paid'">
+                            Su pago ha sido recibido y procesado. ¡Gracias!
+                        </t>
+                        <t t-elif="invoice.tilopay_payment_url">
+                            <a t-att-href="invoice.tilopay_payment_url" class="alert-link">
+                                Haga clic aquí para completar su pago
+                            </a>
+                        </t>
+                    </div>
+                </div>
+            </t>
+        </xpath>
+    </template>
+
+    <!-- ========================================
+         PAYMENT FORM PAGE
+         ======================================== -->
+    <template id="payment_form" name="Payment Form Page">
+        <t t-call="portal.portal_layout">
+            <t t-set="additional_title">Pagar Factura</t>
+
+            <div class="tilopay-payment-container">
+                <div class="tilopay-payment-card tilopay-payment-form">
+                    <!-- Header -->
+                    <div class="tilopay-payment-card-header">
+                        <h1>
+                            <i class="fa fa-credit-card" aria-hidden="true"/>
+                            Pagar Factura
+                        </h1>
+                    </div>
+
+                    <!-- Body -->
+                    <div class="tilopay-payment-card-body">
+                        <!-- Payment Summary -->
+                        <div class="tilopay-payment-summary">
+                            <h2 style="font-size: 1.25rem; margin-bottom: 1rem; color: var(--tilopay-gray-900);">
+                                Resumen de Pago
+                            </h2>
+
+                            <div class="tilopay-summary-row">
+                                <span class="tilopay-summary-label">Factura Número:</span>
+                                <span class="tilopay-summary-value" t-esc="invoice.name"/>
+                            </div>
+
+                            <div class="tilopay-summary-row">
+                                <span class="tilopay-summary-label">Fecha de Emisión:</span>
+                                <span class="tilopay-summary-value" t-esc="invoice.invoice_date" t-options="{'widget': 'date'}"/>
+                            </div>
+
+                            <div class="tilopay-summary-row">
+                                <span class="tilopay-summary-label">Fecha de Vencimiento:</span>
+                                <span class="tilopay-summary-value" t-esc="invoice.invoice_date_due" t-options="{'widget': 'date'}"/>
+                            </div>
+
+                            <div class="tilopay-summary-row tilopay-summary-total">
+                                <span class="tilopay-summary-label">Total a Pagar:</span>
+                                <span class="tilopay-summary-value" t-att-data-amount="invoice.amount_residual">
+                                    <t t-esc="invoice.amount_residual" t-options="{'widget': 'monetary', 'display_currency': invoice.currency_id}"/>
+                                </span>
+                            </div>
+                        </div>
+
+                        <!-- Payment Method Selection -->
+                        <h2 style="font-size: 1.25rem; margin: 1.5rem 0 1rem; color: var(--tilopay-gray-900);">
+                            Seleccione Método de Pago
+                        </h2>
+
+                        <form method="post" t-att-action="'/my/invoices/%s/pay/process' % invoice.id" class="tilopay-form">
+                            <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
+                            <input type="hidden" name="provider_code" value="tilopay"/>
+
+                            <div class="tilopay-payment-methods" role="radiogroup" aria-label="Métodos de pago disponibles">
+                                <!-- SINPE Móvil Option -->
+                                <label class="tilopay-payment-method" for="payment_method_sinpe">
+                                    <input type="radio"
+                                           id="payment_method_sinpe"
+                                           name="payment_method"
+                                           value="sinpe"
+                                           class="tilopay-sr-only"/>
+                                    <div class="tilopay-method-icon">
+                                        <i class="fa fa-mobile" aria-hidden="true"/>
+                                    </div>
+                                    <div class="tilopay-method-details">
+                                        <div class="tilopay-method-name">SINPE Móvil</div>
+                                        <div class="tilopay-method-description">
+                                            Pago inmediato desde su banco. Seguro y rápido.
+                                        </div>
+                                    </div>
+                                </label>
+
+                                <!-- Credit/Debit Card Option -->
+                                <label class="tilopay-payment-method" for="payment_method_card">
+                                    <input type="radio"
+                                           id="payment_method_card"
+                                           name="payment_method"
+                                           value="card"
+                                           class="tilopay-sr-only"/>
+                                    <div class="tilopay-method-icon">
+                                        <i class="fa fa-credit-card" aria-hidden="true"/>
+                                    </div>
+                                    <div class="tilopay-method-details">
+                                        <div class="tilopay-method-name">Tarjeta de Crédito/Débito</div>
+                                        <div class="tilopay-method-description">
+                                            Visa, Mastercard, American Express
+                                        </div>
+                                    </div>
+                                </label>
+                            </div>
+
+                            <!-- Payment Button -->
+                            <div class="tilopay-btn-group">
+                                <button type="submit"
+                                        class="tilopay-btn tilopay-btn-primary tilopay-btn-lg tilopay-btn-pay"
+                                        aria-label="Proceder al pago">
+                                    <i class="fa fa-lock tilopay-btn-icon" aria-hidden="true"/>
+                                    Pagar Ahora
+                                </button>
+
+                                <a t-att-href="'/my/invoices/%s' % invoice.id"
+                                   class="tilopay-btn tilopay-btn-secondary">
+                                    <i class="fa fa-arrow-left tilopay-btn-icon" aria-hidden="true"/>
+                                    Cancelar
+                                </a>
+                            </div>
+                        </form>
+
+                        <!-- Security Badges -->
+                        <div class="tilopay-security-badges">
+                            <div class="tilopay-badge">
+                                <i class="fa fa-shield tilopay-badge-icon" aria-hidden="true"/>
+                                <span>Pago Seguro SSL</span>
+                            </div>
+                            <div class="tilopay-badge">
+                                <i class="fa fa-lock tilopay-badge-icon" aria-hidden="true"/>
+                                <span>Encriptación 256-bit</span>
+                            </div>
+                            <div class="tilopay-badge">
+                                <i class="fa fa-check-circle tilopay-badge-icon" aria-hidden="true"/>
+                                <span>Procesamiento Seguro</span>
+                            </div>
+                        </div>
+
+                        <!-- Payment Method Logos -->
+                        <div class="tilopay-payment-logos">
+                            <div class="tilopay-logo-item">VISA</div>
+                            <div class="tilopay-logo-item">Mastercard</div>
+                            <div class="tilopay-logo-item">AMEX</div>
+                            <div class="tilopay-logo-item">SINPE</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </t>
+    </template>
+
+    <!-- ========================================
+         PAYMENT SUCCESS PAGE
+         ======================================== -->
+    <template id="payment_success" name="Payment Success">
+        <t t-call="portal.portal_layout">
+            <t t-set="additional_title">Pago Exitoso</t>
+
+            <div class="tilopay-payment-container">
+                <div class="tilopay-payment-card tilopay-payment-status" data-payment-status="success">
+                    <!-- Header -->
+                    <div class="tilopay-payment-card-header success">
+                        <h1>
+                            <i class="fa fa-check-circle" aria-hidden="true"/>
+                            ¡Pago Exitoso!
+                        </h1>
+                    </div>
+
+                    <!-- Body -->
+                    <div class="tilopay-payment-card-body tilopay-text-center">
+                        <!-- Animated Success Icon -->
+                        <svg class="tilopay-checkmark" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52" aria-hidden="true">
+                            <circle class="tilopay-checkmark-circle" cx="26" cy="26" r="25" fill="none"/>
+                            <path class="tilopay-checkmark-check" fill="none" d="M14.1 27.2l7.1 7.2 16.7-16.8"/>
+                        </svg>
+
+                        <h2 class="tilopay-mb-md" style="font-size: 1.5rem; color: var(--tilopay-gray-900);">
+                            Su pago ha sido procesado exitosamente
+                        </h2>
+
+                        <p class="tilopay-mb-lg" style="font-size: 1.125rem; color: var(--tilopay-gray-600);">
+                            Gracias por su pago. Hemos recibido su transacción correctamente.
+                        </p>
+
+                        <!-- Transaction Details -->
+                        <div class="tilopay-transaction-details tilopay-text-left">
+                            <h3 style="font-size: 1rem; margin-bottom: 1rem; color: var(--tilopay-gray-900);">
+                                Detalles de la Transacción
+                            </h3>
+
+                            <div class="tilopay-detail-row">
+                                <span class="tilopay-detail-label">Referencia:</span>
+                                <span class="tilopay-detail-value" t-esc="transaction.reference"/>
+                            </div>
+
+                            <div class="tilopay-detail-row">
+                                <span class="tilopay-detail-label">Monto Pagado:</span>
+                                <span class="tilopay-detail-value">
+                                    <t t-esc="transaction.amount" t-options="{'widget': 'monetary', 'display_currency': transaction.currency_id}"/>
+                                </span>
+                            </div>
+
+                            <div class="tilopay-detail-row">
+                                <span class="tilopay-detail-label">Método de Pago:</span>
+                                <span class="tilopay-detail-value">
+                                    <t t-if="transaction.tilopay_payment_method == 'sinpe'">SINPE Móvil</t>
+                                    <t t-elif="transaction.tilopay_payment_method == 'card'">Tarjeta de Crédito/Débito</t>
+                                    <t t-else="1"><t t-esc="transaction.tilopay_payment_method or 'N/A'"/></t>
+                                </span>
+                            </div>
+
+                            <div class="tilopay-detail-row" t-if="transaction.tilopay_transaction_id">
+                                <span class="tilopay-detail-label">ID de Transacción:</span>
+                                <span class="tilopay-detail-value" t-esc="transaction.tilopay_transaction_id"/>
+                            </div>
+
+                            <div class="tilopay-detail-row">
+                                <span class="tilopay-detail-label">Fecha y Hora:</span>
+                                <span class="tilopay-detail-value" t-esc="transaction.create_date" t-options="{'widget': 'datetime'}"/>
+                            </div>
+                        </div>
+
+                        <!-- Info Alert -->
+                        <div class="tilopay-alert tilopay-alert-success tilopay-mt-lg" role="status">
+                            <i class="fa fa-envelope tilopay-alert-icon" aria-hidden="true"/>
+                            <div class="tilopay-alert-content">
+                                <strong>Factura Electrónica:</strong>
+                                Recibirá su factura electrónica por correo electrónico en los próximos minutos.
+                            </div>
+                        </div>
+
+                        <!-- Action Buttons -->
+                        <div class="tilopay-btn-group tilopay-mt-xl">
+                            <a href="/my/invoices" class="tilopay-btn tilopay-btn-primary">
+                                <i class="fa fa-file-text tilopay-btn-icon" aria-hidden="true"/>
+                                Ver Mis Facturas
+                            </a>
+
+                            <t t-if="invoice">
+                                <a t-att-href="'/my/invoices/%s' % invoice.id"
+                                   class="tilopay-btn tilopay-btn-secondary">
+                                    <i class="fa fa-eye tilopay-btn-icon" aria-hidden="true"/>
+                                    Ver Detalles de Factura
+                                </a>
+                            </t>
+                        </div>
+
+                        <!-- Print Receipt Link -->
+                        <div class="tilopay-mt-lg">
+                            <a href="javascript:window.print()"
+                               class="tilopay-badge"
+                               style="cursor: pointer; text-decoration: none;">
+                                <i class="fa fa-print" aria-hidden="true"/>
+                                <span>Imprimir Recibo</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </t>
+    </template>
+
+    <!-- ========================================
+         PAYMENT FAILED PAGE
+         ======================================== -->
+    <template id="payment_failed" name="Payment Failed">
+        <t t-call="portal.portal_layout">
+            <t t-set="additional_title">Pago Fallido</t>
+
+            <div class="tilopay-payment-container">
+                <div class="tilopay-payment-card tilopay-payment-status" data-payment-status="failed">
+                    <!-- Header -->
+                    <div class="tilopay-payment-card-header danger">
+                        <h1>
+                            <i class="fa fa-times-circle" aria-hidden="true"/>
+                            Pago No Procesado
+                        </h1>
+                    </div>
+
+                    <!-- Body -->
+                    <div class="tilopay-payment-card-body tilopay-text-center">
+                        <!-- Error Icon -->
+                        <div class="tilopay-status-icon danger">
+                            <i class="fa fa-exclamation-triangle" aria-hidden="true"/>
+                        </div>
+
+                        <h2 class="tilopay-mb-md" style="font-size: 1.5rem; color: var(--tilopay-gray-900);">
+                            No pudimos procesar su pago
+                        </h2>
+
+                        <p class="tilopay-mb-lg" style="font-size: 1.125rem; color: var(--tilopay-gray-600);">
+                            Lamentablemente, su transacción no pudo ser completada.
+                        </p>
+
+                        <!-- Error Details -->
+                        <div class="tilopay-alert tilopay-alert-danger" role="alert" t-if="transaction.state_message"
+                             t-att-data-error-message="transaction.state_message">
+                            <i class="fa fa-exclamation-circle tilopay-alert-icon" aria-hidden="true"/>
+                            <div class="tilopay-alert-content">
+                                <div class="tilopay-alert-title">Detalles del Error</div>
+                                <p style="margin: 0;"><t t-esc="transaction.state_message"/></p>
+                            </div>
+                        </div>
+
+                        <!-- Common Reasons -->
+                        <div class="tilopay-alert tilopay-alert-info tilopay-text-left">
+                            <i class="fa fa-info-circle tilopay-alert-icon" aria-hidden="true"/>
+                            <div class="tilopay-alert-content">
+                                <div class="tilopay-alert-title">Razones Comunes</div>
+                                <ul style="margin: 0.5rem 0 0; padding-left: 1.5rem;">
+                                    <li>Fondos insuficientes en la cuenta</li>
+                                    <li>Datos de la tarjeta incorrectos</li>
+                                    <li>Transacción rechazada por el banco</li>
+                                    <li>Límite de transacción excedido</li>
+                                    <li>Problemas de conexión durante el proceso</li>
+                                </ul>
+                            </div>
+                        </div>
+
+                        <!-- What to Do -->
+                        <div class="tilopay-transaction-details tilopay-text-left tilopay-mt-lg">
+                            <h3 style="font-size: 1rem; margin-bottom: 1rem; color: var(--tilopay-gray-900);">
+                                ¿Qué puede hacer?
+                            </h3>
+                            <ul style="margin: 0; padding-left: 1.5rem; color: var(--tilopay-gray-700);">
+                                <li class="tilopay-mb-sm">Verifique que tiene fondos suficientes</li>
+                                <li class="tilopay-mb-sm">Intente con otro método de pago</li>
+                                <li class="tilopay-mb-sm">Contacte a su banco si el problema persiste</li>
+                                <li class="tilopay-mb-sm">Contáctenos para asistencia personalizada</li>
+                            </ul>
+                        </div>
+
+                        <!-- Action Buttons -->
+                        <div class="tilopay-btn-group tilopay-mt-xl">
+                            <t t-if="invoice">
+                                <a t-att-href="'/my/invoices/%s/pay' % invoice.id"
+                                   class="tilopay-btn tilopay-btn-primary tilopay-btn-retry">
+                                    <i class="fa fa-refresh tilopay-btn-icon" aria-hidden="true"/>
+                                    Intentar Nuevamente
+                                </a>
+                            </t>
+
+                            <a href="/my/invoices" class="tilopay-btn tilopay-btn-secondary">
+                                <i class="fa fa-arrow-left tilopay-btn-icon" aria-hidden="true"/>
+                                Volver a Mis Facturas
+                            </a>
+                        </div>
+
+                        <!-- Support Contact -->
+                        <div class="tilopay-mt-xl" style="padding-top: 1.5rem; border-top: 1px solid var(--tilopay-gray-200);">
+                            <p style="margin-bottom: 0.5rem; color: var(--tilopay-gray-700);">
+                                <strong>¿Necesita ayuda?</strong>
+                            </p>
+                            <p style="margin: 0; color: var(--tilopay-gray-600);">
+                                Contáctenos al <a href="tel:+50612345678" style="color: var(--tilopay-primary);">+506 1234-5678</a>
+                                o escriba a <a href="mailto:soporte@gym.cr" style="color: var(--tilopay-primary);">soporte@gym.cr</a>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </t>
+    </template>
+
+    <!-- ========================================
+         PAYMENT PENDING PAGE
+         ======================================== -->
+    <template id="payment_pending" name="Payment Pending">
+        <t t-call="portal.portal_layout">
+            <t t-set="additional_title">Pago Pendiente</t>
+
+            <div class="tilopay-payment-container">
+                <div class="tilopay-payment-card tilopay-payment-status" data-payment-status="pending">
+                    <!-- Header -->
+                    <div class="tilopay-payment-card-header warning">
+                        <h1>
+                            <i class="fa fa-clock-o" aria-hidden="true"/>
+                            Pago en Proceso
+                        </h1>
+                    </div>
+
+                    <!-- Body -->
+                    <div class="tilopay-payment-card-body tilopay-text-center">
+                        <!-- Pending Icon -->
+                        <div class="tilopay-status-icon warning tilopay-pulse">
+                            <i class="fa fa-hourglass-half" aria-hidden="true"/>
+                        </div>
+
+                        <h2 class="tilopay-mb-md" style="font-size: 1.5rem; color: var(--tilopay-gray-900);">
+                            Su pago está siendo procesado
+                        </h2>
+
+                        <p class="tilopay-mb-lg" style="font-size: 1.125rem; color: var(--tilopay-gray-600);">
+                            Estamos esperando confirmación de la pasarela de pago. Esto usualmente toma solo unos momentos.
+                        </p>
+
+                        <!-- Info Alert -->
+                        <div class="tilopay-alert tilopay-alert-info">
+                            <i class="fa fa-info-circle tilopay-alert-icon" aria-hidden="true"/>
+                            <div class="tilopay-alert-content">
+                                <div class="tilopay-alert-title">Por favor espere</div>
+                                <p style="margin: 0;">
+                                    No cierre esta ventana. La confirmación puede tomar hasta 2 minutos.
+                                </p>
+                            </div>
+                        </div>
+
+                        <!-- Progress Indicator -->
+                        <div class="tilopay-loading tilopay-mt-lg">
+                            <div class="tilopay-loading-text">Verificando transacción...</div>
+                            <div class="tilopay-progress-bar">
+                                <div class="tilopay-progress-fill"></div>
+                            </div>
+                        </div>
+
+                        <!-- Transaction Reference -->
+                        <div class="tilopay-transaction-details tilopay-text-left tilopay-mt-lg" t-if="transaction">
+                            <div class="tilopay-detail-row">
+                                <span class="tilopay-detail-label">Referencia:</span>
+                                <span class="tilopay-detail-value" t-esc="transaction.reference"/>
+                            </div>
+                        </div>
+
+                        <!-- Action Buttons -->
+                        <div class="tilopay-btn-group tilopay-mt-xl">
+                            <button onclick="window.location.reload()"
+                                    class="tilopay-btn tilopay-btn-primary">
+                                <i class="fa fa-refresh tilopay-btn-icon" aria-hidden="true"/>
+                                Actualizar Estado
+                            </button>
+
+                            <a href="/my/invoices" class="tilopay-btn tilopay-btn-secondary">
+                                <i class="fa fa-arrow-left tilopay-btn-icon" aria-hidden="true"/>
+                                Volver a Mis Facturas
+                            </a>
+                        </div>
+
+                        <!-- Help Text -->
+                        <div class="tilopay-mt-lg" style="padding-top: 1.5rem; border-top: 1px solid var(--tilopay-gray-200);">
+                            <p style="margin: 0; color: var(--tilopay-gray-600); font-size: 0.875rem;">
+                                Si el estado no se actualiza después de unos minutos, por favor contáctenos.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </t>
+    </template>
+
+    <!-- ========================================
+         PAYMENT ERROR PAGE
+         ======================================== -->
+    <template id="payment_error" name="Payment Error">
+        <t t-call="portal.portal_layout">
+            <t t-set="additional_title">Error de Pago</t>
+
+            <div class="tilopay-payment-container">
+                <div class="tilopay-payment-card tilopay-payment-status" data-payment-status="error">
+                    <!-- Header -->
+                    <div class="tilopay-payment-card-header danger">
+                        <h1>
+                            <i class="fa fa-exclamation-triangle" aria-hidden="true"/>
+                            Error en el Proceso
+                        </h1>
+                    </div>
+
+                    <!-- Body -->
+                    <div class="tilopay-payment-card-body tilopay-text-center">
+                        <!-- Error Icon -->
+                        <div class="tilopay-status-icon danger">
+                            <i class="fa fa-bug" aria-hidden="true"/>
+                        </div>
+
+                        <h2 class="tilopay-mb-md" style="font-size: 1.5rem; color: var(--tilopay-gray-900);">
+                            Ocurrió un error inesperado
+                        </h2>
+
+                        <p class="tilopay-mb-lg" style="font-size: 1.125rem; color: var(--tilopay-gray-600);">
+                            Lo sentimos, ha ocurrido un error técnico durante el procesamiento de su pago.
+                        </p>
+
+                        <!-- Error Message -->
+                        <div class="tilopay-alert tilopay-alert-danger" role="alert" t-if="error_message">
+                            <i class="fa fa-exclamation-circle tilopay-alert-icon" aria-hidden="true"/>
+                            <div class="tilopay-alert-content">
+                                <div class="tilopay-alert-title">Detalles Técnicos</div>
+                                <p style="margin: 0; font-family: monospace; font-size: 0.875rem;">
+                                    <t t-esc="error_message"/>
+                                </p>
+                            </div>
+                        </div>
+
+                        <!-- What Happened -->
+                        <div class="tilopay-alert tilopay-alert-info tilopay-text-left">
+                            <i class="fa fa-info-circle tilopay-alert-icon" aria-hidden="true"/>
+                            <div class="tilopay-alert-content">
+                                <div class="tilopay-alert-title">¿Qué sucedió?</div>
+                                <p style="margin: 0.5rem 0 0;">
+                                    No se realizó ningún cargo a su cuenta. El error ocurrió antes de procesar el pago.
+                                    Es seguro intentar nuevamente.
+                                </p>
+                            </div>
+                        </div>
+
+                        <!-- Support Information -->
+                        <div class="tilopay-transaction-details tilopay-text-left tilopay-mt-lg">
+                            <h3 style="font-size: 1rem; margin-bottom: 1rem; color: var(--tilopay-gray-900);">
+                                Información para Soporte
+                            </h3>
+
+                            <div class="tilopay-detail-row">
+                                <span class="tilopay-detail-label">Fecha y Hora:</span>
+                                <span class="tilopay-detail-value" t-esc="datetime.datetime.now()" t-options="{'widget': 'datetime'}"/>
+                            </div>
+
+                            <div class="tilopay-detail-row" t-if="request.session.get('payment_error_code')">
+                                <span class="tilopay-detail-label">Código de Error:</span>
+                                <span class="tilopay-detail-value" t-esc="request.session.get('payment_error_code')"/>
+                            </div>
+                        </div>
+
+                        <!-- Action Buttons -->
+                        <div class="tilopay-btn-group tilopay-mt-xl">
+                            <a href="/my/invoices" class="tilopay-btn tilopay-btn-primary">
+                                <i class="fa fa-arrow-left tilopay-btn-icon" aria-hidden="true"/>
+                                Volver a Mis Facturas
+                            </a>
+                        </div>
+
+                        <!-- Contact Support -->
+                        <div class="tilopay-mt-xl" style="padding: 1.5rem; background: var(--tilopay-gray-50); border-radius: var(--radius-md);">
+                            <p style="margin-bottom: 0.5rem; color: var(--tilopay-gray-900); font-weight: 600;">
+                                <i class="fa fa-life-ring" aria-hidden="true"/> Necesita Asistencia Técnica
+                            </p>
+                            <p style="margin: 0; color: var(--tilopay-gray-700);">
+                                Por favor contacte a nuestro equipo de soporte técnico:<br/>
+                                Teléfono: <a href="tel:+50612345678" style="color: var(--tilopay-primary);">+506 1234-5678</a><br/>
+                                Email: <a href="mailto:soporte@gym.cr" style="color: var(--tilopay-primary);">soporte@gym.cr</a>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </t>
+    </template>
+
+</odoo>

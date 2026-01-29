@@ -52,10 +52,19 @@ Requirements:
     'depends': [
         'base',
         'account',
-        'l10n_cr',  # Costa Rica localization
+        'l10n_cr',
         'sale',
         'sale_subscription',
+        'point_of_sale',
     ],
+    'assets': {
+        'point_of_sale.assets': [
+            'l10n_cr_einvoice/static/src/css/pos_einvoice.css',
+            'l10n_cr_einvoice/static/src/js/pos_einvoice.js',
+            'l10n_cr_einvoice/static/src/xml/pos_einvoice.xml',
+            'l10n_cr_einvoice/static/src/xml/pos_receipt.xml',
+        ],
+    },
     'external_dependencies': {
         'python': [
             'lxml',
@@ -78,8 +87,9 @@ Requirements:
         'data/hacienda_sequences.xml',
         'data/pos_sequences.xml',
         'data/tax_report_sequences.xml',
-        'data/email_templates.xml',
-        'data/void_confirmation_email.xml',
+        # TODO: Fix Odoo 19 XML schema validation for email templates
+        # 'data/email_templates.xml',
+        # 'data/void_confirmation_email.xml',
         'data/hacienda_cron_jobs.xml',
         'data/report_cron_jobs.xml',
         'data/tax_report_cron_jobs.xml',

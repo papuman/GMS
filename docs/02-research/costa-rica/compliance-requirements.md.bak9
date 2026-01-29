@@ -1,0 +1,543 @@
+---
+title: "Costa Rica E-Invoice Compliance Requirements - Hacienda v4.4 Mandatory Rules"
+category: "research"
+domain: "costa-rica"
+layer: "compliance" # Legal and regulatory requirements
+audience: ["product-manager", "developer", "compliance-officer", "support"]
+last_updated: "2026-01-01"
+status: "production-ready"
+version: "1.0.0"
+maintainer: "Product Team"
+synthesized_from:
+  - "Multiple Costa Rica research documents"
+  - "Resolution DGT-R-033-2019"
+  - "Resolution MH-DGT-RES-0027-2024"
+mandatory_date: "September 1, 2025"
+current_version: "4.4"
+related_docs:
+  - "docs/02-research/costa-rica/00-COSTA-RICA-RESEARCH-INDEX.md"
+  - "docs/02-research/costa-rica/migration-best-practices.md"
+  - "docs/02-research/costa-rica/einvoice-providers-landscape.md"
+keywords: ["costa-rica", "hacienda", "compliance", "v4.4", "mandatory", "penalties", "dgt", "regulations"]
+---
+
+# 📍 Navigation Breadcrumb
+[Home](../../index.md) > [Research](../../index.md) > [Costa Rica](./00-COSTA-RICA-RESEARCH-INDEX.md) > Compliance Requirements
+
+---
+
+# Costa Rica E-Invoice Compliance Requirements
+
+**Current Version:** 4.4 (Mandatory since September 1, 2025)
+**Legal Authority:** Resolution MH-DGT-RES-0027-2024
+**Previous Version:** 4.3 (Obsolete except for credit/debit notes adjusting old invoices)
+
+---
+
+## 📊 Executive Summary
+
+### Mandatory Compliance Requirements
+
+**Effective Date:** September 1, 2025
+- ✅ Version 4.4 is **MANDATORY** for all new invoices
+- ❌ Version 4.3 **OBSOLETE** (except credit/debit notes for pre-Sept invoices)
+- ⚠️ **No grace period** - immediate enforcement
+
+**Key Changes from v4.3 to v4.4:**
+- **146 technical modifications**
+- **New mandatory field:** System Provider identification
+- **Updated validation rules**
+- **New OVI platform** (Oficina Virtual) replacing legacy ATV
+
+**Non-Compliance Penalties:**
+- **Base fine:** ₡8,300,000+ (~$14,800 USD)
+- **Per-invoice penalty:** Up to ₡460,000 (~$821 USD) per violation
+- **Criminal liability:** Possible for severe/repeated violations
+
+---
+
+## Version 4.4 Mandatory Requirements
+
+### 1. System Provider Identification (NEW)
+
+**Requirement:** All e-invoices MUST include system provider field in XML
+
+**XML Field:**
+```xml
+<IdentificacionProveedor>
+    <NombreComercial>GMS Gym Management System</NombreComercial>
+    <CodigoProveedor>GMS-CR-001</CodigoProveedor>
+</IdentificacionProveedor>
+```
+
+**Purpose:** Hacienda tracks which software generates invoices
+
+**GMS Implementation:**
+- Register as authorized system provider with Hacienda
+- Include provider identification in all XML submissions
+- Display provider info in invoice footer
+
+---
+
+### 2. Consecutive Numbering (CRITICAL)
+
+**Format:** 20 digits - `AAA-BBBBB-CC-DDDDDDDDDD`
+
+**Requirements:**
+- ✅ Unique per document type
+- ✅ Sequential (no gaps allowed)
+- ✅ Must continue when switching providers
+- ✅ Maximum: 9,999,999,999 (then can reset to 1)
+
+**Validation:**
+- Hacienda validates consecutive uniqueness
+- Duplicate = automatic rejection
+- Gaps = audit red flag
+
+**See:** [Migration Best Practices](./migration-best-practices.md) for detailed consecutive numbering guide
+
+---
+
+### 3. Digital Signature
+
+**Requirement:** All e-invoices MUST be digitally signed
+
+**Certificate Source:**
+- Banco Central de Costa Rica (BCCR)
+- Valid digital certificate required
+- Certificate expiration tracking mandatory
+
+**Signature Algorithm:**
+- XML Digital Signature (XMLDSig)
+- SHA-256 hash algorithm
+- RSA-2048 encryption
+
+**GMS Implementation:**
+```python
+# Sign XML before submission
+signed_xml = sign_xml(
+    xml_content=invoice_xml,
+    certificate=company.hacienda_certificate,
+    private_key=company.hacienda_private_key,
+    algorithm='SHA256'
+)
+```
+
+---
+
+### 4. Mandatory Fields
+
+**Issuer (Emisor):**
+- Legal name
+- Tax ID (cédula jurídica)
+- Province, Canton, District (hierarchical)
+- Phone number
+- Email address
+
+**Receiver (Receptor):**
+- Full name
+- Tax ID (cédula física or jurídica)
+- Province, Canton, District
+- Email address (for electronic delivery)
+
+**Document Details:**
+- Document type code (01-09)
+- Consecutive number (20 digits)
+- Issue date and time
+- Currency code (CRC, USD)
+- Exchange rate (if USD)
+
+**Line Items:**
+- CABYS code (13 digits) - Tax classification
+- Product description
+- Quantity
+- Unit price
+- Discount (if applicable)
+- Tax rate (% IVA - usually 4% or 13%)
+- Line total
+
+**Totals:**
+- Subtotal (before tax)
+- Tax amount (IVA breakdown)
+- Total (including tax)
+
+**Payment Method:**
+- Payment method code
+- Payment status (paid, pending, credit)
+
+---
+
+### 5. CABYS Code Requirement
+
+**What is CABYS?**
+- Catálogo de Bienes y Servicios (Catalog of Goods and Services)
+- 13-digit tax classification code
+- Mandatory for all line items
+
+**Format:** `XX-XXXXX-XXX-XXX`
+
+**Common Gym Services:**
+```
+95-11221-101-000  Servicios de gimnasios (Gym services)
+95-11221-102-000  Clases de fitness (Fitness classes)
+95-11221-103-000  Entrenamiento personal (Personal training)
+```
+
+**Validation:**
+- Must be valid CABYS code from official catalog
+- Hacienda validates against master list
+- Incorrect code = invoice rejection
+
+**GMS Implementation:**
+- Preload common gym CABYS codes
+- Allow admin to configure custom codes
+- Validate against Hacienda catalog before submission
+
+---
+
+### 6. Hierarchical Location Codes
+
+**Requirement:** Address must use official Province → Canton → District codes
+
+**Structure:**
+```
+Province (Provincia):  2 digits
+Canton:                2 digits
+District (Distrito):   2 digits
+```
+
+**Example - San José, Escazú, San Antonio:**
+```
+Province: 01 (San José)
+Canton:   02 (Escazú)
+District: 01 (San Antonio)
+```
+
+**Common Costa Rica Provinces:**
+1. San José
+2. Alajuela
+3. Cartago
+4. Heredia
+5. Guanacaste
+6. Puntarenas
+7. Limón
+
+**GMS Implementation:**
+- Cascading dropdowns (Province → Canton → District)
+- Validation against official Hacienda location catalog
+- See: [HuliPractice UX Guide](../competitive/hulipractice/ux-implementation-guide.md#pattern-4-cascading-dropdowns)
+
+---
+
+### 7. Submission Timeframe
+
+**Requirement:** E-invoices must be submitted to Hacienda within **reasonable time** of issuance
+
+**Best Practice:**
+- Submit immediately after generation
+- Within same business day preferred
+- 24-48 hours maximum recommended
+
+**Validation:**
+- Hacienda RCE (Reception system) responds within 3 hours
+- Possible statuses: Accepted, Rejected, Processing
+
+**GMS Implementation:**
+```python
+# Submit immediately after invoice generation
+invoice.action_generate_xml()
+invoice.action_sign_xml()
+invoice.action_submit_to_hacienda()
+
+# Poll for response every 5 minutes (max 3 hours)
+invoice.action_poll_hacienda_response()
+```
+
+---
+
+### 8. XML Retention
+
+**Requirement:** E-invoices (XML) must be retained for **5 years**
+
+**Storage:**
+- Original signed XML
+- Hacienda acceptance response XML
+- Both must be accessible for audits
+
+**GMS Implementation:**
+```python
+# Store both XMLs
+invoice.signed_xml_file = base64.b64encode(signed_xml)
+invoice.hacienda_response_xml = base64.b64encode(response_xml)
+
+# Retention metadata
+invoice.xml_retention_date = fields.Date.today() + relativedelta(years=5)
+```
+
+---
+
+## Penalty Structure
+
+### Administrative Penalties
+
+**Legal Basis:** Código de Normas y Procedimientos Tributarios (Tax Code)
+
+**Base Fine:**
+- ₡8,300,000 (~$14,800 USD) for non-compliance
+- Up to ₡460,000 (~$821 USD) **per invoice** for violations
+
+**Common Violations:**
+- Issuing paper invoices when e-invoicing is mandatory
+- Using incorrect document format (e.g., v4.3 after Sept 1)
+- Missing mandatory fields
+- Incorrect CABYS codes
+- Duplicate consecutive numbers
+
+---
+
+### Criminal Liability
+
+**Severe Violations:**
+- Systematic tax evasion using e-invoicing system
+- Fraudulent invoice generation
+- Falsifying digital signatures
+
+**Penalties:**
+- Criminal charges under Costa Rica tax fraud laws
+- Possible imprisonment (for individuals)
+- Business license suspension
+
+---
+
+### Audit Triggers
+
+**Hacienda May Audit If:**
+- High rejection rate (>10% of submissions)
+- Consecutive number gaps or duplicates
+- Abnormal tax reporting patterns
+- Customer complaints
+- Random selection
+
+---
+
+## Document Types
+
+### Supported Document Types (v4.4)
+
+| Code | Document Type | Spanish Name | Usage |
+|------|---------------|--------------|-------|
+| **01** | Electronic Invoice | Factura Electrónica | Standard invoice for goods/services |
+| **02** | Debit Note | Nota de Débito | Additional charges to existing invoice |
+| **03** | Credit Note | Nota de Crédito | Refunds, cancellations, corrections |
+| **04** | Electronic Ticket | Tiquete Electrónico | Simplified invoice (POS, cash sales) |
+| **05** | Purchase Acceptance | Confirmación de Aceptación de Comprobante | Purchase order acceptance |
+| **06** | Partial Purchase Acceptance | Aceptación Parcial del Comprobante | Partial acceptance |
+| **07** | Purchase Rejection | Rechazo del Comprobante | Purchase order rejection |
+| **08** | Electronic Purchase Invoice | Factura Electrónica de Compra | Purchase from supplier |
+| **09** | Export Electronic Invoice | Factura Electrónica de Exportación | Export sales |
+
+**Most Common for Gyms:**
+- **01 (Invoice):** Membership fees, personal training, merchandise
+- **03 (Credit Note):** Member cancellations, refunds
+- **04 (Ticket):** POS sales (protein shakes, snacks, merch)
+
+---
+
+## Tax Rates (IVA)
+
+### Current Costa Rica VAT Rates
+
+| Rate | Description | Common Use Cases |
+|------|-------------|------------------|
+| **0%** | Exempt | Basic food, medicine, education |
+| **4%** | Reduced rate | **Gym memberships, fitness services** |
+| **13%** | Standard rate | Most goods and services |
+
+**GMS Default:** 4% IVA for fitness services
+
+**Tax Calculation:**
+```python
+# Line total formula
+subtotal = (unit_price * quantity) - discount
+tax_amount = subtotal * tax_rate  # 0.04 for 4%
+line_total = subtotal + tax_amount
+```
+
+---
+
+## OVI Platform (New 2025)
+
+### Oficina Virtual (OVI)
+
+**Launch Date:** October 6, 2025
+**URL:** https://ovitribucr.hacienda.go.cr/home/
+
+**Replaces:**
+- Legacy ATV (Administración Tributaria Virtual)
+- TRAVI
+- DeclaraWeb
+- EDDI-7
+
+**Key Features:**
+- Unified tax administration platform
+- E-invoicing registration
+- Tax filing (D-104, D-101, D-151)
+- Certificate management
+- Taxpayer status verification
+
+**GMS Integration Points:**
+- User registration verification
+- Certificate validation
+- Tax report submission (future feature)
+
+---
+
+## Registration Requirements
+
+### Required to Issue E-Invoices
+
+**1. Register as Emisor-Receptor**
+- Register in OVI platform
+- Taxpayer status: Active
+- Classification: Emisor-Receptor Electrónico
+
+**2. Obtain Digital Certificate**
+- Request from Banco Central de Costa Rica
+- Valid for 2 years (renewable)
+- Requires company legal documentation
+
+**3. Configure Establishment/Terminal**
+- Establishment code: 001 (HQ), 002+ (branches)
+- Terminal code: 00001, 00002, etc. (POS/workstations)
+
+**4. System Provider Registration**
+- Register GMS as authorized provider
+- Obtain provider identification code
+- Include in all XML submissions
+
+---
+
+## Compliance Checklist
+
+### Before Going Live
+
+**Legal Requirements:**
+- [ ] Registered as Emisor-Receptor in OVI
+- [ ] Digital certificate obtained and valid
+- [ ] Establishment/terminal codes configured
+- [ ] GMS registered as system provider
+
+**Technical Requirements:**
+- [ ] XML generation tested (all document types)
+- [ ] Digital signature working
+- [ ] Hacienda sandbox submission successful
+- [ ] Consecutive numbering configured correctly
+- [ ] CABYS codes validated
+- [ ] Location codes (Province/Canton/District) validated
+
+**Data Requirements:**
+- [ ] Company profile complete (legal name, tax ID, address)
+- [ ] Products have CABYS codes assigned
+- [ ] Customer records have valid tax IDs
+- [ ] Payment methods configured
+
+**Testing:**
+- [ ] Test invoice submitted to sandbox
+- [ ] Hacienda acceptance received
+- [ ] XML validation passed
+- [ ] No rejection errors
+
+---
+
+## Common Compliance Issues
+
+### Issue 1: Incorrect CABYS Code
+
+**Error:** `CABYS code 12-34567-890-123 not found in catalog`
+
+**Fix:**
+- Validate against official Hacienda CABYS catalog
+- Use correct gym service codes (95-11221-xxx-xxx)
+- Preload common codes in GMS
+
+---
+
+### Issue 2: Missing Location Codes
+
+**Error:** `Invalid district code for canton`
+
+**Fix:**
+- Implement cascading dropdowns (Province → Canton → District)
+- Validate against Hacienda location catalog
+- Don't allow free-text address entry
+
+---
+
+### Issue 3: Duplicate Consecutive Number
+
+**Error:** `Consecutive number already exists`
+
+**Fix:**
+- Check last consecutive from old system during migration
+- Implement atomic sequence increment (no race conditions)
+- See: [Migration Best Practices](./migration-best-practices.md)
+
+---
+
+### Issue 4: Expired Certificate
+
+**Error:** `Digital certificate expired`
+
+**Fix:**
+- Monitor certificate expiration (30-day warning)
+- Renew before expiration
+- Test with new certificate in sandbox before production
+
+---
+
+## Ongoing Compliance
+
+### Monthly Tasks
+
+- [ ] Review Hacienda submission success rate (should be >98%)
+- [ ] Check for any rejected invoices
+- [ ] Verify certificate validity (expiration check)
+- [ ] Validate consecutive sequences (no gaps)
+
+### Quarterly Tasks
+
+- [ ] Prepare D-104 VAT report
+- [ ] Review tax classification accuracy
+- [ ] Audit customer tax ID completeness
+
+### Annual Tasks
+
+- [ ] Prepare D-101 Income Tax report
+- [ ] Renew digital certificate (if expiring)
+- [ ] Review and update CABYS code mappings
+- [ ] Compliance audit (internal or external)
+
+---
+
+## Related Documentation
+
+**🔬 For Migration:**
+- [Migration Best Practices](./migration-best-practices.md) - Consecutive numbering preservation
+
+**🏢 For Providers:**
+- [Provider Landscape](./einvoice-providers-landscape.md) - Market comparison
+
+**💻 For Implementation:**
+- [Phase 3: Hacienda API](../../../../PHASE3_API_INTEGRATION.md) - Technical integration
+
+**📋 For Product:**
+- [GMS PRD](../../03-planning/prd-costa-rica-einvoice-module.md) - E-invoice module requirements
+
+---
+
+**Legal Basis:** Resolution MH-DGT-RES-0027-2024
+**Mandatory Date:** September 1, 2025
+**Current Version:** 4.4
+**Confidence:** HIGH (official regulatory sources)
+
+**KEY TAKEAWAY:** Version 4.4 compliance is MANDATORY with no grace period. Non-compliance results in severe penalties (₡8.3M+ base fine). GMS MUST implement all required fields, consecutive numbering, digital signatures, and CABYS codes to avoid legal liability.

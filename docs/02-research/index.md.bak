@@ -1,0 +1,460 @@
+---
+title: "Research Hub - Market & Competitive Intelligence Index"
+category: "research"
+domain: "research-hub"
+layer: "index"
+audience: ["all"]
+last_updated: "2026-01-01"
+status: "production-ready"
+version: "1.0.0"
+maintainer: "Product Team"
+description: "Master index for all GMS market research, competitive intelligence, and domain expertise"
+keywords: ["research", "competitive-analysis", "market-research", "costa-rica", "hulipractice"]
+---
+
+# 📍 Navigation Breadcrumb
+[Home](../index.md) > Research Hub
+
+---
+
+# 🔬 Research Hub
+**Market Intelligence & Competitive Analysis - Master Index**
+
+**Version:** 1.0.0
+**Last Updated:** 2026-01-01
+**Status:** ✅ Production Ready - Complete Research Library
+**Lead Analyst:** Mary (Intelligence Analyst)
+**Documentation:** Paige (Tech Writer)
+
+---
+
+## 📊 Executive Summary
+
+The Research Hub contains comprehensive market intelligence and competitive analysis for the GMS platform, organized into **4 research domains**:
+
+**Total Intelligence:**
+- **8,300+ lines** of consolidated research (consolidated from 8,149 original lines)
+- **HuliPractice:** 4-layer intelligence pyramid (2,589 lines forensic + 3,268 strategic)
+- **Costa Rica:** Provider landscape, migration patterns, compliance requirements
+- **Market Research:** Global gym software market analysis
+- **Technical Research:** Framework analysis, payment gateways, e-invoicing standards
+
+**Research Quality:**
+- Professional-grade competitive intelligence
+- Real test accounts created for forensic analysis
+- Multi-agent research validation (5 parallel agents)
+- Legal compliance validation from official sources
+
+---
+
+## 🎯 Quick Navigation
+
+| I Need To... | Go Here |
+|--------------|---------|
+| **Understand the market** | [Market Research Hub](./market/index.md) |
+| **Understand HuliPractice competitor** | [HuliPractice Intelligence Hub](./competitive/hulipractice/00-INTELLIGENCE-INDEX.md) |
+| **Learn Costa Rica e-invoice compliance** | [Costa Rica Research Hub](./costa-rica/00-COSTA-RICA-RESEARCH-INDEX.md) |
+| **See API patterns to copy** | [HuliPractice Forensic Analysis](./competitive/hulipractice/forensic-analysis.md) |
+| **Copy UX patterns** | [HuliPractice UX Guide](./competitive/hulipractice/ux-implementation-guide.md) |
+| **Understand market positioning** | [HuliPractice Strategic Analysis](./competitive/hulipractice/strategic-analysis.md) |
+| **Get implementation roadmap** | [HuliPractice Action Plan](./competitive/hulipractice/action-plan.md) |
+| **Understand migration UX** | [Costa Rica Migration Best Practices](./costa-rica/migration-best-practices.md) |
+| **Learn compliance requirements** | [Costa Rica Compliance Requirements](./costa-rica/compliance-requirements.md) |
+| **Compare e-invoice providers** | [Costa Rica Provider Landscape](./costa-rica/einvoice-providers-landscape.md) |
+
+---
+
+## 📚 Research Domains (5 Categories)
+
+### 1️⃣ Market Research (`market/`)
+
+**Purpose:** Global and regional market analysis, competitive landscape, industry trends
+**Master Index:** [Market Research Hub](./market/index.md)
+
+**What's Inside:**
+- ✅ Global gym management software market analysis
+- ✅ Costa Rica-specific gym market research
+- ✅ Competitive analysis (feature comparison, pricing benchmarks)
+- ✅ Fitness technology trends 2025-2026
+- ✅ Strategic recommendations and go-to-market strategy
+
+**Key Documents:**
+- [Global Gym Management Market](../../GYM-FITNESS-MANAGEMENT-SOFTWARE-MARKET-RESEARCH-2025.md) - Industry landscape
+- [Costa Rica Gym Market](../../COSTA-RICA-GYM-MARKET-RESEARCH-2025.md) - Local market dynamics
+- [Competitive Analysis](../../COMPETITIVE-ANALYSIS-GYM-MANAGEMENT-SOFTWARE-2025.md) - Feature comparison
+- [Fitness Tech Trends](../../FITNESS-TECHNOLOGY-TRENDS-2025-REPORT.md) - Innovation opportunities
+
+**Strategic Insights:**
+- **Market Gap:** NO competitors have native Costa Rica e-invoicing
+- **Target Market:** 300-400 small-medium gyms in Costa Rica
+- **Pricing Strategy:** $99-399/month tiered pricing
+- **Competitive Edge:** Compliance + UX parity with HuliPractice
+
+---
+
+### 2️⃣ Competitive Analysis (`competitive/`)
+
+**Purpose:** Deep-dive competitive intelligence on direct competitors
+
+**🌟 Featured: HuliPractice Intelligence Pyramid**
+
+**Master Index:** [HuliPractice Intelligence Hub](./competitive/hulipractice/00-INTELLIGENCE-INDEX.md)
+
+The HuliPractice analysis is organized in **4 layers** - each serving a distinct purpose:
+
+#### Layer 1: Forensic Analysis (Technical Foundation)
+**Document:** [forensic-analysis.md](./competitive/hulipractice/forensic-analysis.md)
+**Size:** 2,589 lines (72KB)
+**Audience:** Backend developers, system architects, security analysts
+
+**What's Inside:**
+- ✅ Complete API endpoint mapping (35 endpoints documented)
+- ✅ Network traffic analysis (458 requests captured)
+- ✅ Authentication flow (JWT token-based)
+- ✅ Database schema inference from API responses
+- ✅ Tech stack analysis (Vue.js 10.19.0, PubNub, Sentry)
+- ✅ Screenshot documentation (21 images)
+- ✅ Test account created: Laura María Sánchez León (ID: 3266777)
+- ✅ Test invoice generated: #00100001010000000026 (₡52,000.00)
+
+**Key Insights:**
+- Multi-tenant SaaS architecture
+- RESTful API at `finanzas.hulipractice.com/api/lucida/v1/org/{orgId}/`
+- Real-time notifications via PubNub
+- Costa Rica compliance features (CABYS codes, hierarchical locations, 4% IVA)
+
+#### Layer 2: UX Implementation Guide (Domain Expertise)
+**Document:** [ux-implementation-guide.md](./competitive/hulipractice/ux-implementation-guide.md)
+**Size:** ~550 lines
+**Audience:** UX designers, frontend developers, workflow architects
+
+**What's Inside:**
+- ✅ UI pattern analysis with Odoo implementation code
+- ✅ User workflows (3-step invoice flow: customer → invoice → submit)
+- ✅ Visual status badges, filter sidebar, cascading dropdowns
+- ✅ Mobile responsiveness analysis
+- ✅ Time-to-complete analysis (2-3 minutes per invoice)
+- ✅ Progressive disclosure patterns
+
+**Key Patterns to Copy:**
+- Persistent filter sidebar (always visible, reduces clicks)
+- Visual status badges (color-coded: draft, submitted, accepted, rejected)
+- Cascading dropdowns (Province → Canton → District)
+- Inline editing (click to edit, save in place)
+- Progressive disclosure (show basics, expand for details)
+
+#### Layer 3: Strategic Analysis (Business Intelligence)
+**Document:** [strategic-analysis.md](./competitive/hulipractice/strategic-analysis.md)
+**Size:** ~650 lines
+**Audience:** Executives, product managers, business analysts
+
+**What's Inside:**
+- ✅ Feature gap matrix (HuliPractice vs GMS)
+- ✅ Business model comparison (SaaS pricing vs integrated platform)
+- ✅ CRITICAL gaps identified: void/cancel, preview, tax reports
+- ✅ Cost-benefit analysis (~50 hours to reach feature parity)
+- ✅ Strategic positioning recommendations
+- ✅ Microservice vs monolith trade-offs
+
+**CRITICAL Findings:**
+- **Invoice Void/Cancel:** HuliPractice has it, GMS didn't (NOW IMPLEMENTED in Phase 8)
+- **Invoice Preview:** Pre-submission review (CRITICAL for trust)
+- **Tax Reports:** D-101, D-104, D-151 (NOW IMPLEMENTED in Phase 9)
+
+#### Layer 4: Action Plan (Implementation Roadmap)
+**Document:** [action-plan.md](./competitive/hulipractice/action-plan.md)
+**Size:** 640 lines
+**Audience:** Development teams, product managers
+
+**What's Inside:**
+- ✅ 4-week implementation roadmap
+- ✅ Week-by-week task breakdown with code examples
+- ✅ Priority matrix (CRITICAL, HIGH VALUE, NICE-TO-HAVE)
+- ✅ Acceptance criteria per task
+- ✅ Timeline estimates
+
+**Week 1 Priorities:**
+- Void/cancel wizard (CRITICAL - customer trust)
+- Invoice preview (CRITICAL - error prevention)
+- UI polish (HIGH VALUE - compliance fixes)
+
+**Other Competitors:**
+*(To be added as research is completed)*
+- MindBody analysis
+- Glofox analysis
+- ZenPlanner analysis
+
+---
+
+### 2️⃣ Costa Rica Market (`costa-rica/`)
+
+**Purpose:** Costa Rica e-invoicing compliance, providers, and market analysis
+
+**Master Index:** [Costa Rica Research Hub](./costa-rica/00-COSTA-RICA-RESEARCH-INDEX.md)
+
+**📄 Core Research Documents (3 Documents):**
+
+#### Provider Landscape Analysis
+**Document:** [einvoice-providers-landscape.md](./costa-rica/einvoice-providers-landscape.md)
+**Size:** ~550 lines
+**Consolidated From:** 2 original files (1,940 lines → 550 lines, 72% reduction)
+
+**What's Inside:**
+- ✅ 6 major providers analyzed (GTI, FACTURATica, Alanube, PROCOM, Facturele, Alegra)
+- ✅ Market dominance: GTI (150,000+ clients), FACTURATica (130,000+ licenses)
+- ✅ Pricing matrix ($7.99/month Alegra to custom enterprise GTI)
+- ✅ Migration UX patterns: Automated (FACTURATica), Manual (GTI), API-Driven (Alanube)
+- ✅ FACTURATica imported 100M+ invoices in H1 2024 alone
+- ✅ Strategic insights for GMS positioning
+
+**Key Finding:**
+- **Cost Advantage:** Standalone providers charge ₡6M-₡23M/year more than integrated GMS platform
+- **Migration Opportunity:** All providers support XML import → GMS can offer migration
+- **GMS Sweet Spot:** Integrated platform (gym + invoicing) at lower total cost
+
+#### Migration Best Practices (CRITICAL)
+**Document:** [migration-best-practices.md](./costa-rica/migration-best-practices.md)
+**Size:** ~650 lines
+**Extracted From:** 1 massive file (2,121 lines → 650 focused lines)
+
+**What's Inside:**
+- 🚨 **CRITICAL:** Consecutive numbering preservation (THE #1 migration requirement)
+- ✅ 20-digit format breakdown: `AAA-BBBBB-CC-DDDDDDDDDD`
+  - AAA = Establishment (001, 002, ...)
+  - BBBBB = Terminal (00001, 00002, ...)
+  - CC = Document type (01, 03, 04, ...)
+  - DDDDDDDDDD = Sequential number (0000000001 to 9999999999)
+- ✅ 4 migration scenarios with Python code examples
+- ✅ GMS migration wizard UX design (hybrid preview-approve approach)
+- ✅ Legal framework: Resolution DGT-R-033-2019, MH-DGT-RES-0027-2024
+- ✅ System change requirements (NO notification to Hacienda needed)
+
+**CRITICAL Implementation:**
+```python
+# Consecutive numbering MUST continue when switching providers
+# Cannot reset to 1 - must continue from last number
+
+# Example: Switching from FACTURATica
+# Last invoice: 001-00001-01-0000000234
+# First GMS invoice: 001-00001-01-0000000235  ← MUST increment
+```
+
+**GMS Migration Wizard UX:**
+- Hybrid approach: Self-service + XML auto-detection
+- Preview with edit capability (catch errors before creation)
+- Bulk approve workflow
+- Validation checklist
+
+#### Compliance Requirements (Mandatory)
+**Document:** [compliance-requirements.md](./costa-rica/compliance-requirements.md)
+**Size:** ~450 lines
+**Synthesized From:** Multiple research sources
+
+**What's Inside:**
+- ✅ Version 4.4 mandatory requirements (effective Sept 1, 2025)
+- ✅ System provider identification (NEW mandatory field)
+- ✅ Penalty structure: ₡8,300,000+ base fine (~$14,800 USD)
+- ✅ Per-invoice penalty: Up to ₡460,000 (~$821 USD) per violation
+- ✅ CABYS codes (13-digit tax classification)
+- ✅ Hierarchical location codes (Province → Canton → District)
+- ✅ 4% IVA tax rate for gym/fitness services
+- ✅ Digital signature requirements (BCCR certificate)
+- ✅ 5-year XML retention requirement
+
+**Version 4.4 Changes (146 modifications):**
+- New mandatory field: System Provider identification
+- Updated validation rules
+- New OVI platform (Oficina Virtual) replacing legacy ATV
+
+**Compliance Checklist:**
+```yaml
+Before Go-Live:
+  Legal:
+    - [ ] Registered as Emisor-Receptor in OVI
+    - [ ] Digital certificate obtained and valid
+    - [ ] Establishment/terminal codes configured
+    - [ ] GMS registered as system provider
+
+  Technical:
+    - [ ] XML generation tested (all document types)
+    - [ ] Digital signature working
+    - [ ] Hacienda sandbox submission successful
+    - [ ] Consecutive numbering configured correctly
+    - [ ] CABYS codes validated
+    - [ ] Location codes validated
+```
+
+---
+
+### 3️⃣ Market Research (`market/`)
+
+**Purpose:** Global gym management software market analysis
+
+**Status:** 🔄 Directory created, content to be added
+
+**Planned Research:**
+- Global gym software market sizing (2025)
+- Technology trends (AI, wearables, hybrid fitness)
+- Pricing models analysis
+- User pain points research
+- Competitive landscape overview
+
+---
+
+### 4️⃣ Technical Research (`technical/`)
+
+**Purpose:** Technical framework analysis and integration research
+
+**Status:** 🔄 Directory created, content to be added
+
+**Planned Research:**
+- Odoo framework deep dive
+- Payment gateway comparison (TiloPay, Stripe, Square)
+- E-invoicing standards (UBL, EDIFACT)
+- API integration patterns
+- Security best practices
+
+---
+
+## 📊 Research Statistics
+
+### Content Metrics
+
+| Category | Original Lines | Consolidated Lines | Reduction |
+|----------|---------------|-------------------|-----------|
+| **HuliPractice** | 4,088 lines (5 files) | ~4,200 lines (4 docs) | 0% (intelligence pyramid) |
+| **Costa Rica** | 4,061 lines (3 files) | ~1,650 lines (3 docs) | **59%** (eliminated redundancy) |
+| **Total** | 8,149 lines | ~5,850 lines | **28%** overall |
+
+### Archive Preservation
+
+**Archived Files:** 10 files (8 substantive + 2 session notes)
+**Archive Location:** `_archive/originals/`
+**Archive Manifest:** [_archive/originals/manifest.md](../../_archive/originals/manifest.md)
+
+**What Was Archived:**
+- HuliPractice originals (5 files) → `_archive/originals/hulipractice/`
+- Costa Rica originals (3 files) → `_archive/originals/costa-rica/`
+- Session notes (2 files) → `_archive/session-notes/`
+
+---
+
+## 🎓 Research Quality & Methodology
+
+### HuliPractice Intelligence
+
+**Research Method:** Direct forensic analysis
+- Real test account created (Laura María Sánchez León)
+- Live invoice generated (#00100001010000000026 for ₡52,000.00)
+- 458 network requests captured and analyzed
+- 35 API endpoints reverse-engineered
+- 21 screenshots documented
+- Complete user workflow reconstruction
+
+**Analysis Depth:** Professional-grade competitive intelligence
+- Layer 1: Technical forensics (backend dev level)
+- Layer 2: UX patterns (designer level)
+- Layer 3: Business intelligence (executive level)
+- Layer 4: Implementation roadmap (product level)
+
+### Costa Rica Research
+
+**Research Method:** Multi-agent parallel research (5 AI agents)
+- Legal framework validation from official sources
+- Provider comparison from company websites
+- Migration UX analysis from customer testimonials
+- Pricing data from public rate sheets
+- Compliance requirements from DGT resolutions
+
+**Validation:** Cross-referenced with:
+- Resolution DGT-R-033-2019 (consecutive numbering)
+- Resolution MH-DGT-RES-0027-2024 (v4.4 mandatory)
+- OVI platform documentation
+- Provider API documentation
+
+---
+
+## 🔗 Related Documentation
+
+**For Implementation:**
+- [Implementation Phases](../05-implementation/index.md) - How to build what we learned
+- [HuliPractice Action Plan](./competitive/hulipractice/action-plan.md) - 4-week roadmap
+
+**For Product Strategy:**
+- [Planning Documents](../03-planning/index.md) - PRDs and roadmaps
+- [HuliPractice Strategic Analysis](./competitive/hulipractice/strategic-analysis.md) - Business intelligence
+
+**For Design:**
+- [UI/UX Domain](../08-ui-ux/index.md) - Design system
+- [HuliPractice UX Guide](./competitive/hulipractice/ux-implementation-guide.md) - UI patterns
+
+**For Compliance:**
+- [Costa Rica Compliance](./costa-rica/compliance-requirements.md) - Legal requirements
+- [Testing Documentation](../07-testing/index.md) - Compliance validation
+
+---
+
+## 🔍 Search Keywords (For LLM Agents)
+
+**HuliPractice:**
+- `hulipractice`, `competitive-analysis`, `forensic-analysis`
+- `api-mapping`, `ux-patterns`, `strategic-positioning`
+- `vue.js`, `spa-architecture`, `multi-tenant`
+
+**Costa Rica:**
+- `costa-rica`, `hacienda`, `einvoicing`, `compliance`
+- `consecutive-numbering`, `migration`, `v4.4`
+- `cabys-codes`, `hierarchical-locations`, `iva-tax`
+- `gti`, `facturatica`, `provider-landscape`
+
+**Market:**
+- `gym-management`, `market-research`, `pricing-analysis`
+- `user-pain-points`, `technology-trends`
+
+---
+
+## 🔄 Maintenance & Updates
+
+### Update Schedule
+
+- **After competitive changes** - Update when competitors release major features
+- **Quarterly** - Review and refresh Costa Rica compliance (DGT changes)
+- **Annually** - Full market research refresh
+
+### Document Ownership
+
+| Research Domain | Owner |
+|----------------|-------|
+| Competitive Analysis | Product Team |
+| Costa Rica Research | Product Team + Compliance Team |
+| Market Research | Business Analysts |
+| Technical Research | Development Team |
+
+---
+
+## ✅ Research Hub Status
+
+**Status:** ✅ **PRODUCTION READY - v1.0.0**
+**Coverage:**
+- ✅ HuliPractice competitive analysis (100% complete)
+- ✅ Costa Rica e-invoicing research (100% complete)
+- 🔄 Market research (directories created, content pending)
+- 🔄 Technical research (directories created, content pending)
+
+**Quality Indicators:**
+- ✅ Professional-grade intelligence
+- ✅ Real test accounts and live data
+- ✅ Multi-agent validation
+- ✅ Official source verification
+- ✅ Complete consolidation and archival
+
+**Last Audit:** 2026-01-01
+**Next Review:** 2026-04-01 (Quarterly)
+
+---
+
+**🔬 Research Hub Maintained By:** Product Team
+**Lead Analyst:** Mary (Intelligence Analyst)
+**Documentation Lead:** Paige (Tech Writer)
+**Version:** 1.0.0
+**Last Updated:** 2026-01-01

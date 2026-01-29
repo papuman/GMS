@@ -18,7 +18,7 @@ import odoo
 from odoo import api, SUPERUSER_ID
 
 # Configuration
-DB_NAME = 'gms'
+DB_NAME = 'GSM'
 ADDONS_PATH = '/mnt/extra-addons'
 
 def print_header(title):
@@ -439,7 +439,8 @@ def main():
         ])
 
         # Get registry and environment
-        registry = odoo.registry(DB_NAME)
+        from odoo.modules.registry import Registry
+        registry = Registry.new(DB_NAME)
 
         with registry.cursor() as cr:
             env = api.Environment(cr, SUPERUSER_ID, {})

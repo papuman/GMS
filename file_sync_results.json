@@ -1,0 +1,183 @@
+{
+  "timestamp": "2025-12-28T16:02:12.301113",
+  "main_location": "/Users/javycarrillo/Library/CloudStorage/Dropbox/AI/Apps/GMS/l10n_cr_einvoice",
+  "odoo_location": "/Users/javycarrillo/Library/CloudStorage/Dropbox/AI/Apps/GMS/odoo/addons/l10n_cr_einvoice",
+  "files": {
+    "models/__init__.py": {
+      "phase": "Phase 1 & 2",
+      "status": "size_mismatch",
+      "main_exists": true,
+      "odoo_exists": true,
+      "main_size": 312,
+      "odoo_size": 285,
+      "main_mtime": "2025-12-28T15:49:25.740705",
+      "odoo_mtime": "2025-12-28T15:13:25.996284"
+    },
+    "models/einvoice_document.py": {
+      "phase": "Phase 1 & 2",
+      "status": "size_mismatch",
+      "main_exists": true,
+      "odoo_exists": true,
+      "main_size": 23508,
+      "odoo_size": 15213,
+      "main_mtime": "2025-12-28T15:48:28.393218",
+      "odoo_mtime": "2025-12-28T15:13:40.187502"
+    },
+    "models/account_move.py": {
+      "phase": "Phase 1 & 2",
+      "status": "size_mismatch",
+      "main_exists": true,
+      "odoo_exists": true,
+      "main_size": 6550,
+      "odoo_size": 6524,
+      "main_mtime": "2025-12-28T13:05:10.071368",
+      "odoo_mtime": "2025-12-28T14:13:20.525751"
+    },
+    "models/xml_generator.py": {
+      "phase": "Phase 1 & 2",
+      "status": "size_mismatch",
+      "main_exists": true,
+      "odoo_exists": true,
+      "main_size": 18300,
+      "odoo_size": 18820,
+      "main_mtime": "2025-12-28T15:13:04.981866",
+      "odoo_mtime": "2025-12-28T15:13:09.885981"
+    },
+    "models/xsd_validator.py": {
+      "phase": "Phase 1 & 2",
+      "status": "synced",
+      "main_exists": true,
+      "odoo_exists": true,
+      "main_size": 6953,
+      "odoo_size": 6953,
+      "main_mtime": "2025-12-28T13:08:49.343185",
+      "odoo_mtime": "2025-12-28T14:02:26.072673"
+    },
+    "models/res_company.py": {
+      "phase": "Phase 1 & 2",
+      "status": "synced",
+      "main_exists": true,
+      "odoo_exists": true,
+      "main_size": 2516,
+      "odoo_size": 2516,
+      "main_mtime": "2025-12-28T13:05:58.955944",
+      "odoo_mtime": "2025-12-28T14:02:26.071564"
+    },
+    "models/res_config_settings.py": {
+      "phase": "Phase 1 & 2",
+      "status": "synced",
+      "main_exists": true,
+      "odoo_exists": true,
+      "main_size": 3091,
+      "odoo_size": 3091,
+      "main_mtime": "2025-12-28T13:06:13.101617",
+      "odoo_mtime": "2025-12-28T14:02:26.072117"
+    },
+    "models/certificate_manager.py": {
+      "phase": "Phase 3",
+      "status": "synced",
+      "main_exists": true,
+      "odoo_exists": true,
+      "main_size": 9078,
+      "odoo_size": 9078,
+      "main_mtime": "2025-12-28T14:54:19.603020",
+      "odoo_mtime": "2025-12-28T15:13:04.112565"
+    },
+    "models/xml_signer.py": {
+      "phase": "Phase 3",
+      "status": "synced",
+      "main_exists": true,
+      "odoo_exists": true,
+      "main_size": 8783,
+      "odoo_size": 8783,
+      "main_mtime": "2025-12-28T14:54:19.692464",
+      "odoo_mtime": "2025-12-28T15:13:14.551054"
+    },
+    "models/hacienda_api.py": {
+      "phase": "Phase 3",
+      "status": "size_mismatch",
+      "main_exists": true,
+      "odoo_exists": true,
+      "main_size": 19114,
+      "odoo_size": 7474,
+      "main_mtime": "2025-12-28T15:46:17.091381",
+      "odoo_mtime": "2025-12-28T15:46:43.673069"
+    },
+    "models/qr_generator.py": {
+      "phase": "Phase 5",
+      "status": "main_only",
+      "main_exists": true,
+      "odoo_exists": false,
+      "main_size": 4422,
+      "odoo_size": 0,
+      "main_mtime": "2025-12-28T15:45:43.441438",
+      "odoo_mtime": null
+    },
+    "reports/__init__.py": {
+      "phase": "Phase 5",
+      "status": "synced",
+      "main_exists": true,
+      "odoo_exists": true,
+      "main_size": 121,
+      "odoo_size": 121,
+      "main_mtime": "2025-12-28T13:06:19.759124",
+      "odoo_mtime": "2025-12-28T14:02:26.076527"
+    },
+    "reports/einvoice_report_templates.xml": {
+      "phase": "Phase 5",
+      "status": "size_mismatch",
+      "main_exists": true,
+      "odoo_exists": true,
+      "main_size": 17113,
+      "odoo_size": 341,
+      "main_mtime": "2025-12-28T15:46:48.638111",
+      "odoo_mtime": "2025-12-28T14:06:56.591189"
+    },
+    "__init__.py": {
+      "phase": "Module Core",
+      "status": "synced",
+      "main_exists": true,
+      "odoo_exists": true,
+      "main_size": 423,
+      "odoo_size": 423,
+      "main_mtime": "2025-12-28T13:03:32.206884",
+      "odoo_mtime": "2025-12-28T14:02:26.068052"
+    },
+    "__manifest__.py": {
+      "phase": "Module Core",
+      "status": "size_mismatch",
+      "main_exists": true,
+      "odoo_exists": true,
+      "main_size": 2289,
+      "odoo_size": 2253,
+      "main_mtime": "2025-12-28T15:49:42.112019",
+      "odoo_mtime": "2025-12-28T15:32:17.810719"
+    }
+  },
+  "summary": {
+    "total_files": 15,
+    "synced": 7,
+    "size_mismatch": 7,
+    "main_only": 1,
+    "odoo_only": 0,
+    "missing": 0,
+    "sync_percentage": 46.666666666666664
+  },
+  "phase_status": {
+    "Phase 1 & 2": {
+      "percentage": 42.857142857142854,
+      "synced": 3,
+      "total": 7
+    },
+    "Phase 3": {
+      "percentage": 66.66666666666666,
+      "synced": 2,
+      "total": 3
+    },
+    "Phase 5": {
+      "percentage": 33.33333333333333,
+      "synced": 1,
+      "total": 3
+    }
+  }
+}
