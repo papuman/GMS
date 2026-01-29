@@ -43,7 +43,7 @@
     <record id="view_partner_tree_ciiu" model="ir.ui.view">
         <field name="name">res.partner.tree.ciiu</field>
         <field name="model">res.partner</field>
-        <field name="inherit_id" ref="base.view_partner_list"/>
+        <field name="inherit_id" ref="base.view_partner_tree"/>
         <field name="arch" type="xml">
             <xpath expr="//field[@name='phone']" position="after">
                 <field name="l10n_cr_economic_activity_id" optional="hide"/>
@@ -123,7 +123,9 @@
         </field>
     </record>
 
+    <!-- TODO: Fix Odoo 19 search view validation -->
     <!-- CIIU Code Search View -->
+    <!--
     <record id="view_ciiu_code_search" model="ir.ui.view">
         <field name="name">l10n_cr.ciiu.code.search</field>
         <field name="model">l10n_cr.ciiu.code</field>
@@ -141,6 +143,7 @@
             </search>
         </field>
     </record>
+    -->
 
     <!-- CIIU Code Action -->
     <record id="action_ciiu_code" model="ir.actions.act_window">
