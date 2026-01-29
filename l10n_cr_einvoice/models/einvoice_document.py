@@ -146,6 +146,12 @@ class EInvoiceDocument(models.Model):
         readonly=True,
     )
 
+    retry_button_visible = fields.Boolean(
+        compute='_compute_retry_button_visible',
+        string='Show Retry Button',
+        help='Indicates if the retry button should be visible based on error state',
+    )
+
     # PDF and Email
     pdf_attachment_id = fields.Many2one(
         'ir.attachment',
@@ -226,6 +232,16 @@ class EInvoiceDocument(models.Model):
                 doc.invoice_date = doc.pos_order_id.date_order.date() if doc.pos_order_id.date_order else fields.Date.today()
             else:
                 doc.invoice_date = fields.Date.today()
+
+    @api.depends('state')
+    def _compute_retry_button_visible(self):
+        """Determine if the retry button should be visible based on error state."""
+        for doc in self:
+            doc.retry_button_visible = doc.state in [
+                'generation_error',
+                'signing_error',
+                'submission_error',
+            ]
 
     @api.constrains('move_id', 'pos_order_id')
     def _check_source_document(self):
@@ -488,6 +504,19 @@ class EInvoiceDocument(models.Model):
         except Exception as e:
             _logger.error(f'Error checking status for {self.name}: {str(e)}')
             raise UserError(_('Error checking status: %s') % str(e))
+
+    def action_retry(self):
+        """Retry failed operation based on current error state."""
+        self.ensure_one()
+
+        if self.state == 'generation_error':
+            return self.action_generate_xml()
+        elif self.state == 'signing_error':
+            return self.action_sign_xml()
+        elif self.state == 'submission_error':
+            return self.action_submit_to_hacienda()
+        else:
+            raise UserError(_('No failed operation to retry. Current state: %s') % self.state)
 
     def action_download_xml(self):
         """Download the XML attachment."""
