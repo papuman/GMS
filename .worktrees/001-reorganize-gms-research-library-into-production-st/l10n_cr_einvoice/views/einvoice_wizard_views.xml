@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Wizard: Batch Generate E-Invoices -->
+    <record id="view_batch_generate_einvoice_wizard" model="ir.ui.view">
+        <field name="name">batch.generate.einvoice.wizard.form</field>
+        <field name="model">l10n_cr.batch.einvoice.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Batch Generate Electronic Invoices">
+                <group>
+                    <div class="alert alert-info" role="alert">
+                        <i class="fa fa-info-circle"/>
+                        This wizard will process the selected invoices and:
+                        <ul class="mb-0">
+                            <li>Create electronic invoice documents</li>
+                            <li>Generate XML content</li>
+                            <li>Digitally sign the XML</li>
+                            <li>Submit to Hacienda (optional)</li>
+                            <li>Send email to customers (optional)</li>
+                        </ul>
+                    </div>
+                </group>
+
+                <group>
+                    <field name="invoice_ids" invisible="1"/>
+                    <field name="total_invoices" readonly="1"/>
+                    <field name="auto_submit"/>
+                    <field name="auto_send_email"/>
+                </group>
+
+                <footer>
+                    <button string="Process" name="action_process" type="object" class="oe_highlight"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <!-- Wizard: Batch Submit to Hacienda -->
+    <record id="view_batch_submit_einvoice_wizard" model="ir.ui.view">
+        <field name="name">batch.submit.einvoice.wizard.form</field>
+        <field name="model">l10n_cr.batch.submit.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Batch Submit to Hacienda">
+                <group>
+                    <div class="alert alert-warning" role="alert">
+                        <i class="fa fa-warning"/>
+                        This will submit the selected signed electronic invoices to Hacienda.
+                        Make sure all invoices have been properly reviewed before submitting.
+                    </div>
+                </group>
+
+                <group>
+                    <field name="einvoice_ids" invisible="1"/>
+                    <field name="total_einvoices" readonly="1"/>
+                    <field name="send_email_on_acceptance"/>
+                </group>
+
+                <footer>
+                    <button string="Submit to Hacienda" name="action_submit" type="object" class="oe_highlight"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <!-- Wizard: Batch Check Status -->
+    <record id="view_batch_check_status_wizard" model="ir.ui.view">
+        <field name="name">batch.check.status.wizard.form</field>
+        <field name="model">l10n_cr.batch.check.status.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Batch Check Status">
+                <group>
+                    <div class="alert alert-info" role="alert">
+                        <i class="fa fa-info-circle"/>
+                        Check the status of submitted invoices with Hacienda.
+                    </div>
+                </group>
+
+                <group>
+                    <field name="einvoice_ids" invisible="1"/>
+                    <field name="total_einvoices" readonly="1"/>
+                </group>
+
+                <footer>
+                    <button string="Check Status" name="action_check_status" type="object" class="oe_highlight"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <!-- Action: Batch Generate E-Invoices -->
+    <record id="action_batch_generate_einvoice" model="ir.actions.act_window">
+        <field name="name">Batch Generate E-Invoices</field>
+        <field name="res_model">l10n_cr.batch.einvoice.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+        <field name="binding_model_id" ref="account.model_account_move"/>
+        <field name="binding_view_types">list</field>
+    </record>
+
+    <!-- Action: Batch Submit to Hacienda -->
+    <record id="action_batch_submit_einvoice" model="ir.actions.act_window">
+        <field name="name">Batch Submit to Hacienda</field>
+        <field name="res_model">l10n_cr.batch.submit.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+        <field name="binding_model_id" ref="model_l10n_cr_einvoice_document"/>
+        <field name="binding_view_types">list</field>
+    </record>
+
+    <!-- Action: Batch Check Status -->
+    <record id="action_batch_check_status" model="ir.actions.act_window">
+        <field name="name">Batch Check Status</field>
+        <field name="res_model">l10n_cr.batch.check.status.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+        <field name="binding_model_id" ref="model_l10n_cr_einvoice_document"/>
+        <field name="binding_view_types">list</field>
+    </record>
+
+</odoo>

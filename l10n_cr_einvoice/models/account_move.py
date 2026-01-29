@@ -37,6 +37,15 @@ class AccountMove(models.Model):
         store=True,
     )
 
+    # XML Import Batch (Phase 3)
+    l10n_cr_import_batch_id = fields.Many2one(
+        'l10n_cr.einvoice.import.batch',
+        string='Import Batch',
+        readonly=True,
+        copy=False,
+        help='Batch from which this invoice was imported via XML',
+    )
+
     # Payment Method Fields (Phase 1A)
     l10n_cr_payment_method_id = fields.Many2one(
         'l10n_cr.payment.method',

@@ -9,8 +9,6 @@
             <field name="code">model.send_daily_summary_email()</field>
             <field name="interval_number">1</field>
             <field name="interval_type">days</field>
-            <field name="numbercall">-1</field>
-            <field name="doall" eval="False"/>
             <field name="active" eval="True"/>
             <field name="priority">10</field>
             <field name="user_id" ref="base.user_admin"/>
@@ -25,8 +23,6 @@
             <field name="code">model.send_weekly_revenue_report()</field>
             <field name="interval_number">7</field>
             <field name="interval_type">days</field>
-            <field name="numbercall">-1</field>
-            <field name="doall" eval="False"/>
             <field name="active" eval="True"/>
             <field name="priority">10</field>
             <field name="user_id" ref="base.user_admin"/>
@@ -41,8 +37,6 @@
             <field name="code">model.send_monthly_hacienda_report()</field>
             <field name="interval_number">1</field>
             <field name="interval_type">months</field>
-            <field name="numbercall">-1</field>
-            <field name="doall" eval="False"/>
             <field name="active" eval="True"/>
             <field name="priority">10</field>
             <field name="user_id" ref="base.user_admin"/>
@@ -57,8 +51,6 @@
             <field name="code">model.send_quarterly_performance_report()</field>
             <field name="interval_number">3</field>
             <field name="interval_type">months</field>
-            <field name="numbercall">-1</field>
-            <field name="doall" eval="False"/>
             <field name="active" eval="False"/>
             <field name="priority">10</field>
             <field name="user_id" ref="base.user_admin"/>
@@ -73,8 +65,6 @@
             <field name="code">model.check_system_health_and_alert()</field>
             <field name="interval_number">1</field>
             <field name="interval_type">hours</field>
-            <field name="numbercall">-1</field>
-            <field name="doall" eval="False"/>
             <field name="active" eval="True"/>
             <field name="priority">5</field>
             <field name="user_id" ref="base.user_admin"/>

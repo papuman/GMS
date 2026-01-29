@@ -1,0 +1,824 @@
+/**
+ * TiloPay Payment Portal - Mobile-First Responsive Styles
+ * Optimized for gym members on mobile devices
+ * Spanish-speaking Costa Rica audience
+ */
+
+/* ========================================
+   ROOT VARIABLES - Brand Colors & Spacing
+   ======================================== */
+:root {
+    /* Brand colors - Professional gym aesthetic */
+    --tilopay-primary: #2563eb;
+    --tilopay-primary-dark: #1e40af;
+    --tilopay-primary-light: #3b82f6;
+
+    --tilopay-success: #10b981;
+    --tilopay-success-dark: #059669;
+    --tilopay-success-light: #d1fae5;
+
+    --tilopay-warning: #f59e0b;
+    --tilopay-warning-dark: #d97706;
+    --tilopay-warning-light: #fef3c7;
+
+    --tilopay-danger: #ef4444;
+    --tilopay-danger-dark: #dc2626;
+    --tilopay-danger-light: #fee2e2;
+
+    --tilopay-gray-50: #f9fafb;
+    --tilopay-gray-100: #f3f4f6;
+    --tilopay-gray-200: #e5e7eb;
+    --tilopay-gray-300: #d1d5db;
+    --tilopay-gray-600: #4b5563;
+    --tilopay-gray-700: #374151;
+    --tilopay-gray-900: #111827;
+
+    /* Spacing - Mobile-optimized */
+    --spacing-xs: 0.5rem;    /* 8px */
+    --spacing-sm: 0.75rem;   /* 12px */
+    --spacing-md: 1rem;      /* 16px */
+    --spacing-lg: 1.5rem;    /* 24px */
+    --spacing-xl: 2rem;      /* 32px */
+    --spacing-2xl: 3rem;     /* 48px */
+
+    /* Typography */
+    --font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    --font-size-sm: 0.875rem;   /* 14px */
+    --font-size-base: 1rem;     /* 16px */
+    --font-size-lg: 1.125rem;   /* 18px */
+    --font-size-xl: 1.25rem;    /* 20px */
+    --font-size-2xl: 1.5rem;    /* 24px */
+    --font-size-3xl: 1.875rem;  /* 30px */
+
+    /* Shadows */
+    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+    --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+
+    /* Border radius */
+    --radius-sm: 0.375rem;  /* 6px */
+    --radius-md: 0.5rem;    /* 8px */
+    --radius-lg: 0.75rem;   /* 12px */
+    --radius-xl: 1rem;      /* 16px */
+
+    /* Transitions */
+    --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-base: 250ms cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-slow: 350ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ========================================
+   GLOBAL PAYMENT CONTAINER STYLES
+   ======================================== */
+.tilopay-payment-container {
+    font-family: var(--font-family);
+    max-width: 100%;
+    margin: 0 auto;
+    padding: var(--spacing-md);
+    background: var(--tilopay-gray-50);
+    min-height: calc(100vh - 200px);
+}
+
+@media (min-width: 768px) {
+    .tilopay-payment-container {
+        padding: var(--spacing-xl);
+        max-width: 800px;
+    }
+}
+
+/* ========================================
+   PAYMENT CARD DESIGN
+   ======================================== */
+.tilopay-payment-card {
+    background: white;
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-lg);
+    overflow: hidden;
+    margin-bottom: var(--spacing-lg);
+    animation: slideInUp 0.3s ease-out;
+}
+
+@keyframes slideInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.tilopay-payment-card-header {
+    padding: var(--spacing-lg);
+    border-bottom: 2px solid var(--tilopay-gray-100);
+    background: linear-gradient(135deg, var(--tilopay-primary) 0%, var(--tilopay-primary-dark) 100%);
+    color: white;
+}
+
+.tilopay-payment-card-header.success {
+    background: linear-gradient(135deg, var(--tilopay-success) 0%, var(--tilopay-success-dark) 100%);
+}
+
+.tilopay-payment-card-header.warning {
+    background: linear-gradient(135deg, var(--tilopay-warning) 0%, var(--tilopay-warning-dark) 100%);
+}
+
+.tilopay-payment-card-header.danger {
+    background: linear-gradient(135deg, var(--tilopay-danger) 0%, var(--tilopay-danger-dark) 100%);
+}
+
+.tilopay-payment-card-header h1,
+.tilopay-payment-card-header h2,
+.tilopay-payment-card-header h3 {
+    margin: 0;
+    font-size: var(--font-size-2xl);
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+}
+
+@media (min-width: 768px) {
+    .tilopay-payment-card-header h1,
+    .tilopay-payment-card-header h2,
+    .tilopay-payment-card-header h3 {
+        font-size: var(--font-size-3xl);
+    }
+}
+
+.tilopay-payment-card-body {
+    padding: var(--spacing-lg);
+}
+
+@media (min-width: 768px) {
+    .tilopay-payment-card-body {
+        padding: var(--spacing-xl);
+    }
+}
+
+/* ========================================
+   PAYMENT SUMMARY
+   ======================================== */
+.tilopay-payment-summary {
+    background: var(--tilopay-gray-50);
+    border-radius: var(--radius-md);
+    padding: var(--spacing-lg);
+    margin-bottom: var(--spacing-lg);
+    border-left: 4px solid var(--tilopay-primary);
+}
+
+.tilopay-summary-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--spacing-sm) 0;
+    font-size: var(--font-size-base);
+}
+
+.tilopay-summary-row:not(:last-child) {
+    border-bottom: 1px solid var(--tilopay-gray-200);
+}
+
+.tilopay-summary-label {
+    font-weight: 500;
+    color: var(--tilopay-gray-700);
+}
+
+.tilopay-summary-value {
+    font-weight: 700;
+    color: var(--tilopay-gray-900);
+}
+
+.tilopay-summary-total {
+    font-size: var(--font-size-xl);
+    padding-top: var(--spacing-md);
+    margin-top: var(--spacing-sm);
+}
+
+.tilopay-summary-total .tilopay-summary-value {
+    color: var(--tilopay-primary);
+    font-size: var(--font-size-2xl);
+}
+
+/* ========================================
+   PAYMENT METHOD SELECTION
+   ======================================== */
+.tilopay-payment-methods {
+    display: grid;
+    gap: var(--spacing-md);
+    margin-bottom: var(--spacing-lg);
+}
+
+.tilopay-payment-method {
+    position: relative;
+    border: 2px solid var(--tilopay-gray-200);
+    border-radius: var(--radius-lg);
+    padding: var(--spacing-lg);
+    cursor: pointer;
+    transition: all var(--transition-base);
+    background: white;
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+}
+
+.tilopay-payment-method:hover {
+    border-color: var(--tilopay-primary);
+    box-shadow: var(--shadow-md);
+    transform: translateY(-2px);
+}
+
+.tilopay-payment-method.selected {
+    border-color: var(--tilopay-primary);
+    background: var(--tilopay-primary-light);
+    background: linear-gradient(135deg, rgba(37, 99, 235, 0.05) 0%, rgba(37, 99, 235, 0.1) 100%);
+    box-shadow: var(--shadow-md);
+}
+
+.tilopay-payment-method input[type="radio"] {
+    width: 24px;
+    height: 24px;
+    cursor: pointer;
+    accent-color: var(--tilopay-primary);
+}
+
+.tilopay-method-icon {
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--tilopay-gray-100);
+    border-radius: var(--radius-md);
+    font-size: 24px;
+    flex-shrink: 0;
+}
+
+.tilopay-payment-method.selected .tilopay-method-icon {
+    background: var(--tilopay-primary);
+    color: white;
+}
+
+.tilopay-method-details {
+    flex: 1;
+}
+
+.tilopay-method-name {
+    font-size: var(--font-size-lg);
+    font-weight: 600;
+    color: var(--tilopay-gray-900);
+    margin-bottom: var(--spacing-xs);
+}
+
+.tilopay-method-description {
+    font-size: var(--font-size-sm);
+    color: var(--tilopay-gray-600);
+    line-height: 1.5;
+}
+
+/* ========================================
+   BUTTONS - Mobile Optimized
+   ======================================== */
+.tilopay-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-md) var(--spacing-xl);
+    font-size: var(--font-size-base);
+    font-weight: 600;
+    border-radius: var(--radius-lg);
+    border: none;
+    cursor: pointer;
+    transition: all var(--transition-base);
+    text-decoration: none;
+    line-height: 1.5;
+    min-height: 48px; /* Touch-friendly */
+    width: 100%;
+    font-family: var(--font-family);
+}
+
+@media (min-width: 768px) {
+    .tilopay-btn {
+        width: auto;
+        min-width: 200px;
+    }
+}
+
+.tilopay-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.tilopay-btn-primary {
+    background: linear-gradient(135deg, var(--tilopay-primary) 0%, var(--tilopay-primary-dark) 100%);
+    color: white;
+    box-shadow: var(--shadow-md);
+}
+
+.tilopay-btn-primary:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
+}
+
+.tilopay-btn-primary:active:not(:disabled) {
+    transform: translateY(0);
+}
+
+.tilopay-btn-secondary {
+    background: white;
+    color: var(--tilopay-gray-700);
+    border: 2px solid var(--tilopay-gray-300);
+}
+
+.tilopay-btn-secondary:hover:not(:disabled) {
+    background: var(--tilopay-gray-50);
+    border-color: var(--tilopay-gray-400);
+}
+
+.tilopay-btn-success {
+    background: linear-gradient(135deg, var(--tilopay-success) 0%, var(--tilopay-success-dark) 100%);
+    color: white;
+    box-shadow: var(--shadow-md);
+}
+
+.tilopay-btn-danger {
+    background: linear-gradient(135deg, var(--tilopay-danger) 0%, var(--tilopay-danger-dark) 100%);
+    color: white;
+    box-shadow: var(--shadow-md);
+}
+
+.tilopay-btn-lg {
+    font-size: var(--font-size-lg);
+    padding: var(--spacing-lg) var(--spacing-2xl);
+    min-height: 56px;
+}
+
+.tilopay-btn-icon {
+    font-size: 1.2em;
+}
+
+/* Button group for mobile */
+.tilopay-btn-group {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+    margin-top: var(--spacing-lg);
+}
+
+@media (min-width: 768px) {
+    .tilopay-btn-group {
+        flex-direction: row;
+        justify-content: center;
+    }
+}
+
+/* ========================================
+   LOADING STATES & ANIMATIONS
+   ======================================== */
+.tilopay-loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: var(--spacing-2xl);
+    text-align: center;
+}
+
+.tilopay-spinner {
+    width: 60px;
+    height: 60px;
+    border: 4px solid var(--tilopay-gray-200);
+    border-top-color: var(--tilopay-primary);
+    border-radius: 50%;
+    animation: tilopay-spin 0.8s linear infinite;
+    margin-bottom: var(--spacing-lg);
+}
+
+@keyframes tilopay-spin {
+    to { transform: rotate(360deg); }
+}
+
+.tilopay-loading-text {
+    font-size: var(--font-size-lg);
+    color: var(--tilopay-gray-700);
+    font-weight: 500;
+    margin-bottom: var(--spacing-sm);
+}
+
+.tilopay-loading-subtext {
+    font-size: var(--font-size-sm);
+    color: var(--tilopay-gray-600);
+    max-width: 300px;
+}
+
+/* Pulse animation for processing */
+.tilopay-pulse {
+    animation: tilopay-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes tilopay-pulse {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.5;
+    }
+}
+
+/* Progress bar */
+.tilopay-progress-bar {
+    width: 100%;
+    height: 4px;
+    background: var(--tilopay-gray-200);
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+    margin-top: var(--spacing-lg);
+}
+
+.tilopay-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--tilopay-primary), var(--tilopay-primary-light));
+    animation: tilopay-progress 2s ease-in-out infinite;
+}
+
+@keyframes tilopay-progress {
+    0% {
+        width: 0%;
+    }
+    50% {
+        width: 70%;
+    }
+    100% {
+        width: 100%;
+    }
+}
+
+/* ========================================
+   ALERTS & MESSAGES
+   ======================================== */
+.tilopay-alert {
+    padding: var(--spacing-md) var(--spacing-lg);
+    border-radius: var(--radius-md);
+    margin-bottom: var(--spacing-lg);
+    display: flex;
+    align-items: flex-start;
+    gap: var(--spacing-md);
+    font-size: var(--font-size-base);
+    line-height: 1.6;
+}
+
+.tilopay-alert-icon {
+    font-size: 24px;
+    flex-shrink: 0;
+    margin-top: 2px;
+}
+
+.tilopay-alert-content {
+    flex: 1;
+}
+
+.tilopay-alert-title {
+    font-weight: 700;
+    margin-bottom: var(--spacing-xs);
+    font-size: var(--font-size-lg);
+}
+
+.tilopay-alert-info {
+    background: var(--tilopay-primary-light);
+    background: linear-gradient(135deg, rgba(37, 99, 235, 0.1) 0%, rgba(37, 99, 235, 0.05) 100%);
+    border-left: 4px solid var(--tilopay-primary);
+    color: var(--tilopay-gray-900);
+}
+
+.tilopay-alert-success {
+    background: var(--tilopay-success-light);
+    border-left: 4px solid var(--tilopay-success);
+    color: var(--tilopay-gray-900);
+}
+
+.tilopay-alert-warning {
+    background: var(--tilopay-warning-light);
+    border-left: 4px solid var(--tilopay-warning);
+    color: var(--tilopay-gray-900);
+}
+
+.tilopay-alert-danger {
+    background: var(--tilopay-danger-light);
+    border-left: 4px solid var(--tilopay-danger);
+    color: var(--tilopay-gray-900);
+}
+
+/* ========================================
+   STATUS INDICATORS
+   ======================================== */
+.tilopay-status-icon {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto var(--spacing-lg);
+    font-size: 40px;
+    animation: tilopay-scale-in 0.4s ease-out;
+}
+
+@keyframes tilopay-scale-in {
+    from {
+        transform: scale(0);
+        opacity: 0;
+    }
+    to {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+.tilopay-status-icon.success {
+    background: var(--tilopay-success-light);
+    color: var(--tilopay-success);
+}
+
+.tilopay-status-icon.warning {
+    background: var(--tilopay-warning-light);
+    color: var(--tilopay-warning);
+}
+
+.tilopay-status-icon.danger {
+    background: var(--tilopay-danger-light);
+    color: var(--tilopay-danger);
+}
+
+/* Checkmark animation */
+.tilopay-checkmark {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    display: block;
+    stroke-width: 3;
+    stroke: var(--tilopay-success);
+    stroke-miterlimit: 10;
+    margin: 0 auto var(--spacing-lg);
+    box-shadow: inset 0 0 0 var(--tilopay-success);
+    animation: tilopay-fill 0.4s ease-in-out 0.4s forwards, tilopay-scale 0.3s ease-in-out 0.9s both;
+}
+
+.tilopay-checkmark-circle {
+    stroke-dasharray: 166;
+    stroke-dashoffset: 166;
+    stroke-width: 3;
+    stroke-miterlimit: 10;
+    stroke: var(--tilopay-success);
+    fill: var(--tilopay-success-light);
+    animation: tilopay-stroke 0.6s cubic-bezier(0.65, 0, 0.45, 1) forwards;
+}
+
+.tilopay-checkmark-check {
+    transform-origin: 50% 50%;
+    stroke-dasharray: 48;
+    stroke-dashoffset: 48;
+    animation: tilopay-stroke 0.3s cubic-bezier(0.65, 0, 0.45, 1) 0.8s forwards;
+}
+
+@keyframes tilopay-stroke {
+    100% {
+        stroke-dashoffset: 0;
+    }
+}
+
+@keyframes tilopay-scale {
+    0%, 100% {
+        transform: none;
+    }
+    50% {
+        transform: scale3d(1.1, 1.1, 1);
+    }
+}
+
+@keyframes tilopay-fill {
+    100% {
+        box-shadow: inset 0 0 0 40px var(--tilopay-success-light);
+    }
+}
+
+/* ========================================
+   TRANSACTION DETAILS
+   ======================================== */
+.tilopay-transaction-details {
+    background: var(--tilopay-gray-50);
+    border-radius: var(--radius-md);
+    padding: var(--spacing-lg);
+    margin: var(--spacing-lg) 0;
+}
+
+.tilopay-detail-row {
+    display: flex;
+    flex-direction: column;
+    padding: var(--spacing-md) 0;
+    border-bottom: 1px solid var(--tilopay-gray-200);
+}
+
+@media (min-width: 640px) {
+    .tilopay-detail-row {
+        flex-direction: row;
+        justify-content: space-between;
+    }
+}
+
+.tilopay-detail-row:last-child {
+    border-bottom: none;
+}
+
+.tilopay-detail-label {
+    font-weight: 600;
+    color: var(--tilopay-gray-700);
+    font-size: var(--font-size-sm);
+    margin-bottom: var(--spacing-xs);
+}
+
+@media (min-width: 640px) {
+    .tilopay-detail-label {
+        margin-bottom: 0;
+        font-size: var(--font-size-base);
+    }
+}
+
+.tilopay-detail-value {
+    color: var(--tilopay-gray-900);
+    font-weight: 500;
+    word-break: break-all;
+}
+
+/* ========================================
+   SECURITY BADGES
+   ======================================== */
+.tilopay-security-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--spacing-md);
+    justify-content: center;
+    padding: var(--spacing-lg) 0;
+    margin-top: var(--spacing-lg);
+    border-top: 1px solid var(--tilopay-gray-200);
+}
+
+.tilopay-badge {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+    font-size: var(--font-size-sm);
+    color: var(--tilopay-gray-600);
+    padding: var(--spacing-xs) var(--spacing-md);
+    background: var(--tilopay-gray-50);
+    border-radius: var(--radius-md);
+}
+
+.tilopay-badge-icon {
+    color: var(--tilopay-success);
+    font-size: 18px;
+}
+
+/* ========================================
+   PAYMENT LOGOS
+   ======================================== */
+.tilopay-payment-logos {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--spacing-md);
+    justify-content: center;
+    padding: var(--spacing-lg);
+    opacity: 0.6;
+}
+
+.tilopay-logo-item {
+    height: 32px;
+    display: flex;
+    align-items: center;
+    padding: 0 var(--spacing-md);
+    background: white;
+    border: 1px solid var(--tilopay-gray-200);
+    border-radius: var(--radius-sm);
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+    color: var(--tilopay-gray-600);
+}
+
+/* ========================================
+   ACCESSIBILITY ENHANCEMENTS
+   ======================================== */
+.tilopay-sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
+}
+
+/* Focus styles for keyboard navigation */
+.tilopay-payment-method:focus-within {
+    outline: 3px solid var(--tilopay-primary);
+    outline-offset: 2px;
+}
+
+.tilopay-btn:focus-visible {
+    outline: 3px solid var(--tilopay-primary);
+    outline-offset: 2px;
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+    .tilopay-payment-card {
+        border: 2px solid var(--tilopay-gray-900);
+    }
+
+    .tilopay-btn {
+        border: 2px solid currentColor;
+    }
+}
+
+/* Reduced motion for accessibility */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+
+/* ========================================
+   RESPONSIVE UTILITIES
+   ======================================== */
+.tilopay-text-center {
+    text-align: center;
+}
+
+.tilopay-text-left {
+    text-align: left;
+}
+
+.tilopay-mb-sm { margin-bottom: var(--spacing-sm); }
+.tilopay-mb-md { margin-bottom: var(--spacing-md); }
+.tilopay-mb-lg { margin-bottom: var(--spacing-lg); }
+.tilopay-mb-xl { margin-bottom: var(--spacing-xl); }
+
+.tilopay-mt-sm { margin-top: var(--spacing-sm); }
+.tilopay-mt-md { margin-top: var(--spacing-md); }
+.tilopay-mt-lg { margin-top: var(--spacing-lg); }
+.tilopay-mt-xl { margin-top: var(--spacing-xl); }
+
+/* ========================================
+   DARK MODE SUPPORT (Optional)
+   ======================================== */
+@media (prefers-color-scheme: dark) {
+    .tilopay-payment-container {
+        background: #1a1a1a;
+    }
+
+    .tilopay-payment-card {
+        background: #2a2a2a;
+        color: #f0f0f0;
+    }
+
+    .tilopay-payment-summary,
+    .tilopay-transaction-details {
+        background: #1a1a1a;
+    }
+
+    .tilopay-summary-label,
+    .tilopay-detail-label {
+        color: #d0d0d0;
+    }
+
+    .tilopay-summary-value,
+    .tilopay-detail-value {
+        color: #f0f0f0;
+    }
+}
+
+/* ========================================
+   PRINT STYLES
+   ======================================== */
+@media print {
+    .tilopay-payment-container {
+        background: white;
+    }
+
+    .tilopay-btn,
+    .tilopay-btn-group {
+        display: none;
+    }
+
+    .tilopay-payment-card {
+        box-shadow: none;
+        border: 1px solid #000;
+    }
+}

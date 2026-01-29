@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- TiloPay Payment Provider Form View -->
+    <record id="payment_provider_form_tilopay" model="ir.ui.view">
+        <field name="name">payment.provider.form.tilopay</field>
+        <field name="model">payment.provider</field>
+        <field name="inherit_id" ref="payment.payment_provider_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//group[@name='provider_credentials']" position="after">
+                <group name="tilopay_credentials" invisible="code != 'tilopay'">
+                    <group>
+                        <field name="tilopay_api_key" password="True" placeholder="6609-5850-8330-8034-3464 (sandbox)"/>
+                        <field name="tilopay_api_user" placeholder="lSrT45 (sandbox)"/>
+                        <field name="tilopay_api_password" password="True" placeholder="Zlb8H9 (sandbox)"/>
+                    </group>
+                    <group>
+                        <field name="tilopay_merchant_code"/>
+                        <field name="tilopay_secret_key" password="True"/>
+                        <field name="tilopay_use_sandbox"/>
+                    </group>
+                </group>
+
+                <group name="tilopay_payment_methods" string="Payment Methods" invisible="code != 'tilopay'">
+                    <group>
+                        <field name="tilopay_enable_sinpe"/>
+                        <field name="tilopay_enable_cards"/>
+                    </group>
+                    <group>
+                        <field name="tilopay_enable_yappy"/>
+                    </group>
+                </group>
+
+                <group name="tilopay_webhook" string="Webhook Configuration" invisible="code != 'tilopay'">
+                    <field name="tilopay_webhook_url" readonly="1" widget="url"/>
+                    <div colspan="2" class="alert alert-info" role="alert">
+                        <strong>Important:</strong> Copy the webhook URL above and configure it in your TiloPay dashboard
+                        (Account > Developer > Webhooks). This enables real-time payment notifications.
+                    </div>
+                </group>
+
+                <div invisible="code != 'tilopay'" class="mt16">
+                    <button name="action_test_tilopay_connection"
+                            type="object"
+                            string="Test Connection"
+                            class="btn-primary"/>
+                    <p class="text-muted mt8">
+                        Test your TiloPay API credentials before enabling the provider.
+                    </p>
+                </div>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- TiloPay Configuration Help -->
+    <record id="payment_provider_onboarding_tilopay" model="ir.ui.view">
+        <field name="name">payment.provider.onboarding.tilopay</field>
+        <field name="model">payment.provider</field>
+        <field name="inherit_id" ref="payment.payment_provider_onboarding_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//div[hasclass('o_payment_provider_onboarding')]" position="inside">
+                <div invisible="code != 'tilopay'">
+                    <h3>TiloPay Setup Instructions</h3>
+                    <ol>
+                        <li>Register at <a href="https://tilopay.com/developers" target="_blank">https://tilopay.com/developers</a></li>
+                        <li>Complete merchant onboarding with your business information</li>
+                        <li>Navigate to: Account → Checkout → API Credentials</li>
+                        <li>Copy your API Key, API User, and API Password</li>
+                        <li>Paste credentials in the fields above</li>
+                        <li>Use sandbox mode for testing (test credentials provided as placeholders)</li>
+                        <li>Configure webhook URL in TiloPay dashboard</li>
+                        <li>Click "Test Connection" to verify setup</li>
+                        <li>Switch to production when ready and update credentials</li>
+                    </ol>
+
+                    <h4>Test Credentials (Sandbox)</h4>
+                    <ul>
+                        <li><strong>API Key:</strong> 6609-5850-8330-8034-3464</li>
+                        <li><strong>API User:</strong> lSrT45</li>
+                        <li><strong>API Password:</strong> Zlb8H9</li>
+                    </ul>
+
+                    <h4>Support</h4>
+                    <ul>
+                        <li>Email: <a href="mailto:sac@tilopay.com">sac@tilopay.com</a></li>
+                        <li>Developer Support: <a href="https://cst.support.tilopay.com/servicedesk/customer/portal/21" target="_blank">TiloPay Developer Portal</a></li>
+                        <li>Documentation: <a href="https://tilopay.com/documentacion" target="_blank">https://tilopay.com/documentacion</a></li>
+                    </ul>
+                </div>
+            </xpath>
+        </field>
+    </record>
+
+</odoo>

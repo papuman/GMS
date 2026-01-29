@@ -13,7 +13,9 @@
             <field name="priority">5</field>
         </record>
 
+        <!-- TODO: Re-enable when l10n_cr.einvoice.retry.queue model is implemented -->
         <!-- Cron Job: Process Retry Queue -->
+        <!--
         <record id="ir_cron_process_retry_queue" model="ir.cron">
             <field name="name">E-Invoice: Process Retry Queue</field>
             <field name="model_id" ref="model_l10n_cr_einvoice_retry_queue"/>
@@ -24,8 +26,11 @@
             <field name="active" eval="True"/>
             <field name="priority">10</field>
         </record>
+        -->
 
+        <!-- TODO: Re-enable when l10n_cr.hacienda.response.message model is implemented -->
         <!-- Cron Job: Cleanup Old Response Messages -->
+        <!--
         <record id="ir_cron_cleanup_response_messages" model="ir.cron">
             <field name="name">E-Invoice: Cleanup Old Response Messages</field>
             <field name="model_id" ref="model_l10n_cr_hacienda_response_message"/>
@@ -42,8 +47,10 @@ model.cleanup_old_messages(days=days)
             <field name="priority">20</field>
             <field name="nextcall" eval="(DateTime.now() + timedelta(days=1)).strftime('%Y-%m-%d 02:00:00')"/>
         </record>
+        -->
 
         <!-- Cron Job: Cleanup Old Retry Queue Entries -->
+        <!--
         <record id="ir_cron_cleanup_retry_queue" model="ir.cron">
             <field name="name">E-Invoice: Cleanup Old Retry Queue</field>
             <field name="model_id" ref="model_l10n_cr_einvoice_retry_queue"/>
@@ -55,6 +62,7 @@ model.cleanup_old_messages(days=days)
             <field name="priority">20</field>
             <field name="nextcall" eval="(DateTime.now() + timedelta(days=1)).strftime('%Y-%m-%d 03:00:00')"/>
         </record>
+        -->
 
 
 </odoo>

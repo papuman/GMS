@@ -4,7 +4,9 @@
         <!-- Default TE Sequence Template -->
         <!-- Individual sequences are created per POS terminal in pos_config.py -->
 
+        <!-- TODO: Re-enable when l10n_cr.pos.offline.queue model is implemented -->
         <!-- Cron Job: Sync Offline Queue -->
+        <!--
         <record id="cron_sync_pos_offline_queue" model="ir.cron">
             <field name="name">Costa Rica: Sync POS Offline Queue</field>
             <field name="model_id" ref="model_l10n_cr_pos_offline_queue"/>
@@ -14,8 +16,10 @@
             <field name="interval_type">minutes</field>
             <field name="active" eval="True"/>
         </record>
+        -->
 
         <!-- Cron Job: Cleanup Old Queue Entries -->
+        <!--
         <record id="cron_cleanup_pos_queue" model="ir.cron">
             <field name="name">Costa Rica: Cleanup Old POS Queue Entries</field>
             <field name="model_id" ref="model_l10n_cr_pos_offline_queue"/>
@@ -25,6 +29,7 @@
             <field name="interval_type">days</field>
             <field name="active" eval="True"/>
         </record>
+        -->
 
         <!-- Cron Job: Update POS Order Hacienda Status -->
         <record id="cron_update_pos_hacienda_status" model="ir.cron">

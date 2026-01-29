@@ -1,0 +1,247 @@
+{
+  "timestamp": "2025-12-28T11:37:03.584588",
+  "tests": [
+    {
+      "name": "Portal Login - john.portal@gymtest.com",
+      "passed": true,
+      "message": "Successfully authenticated",
+      "details": {
+        "uid": 5,
+        "email": "john.portal@gymtest.com"
+      },
+      "timestamp": "2025-12-28T11:37:03.812638"
+    },
+    {
+      "name": "Access Rights Check - john.portal@gymtest.com",
+      "passed": true,
+      "message": "Accessible: 4, Restricted: 2",
+      "details": {
+        "accessible": [
+          "res.partner",
+          "account.move",
+          "sale.order",
+          "res.users"
+        ],
+        "restricted": [
+          "product.product",
+          "account.payment"
+        ]
+      },
+      "timestamp": "2025-12-28T11:37:04.076943"
+    },
+    {
+      "name": "View Own Partner - john.portal@gymtest.com",
+      "passed": true,
+      "message": "Successfully retrieved partner data",
+      "details": {
+        "id": 13,
+        "name": "John Portal Member",
+        "email": "john.portal@gymtest.com",
+        "phone": "555-0101",
+        "street": "123 Fitness Street",
+        "city": "Gym City",
+        "zip": "12345"
+      },
+      "timestamp": "2025-12-28T11:37:04.094095"
+    },
+    {
+      "name": "Update Contact Info - john.portal@gymtest.com",
+      "passed": false,
+      "message": "Update failed: <Fault 4: \"You are not allowed to modify 'Contact' (res.partner) records.\\n\\nThis operation is allow",
+      "details": {},
+      "timestamp": "2025-12-28T11:37:04.128793"
+    },
+    {
+      "name": "View Invoices - john.portal@gymtest.com",
+      "passed": true,
+      "message": "Found 1 invoices",
+      "details": {
+        "count": 1,
+        "invoices": [
+          {
+            "id": 15,
+            "name": "INV/2025/00003",
+            "invoice_date": "2025-12-28",
+            "amount_total": 56.35,
+            "state": "posted",
+            "payment_state": "not_paid"
+          }
+        ]
+      },
+      "timestamp": "2025-12-28T11:37:04.155316"
+    },
+    {
+      "name": "View Payment History - john.portal@gymtest.com",
+      "passed": false,
+      "message": "Access denied to payment records",
+      "details": {
+        "note": "This is expected - portal users view payments through invoices"
+      },
+      "timestamp": "2025-12-28T11:37:04.170148"
+    },
+    {
+      "name": "View Sale Orders - john.portal@gymtest.com",
+      "passed": true,
+      "message": "Found 1 orders",
+      "details": {
+        "count": 1,
+        "orders": [
+          {
+            "id": 14,
+            "name": "S00014",
+            "date_order": "2025-12-28 17:36:58",
+            "amount_total": 31.03,
+            "state": "sale",
+            "order_line": [
+              17,
+              18
+            ]
+          }
+        ]
+      },
+      "timestamp": "2025-12-28T11:37:04.197060"
+    },
+    {
+      "name": "Invoice Download Capability - john.portal@gymtest.com",
+      "passed": true,
+      "message": "Has read access to invoices (download available via portal UI)",
+      "details": {
+        "invoice_accessible": true
+      },
+      "timestamp": "2025-12-28T11:37:04.221452"
+    },
+    {
+      "name": "Data Isolation Test - john.portal@gymtest.com",
+      "passed": true,
+      "message": "Can only access own data",
+      "details": {
+        "accessible_partners": 1
+      },
+      "timestamp": "2025-12-28T11:37:04.239013"
+    },
+    {
+      "name": "Portal Login - jane.premium@gymtest.com",
+      "passed": true,
+      "message": "Successfully authenticated",
+      "details": {
+        "uid": 6,
+        "email": "jane.premium@gymtest.com"
+      },
+      "timestamp": "2025-12-28T11:37:04.447017"
+    },
+    {
+      "name": "Access Rights Check - jane.premium@gymtest.com",
+      "passed": true,
+      "message": "Accessible: 4, Restricted: 2",
+      "details": {
+        "accessible": [
+          "res.partner",
+          "account.move",
+          "sale.order",
+          "res.users"
+        ],
+        "restricted": [
+          "product.product",
+          "account.payment"
+        ]
+      },
+      "timestamp": "2025-12-28T11:37:04.722486"
+    },
+    {
+      "name": "View Own Partner - jane.premium@gymtest.com",
+      "passed": true,
+      "message": "Successfully retrieved partner data",
+      "details": {
+        "id": 14,
+        "name": "Jane Premium Member",
+        "email": "jane.premium@gymtest.com",
+        "phone": "555-0102",
+        "street": "456 Wellness Ave",
+        "city": "Health Town",
+        "zip": "67890"
+      },
+      "timestamp": "2025-12-28T11:37:04.739764"
+    },
+    {
+      "name": "Update Contact Info - jane.premium@gymtest.com",
+      "passed": false,
+      "message": "Update failed: <Fault 4: \"You are not allowed to modify 'Contact' (res.partner) records.\\n\\nThis operation is allow",
+      "details": {},
+      "timestamp": "2025-12-28T11:37:04.771123"
+    },
+    {
+      "name": "View Invoices - jane.premium@gymtest.com",
+      "passed": true,
+      "message": "Found 1 invoices",
+      "details": {
+        "count": 1,
+        "invoices": [
+          {
+            "id": 14,
+            "name": "INV/2025/00002",
+            "invoice_date": "2025-12-28",
+            "amount_total": 113.85,
+            "state": "posted",
+            "payment_state": "not_paid"
+          }
+        ]
+      },
+      "timestamp": "2025-12-28T11:37:04.798231"
+    },
+    {
+      "name": "View Payment History - jane.premium@gymtest.com",
+      "passed": false,
+      "message": "Access denied to payment records",
+      "details": {
+        "note": "This is expected - portal users view payments through invoices"
+      },
+      "timestamp": "2025-12-28T11:37:04.812367"
+    },
+    {
+      "name": "View Sale Orders - jane.premium@gymtest.com",
+      "passed": true,
+      "message": "Found 1 orders",
+      "details": {
+        "count": 1,
+        "orders": [
+          {
+            "id": 13,
+            "name": "S00013",
+            "date_order": "2025-12-28 17:36:58",
+            "amount_total": 31.03,
+            "state": "sale",
+            "order_line": [
+              15,
+              16
+            ]
+          }
+        ]
+      },
+      "timestamp": "2025-12-28T11:37:04.838578"
+    },
+    {
+      "name": "Invoice Download Capability - jane.premium@gymtest.com",
+      "passed": true,
+      "message": "Has read access to invoices (download available via portal UI)",
+      "details": {
+        "invoice_accessible": true
+      },
+      "timestamp": "2025-12-28T11:37:04.863818"
+    },
+    {
+      "name": "Data Isolation Test - jane.premium@gymtest.com",
+      "passed": true,
+      "message": "Can only access own data",
+      "details": {
+        "accessible_partners": 1
+      },
+      "timestamp": "2025-12-28T11:37:04.878676"
+    }
+  ],
+  "summary": {
+    "total": 18,
+    "passed": 14,
+    "failed": 4,
+    "warnings": 0
+  }
+}

@@ -1,0 +1,47 @@
+services:
+  db:
+    image: postgres:13
+    container_name: gms_postgres
+    environment:
+      POSTGRES_DB: postgres
+      POSTGRES_USER: odoo
+      POSTGRES_PASSWORD: odoo
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - odoo-db-data:/var/lib/postgresql/data/pgdata
+    ports:
+      - "5433:5432"
+    networks:
+      - odoo-network
+    restart: unless-stopped
+
+  odoo:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: gms_odoo:19.0
+    container_name: gms_odoo
+    depends_on:
+      - db
+    ports:
+      - "8070:8069"
+    environment:
+      HOST: db
+      USER: odoo
+      PASSWORD: odoo
+    volumes:
+      # Persist Odoo data only
+      - odoo-web-data:/var/lib/odoo
+      # Mount config file
+      - ./odoo.conf:/etc/odoo/odoo.conf:ro
+    networks:
+      - odoo-network
+    restart: unless-stopped
+
+volumes:
+  odoo-db-data:
+  odoo-web-data:
+
+networks:
+  odoo-network:
+    driver: bridge

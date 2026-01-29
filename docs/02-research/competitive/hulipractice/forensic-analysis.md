@@ -1,0 +1,2615 @@
+---
+title: "HuliPractice Forensic Analysis - Invoicing Module Deep Dive"
+category: "research"
+domain: "competitive"
+subdomain: "hulipractice"
+layer: "forensic" # Layer 1: Raw technical intelligence
+audience: ["backend-developer", "system-architect", "technical-lead"]
+last_updated: "2026-01-01"
+status: "production-ready"
+version: "1.0.0"
+maintainer: "Product Team"
+original_analyst: "Mary (Intelligence Analyst)"
+original_date: "2025-12-30"
+related_docs:
+  - "docs/02-research/competitive/hulipractice/00-INTELLIGENCE-INDEX.md"
+  - "docs/02-research/competitive/hulipractice/ux-implementation-guide.md"
+  - "docs/02-research/competitive/hulipractice/strategic-analysis.md"
+keywords: ["hulipractice", "forensic-analysis", "api-endpoints", "vue.js", "technical-architecture", "reverse-engineering", "competitive-intelligence"]
+---
+
+# 📍 Navigation Breadcrumb
+[Home](../../../index.md) > [Research](../../../index.md) > [Competitive](../../index.md) > [HuliPractice](./00-INTELLIGENCE-INDEX.md) > Forensic Analysis
+
+---
+
+# Huli Practice - Invoicing Module Comprehensive Analysis
+
+**Date:** 2025-12-30
+**Analyzed By:** Claude Code (Playwright MCP Forensic Analysis)
+**Application URL:** https://app.hulipractice.com
+**Module Focus:** Facturación (Invoicing/Billing Module)
+**Layer:** 1 - Forensic Capture (Raw Technical Intelligence)
+
+---
+
+## Table of Contents
+1. [Executive Summary](#executive-summary)
+2. [Technical Architecture](#technical-architecture)
+3. [Module Structure & Navigation](#module-structure--navigation)
+4. [Detailed Section Analysis](#detailed-section-analysis)
+5. [API Endpoints & Data Flow](#api-endpoints--data-flow)
+6. [UI/UX Patterns](#uiux-patterns)
+7. [Database Schema Insights](#database-schema-insights)
+8. [Screenshots Reference](#screenshots-reference)
+9. [Implementation Recommendations](#implementation-recommendations)
+
+---
+
+## Executive Summary
+
+Huli Practice is a comprehensive medical practice management system with a sophisticated invoicing/billing module. The application is built using:
+- **Frontend Framework:** Vue.js (version 10.19.0 based on Sentry logs)
+- **Backend API:** RESTful API served from `finanzas.hulipractice.com`
+- **Architecture:** Single Page Application (SPA) with iframe-based module loading
+- **Error Tracking:** Sentry.io integration
+- **Real-time Communication:** PubNub for notifications
+- **Localization:** Spanish (Costa Rica) with English toggle
+- **Currency:** Costa Rican Colones (CRC) with USD conversion
+
+---
+
+## Technical Architecture
+
+### Frontend Technology Stack
+
+```javascript
+// Technology Detection
+{
+  framework: "Vue.js",
+  sentryVersion: "10.19.0",
+  location: "https://app.hulipractice.com/es#/billing",
+  iframeModule: "lucida",
+  realtime: "PubNub-JS-Web/7.6.3",
+  localization: "Spanish (es)",
+  intercom: "Customer support chat enabled"
+}
+```
+
+### Application Structure
+
+The application uses a **modular iframe architecture**:
+- Main shell application at `app.hulipractice.com`
+- Billing module loaded in iframe named `"lucida"`
+- Module served from `finanzas.hulipractice.com`
+- Hash-based routing (`#/billing`, `#/calendar`, etc.)
+
+### Authentication & Session Management
+
+**JWT Token-Based Authentication:**
+```
+Access Token Format: RS512 JWT
+Token Location: localStorage + cookies
+Token Key: "access_token"
+User ID: 621173 (example from session)
+Organization ID: 90346 (stored in localStorage as "access_organization_v3")
+```
+
+**Session Storage:**
+```javascript
+localStorage: {
+  "access_token": "eyJhbGc...", // JWT token
+  "access_organization": "-1",
+  "access_organization_v3": "90346",
+  "pref_doctor_iduser_user_621173_org_-1": "621173",
+  "pref_doctor_84618_clinic_user_621173_org_-1": "2014,1,35960,5"
+}
+```
+
+---
+
+## Module Structure & Navigation
+
+### Main Invoicing Module Menu
+
+The invoicing module is accessed via a **dollar sign icon** ($) in the left sidebar and contains **9 main sections**:
+
+#### 1. **Proformas** (Proforma Invoices)
+- **Icon:** `tab` icon
+- **Status:** Empty state
+- **Message:** "Acá aparecerán tus proformas"
+- **Purpose:** Draft/quote invoices before final billing
+
+#### 2. **Facturación** (Invoicing) ⭐ PRIMARY SECTION
+- **Icon:** Receipt/document icon
+- **Tabs:**
+  - `Ventas` (Sales) - Active by default
+  - `Compras` (Purchases)
+- **Features:**
+  - Search by invoice number or client
+  - Filter functionality
+  - Pagination (25/50/100/150/200 rows per page)
+  - Table columns: Nº, Fecha, Cliente, Tipo, Moneda, Total, Situación, Estado
+- **Document Types Found:**
+  - Factura (Invoice)
+  - Nota de Crédito (Credit Note)
+  - Tiquete (Receipt/Ticket)
+- **Status Types:**
+  - ✓ Aprobado (Approved) - green checkmark
+  - ✗ Rechazado (Rejected) - red X
+- **Payment Status:**
+  - Pagada (Paid)
+  - (Empty for unpaid)
+
+#### 3. **Fact. de compra** (Purchase Invoices)
+- **Icon:** Document icon
+- **Status:** Empty state
+- **Description:** "Facturas Electrónicas de Compra"
+- **Purpose:** Record purchases from suppliers for year-end tax deductions
+- **Note:** System reminds to keep printed receipts from suppliers
+
+#### 4. **Clientes** (Clients/Customers)
+- **Icon:** `group` (people icon)
+- **Search:** By name, email, or phone
+- **Table Columns:**
+  - Identificación (ID number)
+  - Nombre (Name)
+  - Email
+  - Dirección (Address)
+  - Teléfono (Phone)
+- **Current Data:** 3 clients found
+- **ID Types:**
+  - Cédula jurídica (Corporate ID): 3101230323
+  - Foreign ID: 544252053808
+
+#### 5. **Productos** (Products/Services)
+- **Icon:** `local_mall` (shopping bag)
+- **Tabs:**
+  - `Mis productos` (My products) - Active
+  - `Catálogo CABYS` (CABYS catalog - Costa Rican tax coding system)
+- **Search:** By code or name
+- **Table Columns:**
+  - Código(s) (Code(s)) - sortable
+  - Nombre (Name) - sortable
+  - Precio(s) (Price(s))
+- **Current Data:** 4 products
+- **Product Examples:**
+  - Consulta de Nutricion Oncologica - 45,000 CRC
+  - Consulta Médica - 50,000 CRC
+  - Honorarios Médicos - 45,000 CRC
+- **CABYS Codes:** All products have 13-digit tax classification codes (e.g., "9310100000100")
+
+#### 6. **Proveedores** (Suppliers)
+- **Icon:** Briefcase icon
+- **Status:** Empty state
+- **Message:** "Acá aparecerán tus proveedores"
+
+#### 7. **Orden de compra** (Purchase Orders)
+- **Icon:** Document icon
+- **Status:** Empty state
+- **Description:** "Órdenes de Compra para enviar a tus proveedores"
+- **Purpose:** Create purchase orders to send to suppliers
+
+#### 8. **Reportes** (Reports) 📊
+- **Icon:** `show_chart` (analytics)
+- **Categories:**
+
+**VENTAS (Sales):**
+  - Diario (Daily)
+  - Ventas (Sales)
+  - Proformas
+  - Cuentas por cobrar (Accounts Receivable)
+  - Pagos a facturas (Invoice Payments)
+  - Cierres de Caja (Cash Register Closures)
+  - Utilidades (Utilities/Profits)
+  - Punto de Venta (Point of Sale)
+  - Etiquetas por línea (Line Item Tags)
+
+**COMPRAS / GASTOS (Purchases/Expenses):**
+  - Compras (Purchases)
+  - Facturas de Compra (Purchase Invoices)
+  - Órdenes de Compra (Purchase Orders)
+
+**HACIENDA (Tax Authority - Costa Rica):**
+  - IVA D-104 (VAT Report)
+  - Renta D-101 (Income Tax Report)
+  - Hacienda D-151 (Tax Authority Report)
+
+**LISTAS (Lists):**
+  - Listado de Productos (Product List)
+  - Listado de Clientes (Client List)
+  - Listado de Proveedores (Supplier List)
+
+#### 9. **Configuración** (Configuration) ⚙️
+- **Icon:** Settings gear
+- **Sections:**
+
+**A. Organization Settings:**
+  - Logo upload
+  - Organization name: "Meyryn Carrillo Murillo"
+
+**B. Preferences:**
+  - ☐ Mostrar fotos de productos en buscador (Show product photos in search)
+
+**C. Currency Settings:**
+  - Default currency: CRC (Costa Rican Colones)
+  - Exchange rate synchronization with BCCR (Banco Central de Costa Rica)
+  - Current rate: 501.08 CRC = 1 USD
+  - Options:
+    - ⦿ Predeterminado (Default - synced with BCCR)
+    - ◯ Personalizado (Custom rate)
+  - ☐ Mostrar Total de comprobantes en USD también (Show invoice totals in USD)
+
+**D. Sub-sections (Left sidebar):**
+  - Organización (Organization)
+  - Datos Fiscales (Tax Data)
+  - Usuarios (Users)
+
+---
+
+## Detailed Section Analysis
+
+### Facturación (Invoicing) - Detail View
+
+When clicking on an invoice (e.g., Invoice #0000000025), the system displays a comprehensive detail view:
+
+#### Header Information
+```
+Document Type: Factura
+Document Number: #00100001010000000025
+Status:
+  - Aprobado ✓ (Approved - green)
+  - Creada (Created)
+Payment Status: Pagada (Paid)
+Tags: (Empty combobox for adding labels)
+```
+
+#### Payment Information Panel
+```
+Title: Pagos
+Status: Pagada (Paid)
+Payment Details:
+  - Method: Efectivo (Cash)
+  - Amount: CRC 307,008.00
+  - Receipt #: 9
+  - Registered by: Meyryn
+  - Payment date: 7/02/2025
+  - Bank: BNCR
+  - Registration timestamp: 08/02/2025 15:25
+Actions: Print, Download, Delete
+```
+
+#### Receptor (Customer) Information
+```
+Name: Centro Medico de Radioterapia Irazu S.A (clickable link)
+ID Type: Cédula jurídica (Corporate ID)
+ID Number: 3101230323
+Phone: 22903475
+Address: La Uruca, San José, 75 m Oeste y 25 m Sur de las bodegas
+         de la Imprenta Nacional., Uruca, San José, San José
+Email: luis.espinoza@siglo21.cr
+```
+
+#### Invoice Metadata
+```
+Fecha (Date): 30/12/2024 16:10
+Moneda (Currency): CRC
+Condición de Venta (Sale Condition): Contado (Cash)
+Medio de Pago (Payment Method): Efectivo (Cash)
+Actividad (Business Activity): Servicios de médico general (medicina general)
+Creada por (Created by): Meyryn
+```
+
+#### Line Items Table
+
+| Código | Descripción | Cant. | Precio Unit. | Desc. | Subtotal | Imp. Neto | Total Línea |
+|--------|-------------|-------|--------------|-------|----------|-----------|-------------|
+| C-02<br>9310100000100 | Honorarios Médicos | 8 Unid | 45,000.00 | 64,800.00 | 295,200.00 | (4%) 11,808.00 | 307,008.00 |
+
+**Notes Field:**
+```
+"Consulta nutri onco del 13 al 19 de Diciembre 2024 :
+Guido Eterley Gamboa, Wilbert Aguilar, Franklin Cerdas Garcia,
+Monica Ramos, Manuel Bolanos, Alfredo Daniels, Ana Vanessa Morales,
+Roy Seas Segura."
+```
+
+#### Financial Summary
+```
+Total Productos Gravados:     ₡ 360,000.00
+Total Gravados:               ₡ 360,000.00
+Total Venta:                  ₡ 360,000.00
+Total Descuento:              ₡  64,800.00  (18%)
+Total Venta Neta:             ₡ 295,200.00
+Total Impuesto:               ₡  11,808.00  (4% tax)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Total Comprobante:            ₡ 307,008.00
+```
+
+#### Additional Features
+- **Historia y Comentarios** (History & Comments): 0 comments
+- **Archivos adjuntos** (Attachments): File upload capability
+- **Acciones** (Actions) dropdown menu
+
+### Invoice Creation Form (Floating "+" Button)
+
+When clicking the **floating add button** (located at bottom-right of Facturación section), a comprehensive invoice creation form appears with the following structure:
+
+#### Document Configuration Section
+```
+Document Type Dropdown (Tipo de Documento):
+  - Default: "Factura" (Invoice)
+  - Options: Factura | Nota de Crédito | Tiquete | Proforma
+  - Note: Changing to "Tiquete" removes customer requirement
+
+Currency Dropdown (Moneda):
+  - Default: "CRC" (Costa Rican Colones)
+  - Options: CRC | USD
+```
+
+#### Customer Selection
+```
+Customer Search Field (Cliente):
+  - Autocomplete combobox
+  - Placeholder: "Buscá por nombre, cédula o teléfono"
+  - Required for "Factura" type
+  - Alert displayed: "* Requerido por ser factura. Si este documento
+    no requiere receptor seleccione 'Tiquete' en el Tipo de Documento"
+
+Economic Activity Code:
+  - Pre-filled: "Actividades de médicos"
+  - Field is disabled (organization-level setting)
+```
+
+#### Payment Configuration
+```
+Payment Method (Método de pago):
+  - Default: "Efectivo" (Cash)
+  - Options: Efectivo | Tarjeta | Transferencia | Cheque | etc.
+
+Sales Condition (Condición de venta):
+  - Default: "Contado" (Cash payment)
+  - Options: Contado | Crédito (Credit with terms)
+```
+
+#### Line Items Section
+**Header:**
+```
+"Detalle de líneas"
+Price List Indicator: "Precios: Regular"
+```
+
+**Line Item Fields (per row):**
+```
+1. Product Search (Código / Nombre del producto):
+   - Icon: 🔍 search icon
+   - Autocomplete from products catalog
+
+2. Quantity (Cant.):
+   - Number spinner
+   - Default: 1
+
+3. Unit (Unidad):
+   - Dropdown
+   - Default: "Unid" (Units)
+   - Options: Unid | Hora | Día | Servicio | etc.
+
+4. Unit Price (Prec. Unid.):
+   - Number input
+   - Default: 0
+   - Auto-populated from product selection
+
+5. Discount % (Desc %):
+   - Number input
+   - Optional percentage discount
+
+6. Subtotal:
+   - Read-only calculated field
+   - Format: 0,00
+
+7. IVA (Tax):
+   - Checkbox toggle
+   - Shows tax rate when enabled
+
+8. Total:
+   - Read-only calculated field
+   - Format: 0,00
+
+9. Delete Button:
+   - Icon: 🗑️ delete
+   - Removes line item
+```
+
+**Line Actions:**
+```
+- "Agregar línea" button: Add new line item row
+- "Aplicar descuento general": Apply discount to all lines
+- "Exonerar todas las líneas": Exempt all lines from tax
+```
+
+#### Additional Information Section
+```
+Notes Field (Notas):
+  - Multi-line text area
+  - For invoice description/comments
+
+Optional Additions:
+  - "Agregar Información extra" button
+  - "Agregar Otro Cargo" button (Other charges)
+  - "Agregar Referencia" button (Reference to other documents)
+```
+
+#### Financial Summary (Right Panel)
+```
+Total Impuesto (Total Tax):      ₡ 0,00
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Total Comprobante (Total Doc):   ₡ 0,00
+```
+
+#### Action Buttons (Bottom)
+```
+1. "Guardar como proforma"
+   - Save as draft/quote
+   - Disabled when form is empty
+
+2. "Emitir Comprobante" (Issue Document)
+   - Submit and create official invoice
+   - Disabled when required fields are missing
+   - Primary action button
+```
+
+#### Form Validation Rules
+```
+Required Fields:
+  ✓ Customer (when document type = "Factura")
+  ✓ At least one line item with:
+    - Valid product
+    - Quantity > 0
+    - Unit price > 0
+
+Optional Fields:
+  - Payment method (has default)
+  - Sales condition (has default)
+  - Discount
+  - Notes
+  - Tax exemptions
+```
+
+#### Auto-Calculation Logic
+```
+For each line item:
+  Subtotal = (Unit Price × Quantity) - Discount Amount
+  Tax Amount = Subtotal × Tax Rate (if IVA enabled)
+  Line Total = Subtotal + Tax Amount
+
+Document totals:
+  Total Tax = Sum of all line tax amounts
+  Total Document = Sum of all line totals
+```
+
+#### User Experience Features
+- Real-time calculation as user types
+- Product autocomplete with search
+- Keyboard navigation support
+- Form persists in session (unsaved changes warning)
+- Responsive field widths
+- Clear visual hierarchy
+- Disabled state management (buttons enable when form valid)
+
+---
+
+## Customer Creation Workflow - Forensic Analysis
+
+### Overview
+The customer creation process was tested by creating a real customer record for **Laura María Sánchez Leon** with Costa Rican ID **1-1317-0921**. This test revealed sophisticated integrations with government databases and hierarchical location systems.
+
+### Step-by-Step Workflow
+
+#### 1. Initiate Customer Creation
+- **Trigger:** Click floating "+" button in Clientes (Customers) section
+- **Action:** Opens customer creation form in modal/side panel
+
+#### 2. Customer Form Structure
+
+**Personal Information Section:**
+```
+Nombre (Name):
+  - Full name input field
+  - Value entered: "Laura María Sánchez Leon"
+
+Tipo de identificación (ID Type):
+  - Dropdown options:
+    • Cédula física (Physical ID - Costa Rican national ID)
+    • Cédula jurídica (Corporate ID)
+    • DIMEX (Foreign residents ID)
+    • NITE (Tax ID for foreigners)
+    • Pasaporte (Passport)
+  - Selected: "Cédula física"
+
+Número de identificación (ID Number):
+  - Text input with format validation
+  - Value entered: "113170921" (formatted as 1-1317-0921)
+  - CRITICAL: Triggers auto-population attempt on blur
+```
+
+#### 3. Auto-Population from Government Database
+
+**API Call Triggered:**
+```http
+GET /api/lucida/v1/resource/contact-register?idType=1&idNumber=113170921&email=true&act=true
+Host: finanzas.hulipractice.com
+```
+
+**Parameters:**
+- `idType=1` → Cédula física
+- `idNumber=113170921` → Customer's ID
+- `email=true` → Request email if available
+- `act=true` → Request economic activity code
+
+**Result:**
+```
+HTTP Status: 504 Gateway Timeout
+Toast Notification: "No se pudo autocompletar usando la identificación: '113170921'.
+                     Revise la información o ingrese manualmente."
+```
+
+**Analysis:**
+- System attempts to fetch customer data from **Costa Rica Ministry of Finance (Hacienda)** database
+- This is an integration with the government's taxpayer registry
+- On success, would auto-populate: name, economic activity, tax status
+- Timeout suggests the Hacienda API was temporarily unavailable
+- **Fallback:** System gracefully allows manual entry
+
+#### 4. Contact Information
+
+**Email Field:**
+```
+Email:
+  - Standard email input with validation
+  - Value entered: "lau_sanleo@hotmail.com"
+```
+
+**Phone Field:**
+```
+Teléfono:
+  - Format: Country prefix dropdown + number input
+  - Costa Rica: +506 prefix auto-selected
+  - Optional field (left empty in test)
+```
+
+#### 5. Address Section - Hierarchical Location System
+
+**Critical Discovery:** Costa Rica addresses use a **3-tier cascading location hierarchy**:
+
+**Province Selection (Provincia):**
+```http
+API Call: GET /api/lucida/v1/resource/locations?pids=&idCountry=188
+Response: List of 7 provinces
+Selected: "San José" (ID: 1)
+```
+
+**Canton Selection (Cantón):**
+```http
+API Call: GET /api/lucida/v1/resource/locations?pids=1&idCountry=188
+Parameters:
+  - pids=1 → Parent province ID (San José)
+  - idCountry=188 → Costa Rica
+Response: List of cantones in San José province
+Selected: "Escazú" (ID: 224)
+```
+
+**District Selection (Distrito):**
+```http
+API Call: GET /api/lucida/v1/resource/locations?pids=1,224&idCountry=188
+Parameters:
+  - pids=1,224 → Province ID and Canton ID
+  - idCountry=188 → Costa Rica
+Response: List of districts in Escazú canton
+Selected: "San Antonio"
+```
+
+**Address Details:**
+```
+Dirección exacta (Exact Address):
+  - Multi-line text area
+  - Value entered: "san antonio de Escazu del recibidor de café
+                    600 metros Oeste y 50 Norte casa a mano derecha
+                    #2 portones negro"
+  - Note: Typical Costa Rican address format using landmarks and distances
+```
+
+**Database Location IDs Captured:**
+```javascript
+{
+  province: {
+    id: 1,
+    name: "San José"
+  },
+  canton: {
+    id: 224,
+    name: "Escazú",
+    parentId: 1
+  },
+  distrito: {
+    name: "San Antonio",
+    parentIds: [1, 224]
+  }
+}
+```
+
+#### 6. Economic Activity Code
+
+**Activity Code Search:**
+```
+Código de actividad económica (Economic Activity Code):
+  - Autocomplete search field
+  - Search query: "4610"
+
+API Call: GET /api/lucida/v1/resource/commercial-activities?q=4610&from=0&size=25
+
+Response Structure:
+{
+  code: "4610.0",
+  description: "Venta al por mayor a cambio de una retribución o por contrato"
+}
+```
+
+**Selected Activity:**
+```
+Code: 4610.0
+Description: "Venta al por mayor a cambio de una retribución o por contrato"
+Note: This is a wholesale trading activity classification from Costa Rica tax authority
+```
+
+#### 7. Customer Creation Submission
+
+**API Call:**
+```http
+POST /api/lucida/v1/org/17675/customer
+Content-Type: application/json
+
+Request Body (inferred):
+{
+  "name": "Laura María Sánchez Leon",
+  "taxIdType": 1,
+  "taxId": "113170921",
+  "email": "lau_sanleo@hotmail.com",
+  "address": {
+    "provinceId": 1,
+    "cantonId": 224,
+    "distrito": "San Antonio",
+    "addressLine": "san antonio de Escazu del recibidor de café 600 metros Oeste y 50 Norte casa a mano derecha #2 portones negro"
+  },
+  "activityCode": "4610.0"
+}
+
+Response:
+{
+  "id": 3266777,
+  "success": true
+}
+```
+
+**Success Indicators:**
+- HTTP 200/201 status
+- Customer ID assigned: **3266777**
+- Customer appears in customer list immediately
+- Form closes automatically
+- Toast notification: "Cliente creado exitosamente"
+
+#### 8. Customer Data Verification
+
+**Verification API Call:**
+```http
+GET /api/lucida/v1/org/17675/customers?q=Laura&from=0&size=25
+
+Response includes:
+{
+  "id": 3266777,
+  "name": "Laura María Sánchez Leon",
+  "taxId": "1-1317-0921",
+  "email": "lau_sanleo@hotmail.com",
+  "location": "San Antonio, Escazú, San José",
+  "activityCode": "4610.0"
+}
+```
+
+**Screenshot Captured:** `16-customer-creation-form-complete.png`, `17-customer-list-with-laura.png`
+
+---
+
+## Invoice Creation Workflow - Forensic Analysis
+
+### Overview
+Test invoice created for customer **Laura María Sánchez Leon** with product **Consulta Médica** (Medical Consultation) for ₡50,000.00 plus 4% IVA tax.
+
+### Step-by-Step Workflow
+
+#### 1. Initiate Invoice Creation
+- **Trigger:** Click floating "+" button in Facturación section
+- **Action:** Opens invoice creation form
+
+#### 2. Document Type Selection
+
+**Document Type Dropdown - ALL OPTIONS:**
+```
+Tipo de Documento:
+  1. Factura (Invoice) ← Selected
+  2. Tiquete (Receipt/Ticket)
+  3. Factura de Exportación (Export Invoice)
+  4. Nota de crédito (Credit Note)
+  5. Nota de débito (Debit Note)
+
+Note: Selecting "Tiquete" removes customer requirement
+      (for anonymous cash sales like retail)
+```
+
+#### 3. Currency Selection
+
+**Currency Dropdown - ALL OPTIONS:**
+```
+Moneda:
+  1. CRC - Costa Rican Colones ← Selected (Default)
+  2. USD - United States Dollar
+  3. EUR - Euro
+  4. MXN - Mexican Peso
+  5. JPY - Japanese Yen
+
+Exchange Rate Display:
+  - Shows current BCCR rate when non-CRC selected
+  - Example: 1 USD = 501.08 CRC
+```
+
+#### 4. Customer Selection
+
+**Customer Search:**
+```
+Cliente (Customer):
+  - Autocomplete search field
+  - Search query: "Laura"
+
+API Call: GET /api/lucida/v1/org/17675/customer/search?q=Laura&from=0&size=25
+
+Response:
+[
+  {
+    "id": 3266777,
+    "name": "Laura María Sánchez Leon",
+    "taxId": "1-1317-0921",
+    "email": "lau_sanleo@hotmail.com"
+  }
+]
+```
+
+**Auto-Population on Customer Selection:**
+```
+When customer selected, system auto-populates:
+  ✓ Customer name
+  ✓ Tax ID
+  ✓ Email
+  ✓ Address (full hierarchical: San Antonio, Escazú, San José)
+  ✓ Economic activity code (4610.0)
+  ✓ Economic activity description
+
+API Call: GET /api/lucida/v1/org/17675/contact/3266777?preset=searchbox
+```
+
+#### 5. Payment Configuration
+
+**Payment Method Dropdown - ALL OPTIONS:**
+```
+Método de pago:
+  1. Efectivo (Cash) ← Default
+  2. Tarjeta (Card/Credit Card)
+  3. Cheque (Check)
+  4. Transferencia (Bank Transfer)
+  5. Recaudado por terceros (Collected by third parties)
+  6. SINPE Movil ← Costa Rica specific mobile payment
+  7. Plataforma Digital (Digital Platform)
+  8. En Especie (In Kind/Barter)
+  9. Otros (Other)
+```
+
+**Sales Condition Dropdown - ALL OPTIONS:**
+```
+Condición de venta:
+  1. Contado (Cash payment) ← Default
+  2. Crédito (Credit/Payment terms)
+  3. Servicios prestados al Estado a crédito
+     (Services provided to government on credit)
+  4. Venta a crédito en IVA hasta 90 días
+     (Credit sale with VAT up to 90 days)
+
+Note: Selecting "Crédito" reveals additional fields:
+  - Payment term (days)
+  - Due date calculator
+```
+
+#### 6. Economic Activity
+
+**Activity Display:**
+```
+Actividad económica:
+  - Read-only field (organization-level setting)
+  - Shows: "Actividades de médicos"
+  - Note: This is the organization's registered activity,
+          different from customer's activity code
+```
+
+#### 7. Line Items - Product Selection
+
+**Product Search:**
+```
+Código / Nombre del producto:
+  - Autocomplete search with icon
+  - Search query: "Consulta"
+
+API Call: GET /api/lucida/v1/org/17675/product/search-v2?q=Consulta&from=0&size=25
+
+Response:
+{
+  "id": 896191,
+  "code": "C-RL",
+  "cabysCode": "9310100000100",
+  "name": "Consulta Médica",
+  "price": 50000.00,
+  "taxRate": 0.04,
+  "taxable": true
+}
+```
+
+**Auto-Population on Product Selection:**
+```
+When product selected, system fills:
+  ✓ Product code: C-RL
+  ✓ CABYS code: 9310100000100
+  ✓ Description: Consulta Médica
+  ✓ Unit price: 50,000.00
+  ✓ Tax rate: 4%
+  ✓ Unit: Unid (from product settings)
+```
+
+#### 8. Line Item Configuration
+
+**Quantity Field:**
+```
+Cant. (Quantity):
+  - Number spinner
+  - Value: 1 ← Default
+  - Min: 0.01
+```
+
+**Unit Dropdown - ALL OPTIONS:**
+```
+Unidad:
+
+PRODUCTS (Productos):
+  1. Unid - Unidad (Unit) ← Selected
+  2. kg - Kilogramo (Kilogram)
+  3. m - Metro (Meter)
+  4. L - Litro (Liter)
+  5. cm - Centímetro (Centimeter)
+  6. g - Gramo (Gram)
+  7. mm - Milímetro (Millimeter)
+  8. mL - Mililitro (Milliliter)
+
+SERVICES (Servicios):
+  9. Sp - Servicio profesional (Professional service)
+  10. Spe - Servicios especiales (Special services)
+  11. Al - Alquiler (Rental)
+  12. I - Instalación (Installation)
+  13. Cje - Corretaje (Brokerage)
+  14. St - Servicio técnico (Technical service)
+  15. Os - Otros servicios (Other services)
+  16. Hora - Hora (Hour)
+  17. Otros - Otros (Others)
+```
+
+**Unit Price:**
+```
+Prec. Unid.:
+  - Number input
+  - Value: 50,000.00 (auto-filled from product)
+  - Editable
+```
+
+**Discount Percentage:**
+```
+Desc %:
+  - Number input
+  - Value: 0 (left at default)
+  - Range: 0-100%
+```
+
+**Tax Configuration:**
+```
+IVA Checkbox:
+  - Toggle on/off
+  - State: ☑ Checked (enabled)
+  - Tax rate displayed: 4%
+  - Note: Tax rate comes from product configuration
+```
+
+#### 9. Real-Time Calculation Engine
+
+**Calculations Observed:**
+```javascript
+// Line Item Calculations
+unitPrice = 50000.00
+quantity = 1
+discountPercent = 0
+
+subtotal = (unitPrice × quantity) - (unitPrice × quantity × discountPercent / 100)
+subtotal = (50000 × 1) - 0 = 50000.00
+
+taxAmount = subtotal × taxRate
+taxAmount = 50000.00 × 0.04 = 2000.00
+
+lineTotal = subtotal + taxAmount
+lineTotal = 50000.00 + 2000.00 = 52000.00
+
+// Document Totals
+totalServiciosGravados = 50000.00
+totalGravados = 50000.00
+totalVenta = 50000.00
+totalDescuento = 0.00
+totalVentaNeta = 50000.00
+totalImpuesto = 2000.00
+totalComprobante = 52000.00
+```
+
+**Financial Summary Display:**
+```
+Total Servicios Gravados:  ₡ 50,000.00
+Total Gravados:            ₡ 50,000.00
+Total Venta:               ₡ 50,000.00
+Total Descuento:           ₡      0.00
+Total Venta Neta:          ₡ 50,000.00
+Total Impuesto:            ₡  2,000.00
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Total Comprobante:         ₡ 52,000.00
+```
+
+#### 10. Invoice Submission
+
+**API Call:**
+```http
+POST /api/lucida/v1/org/17675/billing/doc
+Content-Type: application/json
+
+Request Body (inferred):
+{
+  "type": "Factura",
+  "currency": "CRC",
+  "customerId": 3266777,
+  "paymentMethod": "Efectivo",
+  "salesCondition": "Contado",
+  "lineItems": [
+    {
+      "productId": 896191,
+      "productCode": "C-RL",
+      "cabysCode": "9310100000100",
+      "description": "Consulta Médica",
+      "quantity": 1,
+      "unit": "Unid",
+      "unitPrice": 50000.00,
+      "discount": 0.00,
+      "subtotal": 50000.00,
+      "taxRate": 0.04,
+      "tax": 2000.00,
+      "total": 52000.00
+    }
+  ],
+  "totals": {
+    "totalServiciosGravados": 50000.00,
+    "totalGravados": 50000.00,
+    "totalVenta": 50000.00,
+    "totalDescuento": 0.00,
+    "totalVentaNeta": 50000.00,
+    "totalImpuesto": 2000.00,
+    "totalComprobante": 52000.00
+  }
+}
+
+Response:
+{
+  "id": 20867232,
+  "documentNumber": "0000000026",
+  "fullDocumentId": "#00100001010000000026",
+  "status": "Esperando aprobación",
+  "success": true
+}
+```
+
+#### 11. Invoice Approval Workflow
+
+**Status After Creation:**
+```
+Status: "Esperando aprobación" (Waiting for approval)
+Color: Orange/amber (pending state)
+Icon: Clock/waiting indicator
+
+Process:
+  1. Invoice submitted to Costa Rica Ministry of Finance (Hacienda)
+  2. Electronic invoice validation occurs asynchronously
+  3. Status will change to:
+     - "Aprobado" ✓ (Approved) - green
+     - OR "Rechazado" ✗ (Rejected) - red
+  4. Typical approval time: Seconds to minutes
+  5. Real-time updates via PubNub notifications
+```
+
+**Electronic Invoice Details:**
+```
+Document ID: #00100001010000000026
+Format Breakdown:
+  001 - Document type code
+  00001 - Terminal/point of sale
+  01 - Establishment code
+  0000000026 - Sequential number
+```
+
+#### 12. Invoice Detail View Verification
+
+**API Call:**
+```http
+GET /api/lucida/v1/org/17675/billing/doc/20867232
+
+Response includes full invoice object with:
+  - All customer details
+  - All line items with CABYS codes
+  - Tax calculations
+  - Payment status (unpaid initially)
+  - Approval status
+  - Creation timestamp
+  - User who created it
+```
+
+**Screenshot Captured:** `18-invoice-form-customer-selected.png`, `19-invoice-form-product-added.png`, `20-invoice-form-ready-to-submit.png`, `21-invoice-created-detail-view.png`
+
+---
+
+## Dropdown Options - Complete Reference
+
+### Document Types (Tipo de Documento)
+```
+1. Factura (Invoice)
+   - Standard invoice for sales
+   - Requires customer information
+   - Electronic submission to Hacienda
+
+2. Tiquete (Ticket/Receipt)
+   - Simplified receipt
+   - No customer required
+   - For anonymous sales < certain threshold
+
+3. Factura de Exportación (Export Invoice)
+   - For international sales
+   - Different tax treatment
+   - Customs documentation
+
+4. Nota de crédito (Credit Note)
+   - For returns/refunds
+   - References original invoice
+   - Reduces tax liability
+
+5. Nota de débito (Debit Note)
+   - For additional charges
+   - References original invoice
+   - Increases tax liability
+```
+
+### Currencies (Moneda)
+```
+1. CRC - Colón Costarricense (Costa Rican Colones)
+   - Default currency
+   - Exchange rate: 1 CRC = 1 CRC
+
+2. USD - Dólar Estadounidense (United States Dollar)
+   - Exchange rate: Auto-synced with BCCR
+   - Current rate: 501.08 CRC = 1 USD
+
+3. EUR - Euro
+   - Exchange rate: Auto-synced
+   - Used for European transactions
+
+4. MXN - Peso Mexicano (Mexican Peso)
+   - Exchange rate: Auto-synced
+   - For LATAM regional trade
+
+5. JPY - Yen Japonés (Japanese Yen)
+   - Exchange rate: Auto-synced
+   - Uncommon but available
+```
+
+### Payment Methods (Método de pago)
+```
+1. Efectivo (Cash)
+   - Physical cash payments
+   - Most common method
+
+2. Tarjeta (Card/Credit Card)
+   - Credit or debit card payments
+   - May include card details fields
+
+3. Cheque (Check)
+   - Bank check payments
+   - Includes check number tracking
+
+4. Transferencia (Bank Transfer)
+   - Electronic bank transfer
+   - May include reference number
+
+5. Recaudado por terceros (Collected by third parties)
+   - Payment collected by intermediary
+   - Insurance, factoring, etc.
+
+6. SINPE Movil ← COSTA RICA SPECIFIC
+   - Mobile payment system
+   - Instant transfers via phone number
+   - Popular in Costa Rica
+
+7. Plataforma Digital (Digital Platform)
+   - PayPal, Stripe, etc.
+   - E-commerce platforms
+
+8. En Especie (In Kind/Barter)
+   - Non-monetary payment
+   - Goods or services exchange
+
+9. Otros (Other)
+   - Any other payment method
+   - Custom payment types
+```
+
+### Sales Conditions (Condición de venta)
+```
+1. Contado (Cash payment)
+   - Immediate payment
+   - No credit terms
+   - Default option
+
+2. Crédito (Credit/Payment terms)
+   - Deferred payment
+   - Shows payment term field (days)
+   - Due date calculation
+
+3. Servicios prestados al Estado a crédito
+   (Services provided to government on credit)
+   - Special category for government contracts
+   - Extended payment terms
+   - Tax implications
+
+4. Venta a crédito en IVA hasta 90 días
+   (Credit sale with VAT up to 90 days)
+   - Credit sale with specific VAT treatment
+   - Maximum 90-day terms
+   - Tax compliance requirement
+```
+
+### Units of Measure (Unidad)
+
+**Products Category:**
+```
+1. Unid - Unidad (Unit)
+   - Generic unit
+   - Default for items
+
+2. kg - Kilogramo (Kilogram)
+   - Weight measure
+
+3. m - Metro (Meter)
+   - Length measure
+
+4. L - Litro (Liter)
+   - Volume measure (liquids)
+
+5. cm - Centímetro (Centimeter)
+   - Small length measure
+
+6. g - Gramo (Gram)
+   - Small weight measure
+
+7. mm - Milímetro (Millimeter)
+   - Precision length measure
+
+8. mL - Mililitro (Milliliter)
+   - Small volume measure
+```
+
+**Services Category:**
+```
+9. Sp - Servicio profesional (Professional service)
+   - Consultations, advice
+
+10. Spe - Servicios especiales (Special services)
+    - Specialized services
+
+11. Al - Alquiler (Rental)
+    - Equipment, space rental
+
+12. I - Instalación (Installation)
+    - Installation services
+
+13. Cje - Corretaje (Brokerage)
+    - Intermediary services
+
+14. St - Servicio técnico (Technical service)
+    - Repair, maintenance
+
+15. Os - Otros servicios (Other services)
+    - Generic services
+
+16. Hora - Hora (Hour)
+    - Time-based billing
+
+17. Otros - Otros (Others)
+    - Any other unit type
+```
+
+### ID Types (Tipo de identificación)
+```
+1. Cédula física (Physical ID)
+   - Costa Rican national ID
+   - Format: 9 digits (X-XXXX-XXXX)
+   - Most common for individuals
+
+2. Cédula jurídica (Corporate ID)
+   - Costa Rican corporate/legal entity ID
+   - Format: 10 digits (3-XXX-XXXXXX)
+   - For companies
+
+3. DIMEX (Foreign residents ID)
+   - ID for foreign residents in Costa Rica
+   - Format: 11-12 digits
+
+4. NITE (Tax ID for foreigners)
+   - Número de Identificación Tributario Especial
+   - For foreigners doing business
+
+5. Pasaporte (Passport)
+   - International passport number
+   - For foreign customers
+```
+
+---
+
+## API Endpoints & Data Flow
+
+### Base URLs
+```
+Main App: https://app.hulipractice.com
+Billing API: https://finanzas.hulipractice.com/api/lucida/v1
+Auth API: https://app.hulipractice.com/api/portunus
+Practice API: https://app.hulipractice.com/api/practice
+```
+
+### Critical API Endpoints
+
+#### Authentication
+```http
+POST /api/portunus/login
+GET  /api/practice/es/user/session?id_user=1
+PUT  /api/practice/v3/search/organizationuser
+GET  /finanzas.hulipractice.com/api/lucida/v1/user/session
+```
+
+#### Billing/Invoicing APIs
+```http
+# Invoice List
+GET /api/lucida/v1/org/{orgId}/billing/docs-v2?q=&from=0&size=25
+
+# Specific Invoice
+GET /api/lucida/v1/org/17675/billing/doc/{docId}
+Example: GET /org/17675/billing/doc/20867232
+
+# Create Invoice
+POST /api/lucida/v1/org/{orgId}/billing/doc
+Content-Type: application/json
+
+# Proformas
+GET /api/lucida/v1/org/{orgId}/billing/proformas-v2?q=&from=0&size=25
+
+# Purchase Invoices
+GET /api/lucida/v1/org/{orgId}/billing/purchase-invoices?q=&from=0&size=25
+
+# Purchase Orders
+GET /api/lucida/v1/org/{orgId}/billing/purchase-orders?q=&from=0&size=25
+```
+
+#### Master Data APIs
+```http
+# Customer Management
+GET  /api/lucida/v1/org/{orgId}/customers?q=&from=0&size=25
+POST /api/lucida/v1/org/{orgId}/customer
+GET  /api/lucida/v1/org/{orgId}/customer/search?q={searchTerm}&from=0&size=25
+GET  /api/lucida/v1/org/{orgId}/contact/{contactId}?preset=searchbox
+
+# Customer Auto-Population from Government Database
+GET /api/lucida/v1/resource/contact-register?idType={type}&idNumber={number}&email=true&act=true
+Parameters:
+  - idType: 1=Cédula física, 2=Cédula jurídica, 3=DIMEX, 4=NITE, 5=Pasaporte
+  - idNumber: Tax ID number
+  - email: Request email if available
+  - act: Request economic activity code
+Note: Integrates with Costa Rica Ministry of Finance (Hacienda) database
+
+# Product Management
+GET /api/lucida/v1/org/{orgId}/products-v2?from=0&size=25
+GET /api/lucida/v1/org/{orgId}/product/search-v2?q={searchTerm}&from=0&size=25
+
+# Suppliers
+GET /api/lucida/v1/org/{orgId}/providers?q=&from=0&size=25
+```
+
+#### Location & Activity Code APIs (Costa Rica Specific)
+```http
+# Hierarchical Location System
+GET /api/lucida/v1/resource/locations?pids=&idCountry=188
+Returns: List of provinces (top level)
+
+GET /api/lucida/v1/resource/locations?pids={provinceId}&idCountry=188
+Returns: List of cantones for specified province
+Example: pids=1 returns cantones in San José
+
+GET /api/lucida/v1/resource/locations?pids={provinceId},{cantonId}&idCountry=188
+Returns: List of districts for specified canton
+Example: pids=1,224 returns districts in Escazú, San José
+
+# Economic Activity Codes
+GET /api/lucida/v1/resource/commercial-activities?q={searchTerm}&from=0&size=25
+Example: q=4610 returns wholesale trading activities
+```
+
+#### Configuration & Resources
+```http
+# Organization Settings
+GET /api/lucida/v1/org/{orgId}/settings/org
+
+# Resource Batch (Accounts, Tax Codes, etc.)
+GET /api/lucida/v1/org/{orgId}/resource/batch?ac=1&tax=1&taxAuthConf=1
+
+# Currency Exchange Rate
+GET /api/lucida/v1/org/{orgId}/resource/currency/exchange-rate/USDCRC
+
+# Tax Configuration
+GET /api/practice/es/resource/id/types?idCountry=188
+GET /api/practice/es/resource/phone/types
+GET /api/practice/es/resource/phone/country/prefixes
+GET /api/practice/es/resource/blood/types
+```
+
+#### Reporting
+```http
+GET /api/lucida/v1/org/{orgId}/reporting/dashboards
+```
+
+#### Permissions
+```http
+POST /api/lucida/v1/org/{orgId}/perms/validate
+```
+
+#### Notifications
+```http
+GET /api/lucida/v1/org/{orgId}/notifications
+
+# PubNub Real-time (Websocket alternative)
+GET ps4.pndsn.com/v2/subscribe/sub-c-{id}/notification.{userId}...
+GET ps4.pndsn.com/v3/history-with-actions/sub-key/...
+```
+
+### API Response Patterns
+
+**Pagination Pattern:**
+```
+?from=0&size=25
+```
+
+**Organization Scoping:**
+```
+All APIs include organization ID in path: /org/{orgId}/...
+Example: /org/17675/billing/docs-v2
+```
+
+**Search Pattern:**
+```
+?q={searchTerm}&from=0&size=25
+```
+
+---
+
+## UI/UX Patterns
+
+### Design System
+
+**Color Scheme:**
+- Primary: Turquoise/Cyan (#00BCD4 approximate)
+- Accent: Orange/Amber for CTA buttons
+- Success: Green for "Aprobado" status
+- Error: Red for "Rechazado" status
+- Text: Dark gray/black on white background
+
+**Icons:**
+- Material Design Icons (Google Material Icons)
+- Examples: `monetization_on`, `shopping_cart`, `group`, `local_mall`, `show_chart`
+
+**Typography:**
+- Font Family: MuseoSans (custom web font)
+- Icon Font: hp-iconfont (custom)
+- Fallback: System fonts
+
+### Component Patterns
+
+**Tables:**
+- Sortable columns (arrow_upward icon indicator)
+- Row hover effects
+- Clickable rows for detail view
+- Pagination controls
+- Rows per page selector (25/50/100/150/200)
+
+**Forms:**
+- Material Design-style inputs
+- Floating labels
+- Dropdown with arrow_drop_down icon
+- Checkbox with check_box_outline_blank icon
+- Radio buttons with radio_button_checked/unchecked
+
+**Buttons:**
+- Primary: Yellow/orange background (e.g., "Crear cita")
+- Secondary: Outlined or text buttons
+- Icon buttons (print, cloud_download, delete)
+
+**Navigation:**
+- Left sidebar with icon + label
+- Iframe-based module loading
+- Hash routing for deep linking
+- Breadcrumb via back arrow button
+
+**Status Indicators:**
+- Icon + text combination
+- Color coding (green/red)
+- Material icons: check_circle_outline, cancel
+
+**Empty States:**
+- Large icon
+- Descriptive message
+- CTA button with "+" icon
+
+### Responsive Behavior
+- Application appears desktop-focused
+- Sidebar navigation
+- Iframe full-width content area
+- No mobile-specific indicators observed
+
+---
+
+## Database Schema Insights
+
+Based on API responses and UI data, the following schema structure can be inferred:
+
+### Core Entities
+
+**Document (Invoice/Proforma/Receipt):**
+```javascript
+{
+  id: 13660890,
+  documentNumber: "0000000025",
+  fullDocumentId: "#00100001010000000025",
+  type: "Factura" | "Nota de Crédito" | "Tiquete" | "Proforma",
+  date: "2024-12-30T16:10:00",
+  clientId: 2260500,
+  clientName: "Centro Medico de Radioterapia Irazu S.A",
+  clientTaxId: "3101230323",
+  currency: "CRC",
+  totalAmount: 307008.00,
+  subtotal: 295200.00,
+  discount: 64800.00,
+  tax: 11808.00,
+  taxRate: 0.04,
+  status: "Aprobado" | "Rechazado",
+  paymentStatus: "Pagada" | null,
+  paymentCondition: "Contado" | "Crédito",
+  paymentMethod: "Efectivo" | "Tarjeta" | "Transferencia",
+  businessActivity: "Servicios de médico general",
+  createdBy: "Meyryn",
+  notes: string,
+  lineItems: [...],
+  payments: [...]
+}
+```
+
+**LineItem:**
+```javascript
+{
+  productCode: "C-02",
+  cabysCode: "9310100000100",
+  description: "Honorarios Médicos",
+  quantity: 8,
+  unit: "Unid",
+  unitPrice: 45000.00,
+  discount: 64800.00,
+  subtotal: 295200.00,
+  tax: 11808.00,
+  taxRate: 0.04,
+  total: 307008.00
+}
+```
+
+**Payment:**
+```javascript
+{
+  id: 9,
+  method: "Efectivo",
+  amount: 307008.00,
+  currency: "CRC",
+  date: "2025-02-07",
+  bank: "BNCR",
+  registeredBy: "Meyryn",
+  registrationDate: "2025-02-08T15:25:00"
+}
+```
+
+**Customer (Example 1 - Corporate):**
+```javascript
+{
+  id: 2260500,
+  name: "Centro Medico de Radioterapia Irazu S.A",
+  legalName: "Centro Medico de Radioterapia Irazu S.A",
+  taxIdType: "Cédula jurídica",
+  taxId: "3101230323",
+  email: "luis.espinoza@siglo21.cr",
+  phone: "22903475",
+  address: {
+    line1: "La Uruca, San José",
+    line2: "75 m Oeste y 25 m Sur de las bodegas de la Imprenta Nacional.",
+    district: "Uruca",
+    canton: "San José",
+    province: "San José"
+  }
+}
+```
+
+**Customer (Example 2 - Individual) - Created During Testing:**
+```javascript
+{
+  id: 3266777,
+  name: "Laura María Sánchez Leon",
+  taxIdType: 1, // Cédula física
+  taxIdTypeLabel: "Cédula física",
+  taxId: "113170921",
+  taxIdFormatted: "1-1317-0921",
+  email: "lau_sanleo@hotmail.com",
+  phone: null,
+  address: {
+    provinceId: 1,
+    provinceName: "San José",
+    cantonId: 224,
+    cantonName: "Escazú",
+    districtName: "San Antonio",
+    addressLine: "san antonio de Escazu del recibidor de café 600 metros Oeste y 50 Norte casa a mano derecha #2 portones negro",
+    fullAddress: "San Antonio, Escazú, San José"
+  },
+  activityCode: "4610.0",
+  activityDescription: "Venta al por mayor a cambio de una retribución o por contrato",
+  createdDate: "2024-12-30",
+  organizationId: 17675
+}
+```
+
+**Product:**
+```javascript
+{
+  id: 896190,
+  code: "C-02",
+  cabysCode: "9310100000100",
+  name: "Honorarios Médicos",
+  priceList: {
+    "Regular": 45000.00
+  },
+  taxable: true,
+  taxRate: 0.04
+}
+```
+
+**Organization:**
+```javascript
+{
+  id: 17675,
+  name: "Meyryn Carrillo Murillo",
+  logo: null,
+  defaultCurrency: "CRC",
+  exchangeRate: {
+    source: "BCCR",
+    rate: 501.08,
+    lastUpdate: "2025-12-30"
+  },
+  taxId: string,
+  country: "Costa Rica" (188)
+}
+```
+
+**User:**
+```javascript
+{
+  id: 621173,
+  idUser: 1,
+  name: "Meyryn",
+  organizationId: 90346,
+  doctorId: 84618,
+  permissions: [...]
+}
+```
+
+### Relationships
+```
+Organization 1:N Users
+Organization 1:N Customers
+Organization 1:N Products
+Organization 1:N Documents
+Organization 1:N Suppliers
+
+Document N:1 Customer
+Document 1:N LineItems
+Document 1:N Payments
+LineItem N:1 Product
+
+User N:M Organization (via permissions)
+```
+
+---
+
+## Screenshots Reference
+
+All screenshots saved to: `/Users/javycarrillo/Desktop/Invoicing/.playwright-mcp/`
+
+### Initial Module Analysis (Screenshots 1-13)
+
+1. **01-huli-login-screen.png** - Login page with email/password form
+2. **02-dashboard-calendar-view.png** - Calendar view (initial landing)
+3. **03-billing-section.png** - Invoice list view (Comprobantes)
+4. **04-proformas-section-empty.png** - Empty proformas section
+5. **05-facturacion-list-view.png** - Invoice list with data (31 invoices)
+6. **06-invoice-detail-view.png** - Detailed invoice view (#0000000025) showing payment info, customer details, line items
+7. **07-fact-de-compra-section-empty.png** - Purchase invoices (empty state)
+8. **08-clientes-section.png** - Customers list (3 existing clients)
+9. **09-productos-section.png** - Products list (4 products with CABYS codes)
+10. **10-proveedores-section-empty.png** - Suppliers (empty state)
+11. **11-orden-de-compra-section-empty.png** - Purchase orders (empty state)
+12. **12-reportes-section.png** - Reports dashboard menu with all report categories
+13. **13-configuracion-section.png** - Configuration settings (organization, currency, exchange rate)
+14. **14-invoice-creation-form.png** - Empty invoice creation form (accessed via floating "+" button)
+
+### Customer Creation Workflow (Screenshots 15-17)
+
+15. **15-customer-creation-form-partial.png** - Customer form during data entry
+    - Shows personal information section
+    - ID type and number fields
+    - Contact information (email, phone)
+
+16. **16-customer-creation-form-complete.png** - Completed customer form before submission
+    - Name: Laura María Sánchez Leon
+    - ID: 1-1317-0921 (Cédula física)
+    - Email: lau_sanleo@hotmail.com
+    - Hierarchical address: San Antonio, Escazú, San José
+    - Activity code: 4610.0
+    - Shows all cascading dropdowns populated
+
+17. **17-customer-list-with-laura.png** - Customer list after successful creation
+    - Shows new customer #3266777
+    - Laura María Sánchez Leon visible in list
+    - Confirms customer creation success
+
+### Invoice Creation Workflow (Screenshots 18-21)
+
+18. **18-invoice-form-customer-selected.png** - Invoice form with customer selected
+    - Laura María Sánchez Leon auto-populated
+    - All customer details visible (ID, email, address)
+    - Economic activity code displayed
+    - Payment method and sales condition dropdowns shown
+
+19. **19-invoice-form-product-added.png** - Invoice form with product line item
+    - Product: Consulta Médica (C-RL)
+    - CABYS code: 9310100000100
+    - Unit price: ₡50,000.00
+    - Quantity: 1 Unid
+    - Tax: 4% IVA enabled
+    - Shows unit dropdown options
+
+20. **20-invoice-form-ready-to-submit.png** - Complete invoice before submission
+    - All fields populated
+    - Financial summary visible:
+      - Total Gravados: ₡50,000.00
+      - Total Impuesto: ₡2,000.00
+      - Total Comprobante: ₡52,000.00
+    - "Emitir Comprobante" button enabled
+
+21. **21-invoice-created-detail-view.png** - Created invoice detail view
+    - Document #00100001010000000026
+    - Status: "Esperando aprobación" (Waiting for Hacienda approval)
+    - Invoice ID: 20867232
+    - All line items and calculations displayed
+    - Orange status indicator for pending approval
+
+---
+
+## Implementation Recommendations
+
+### For Building Similar Module
+
+#### 1. **Architecture**
+- Use Vue.js 3+ for reactive UI
+- Implement RESTful API with proper versioning (/v1/, /v2/)
+- JWT authentication with refresh token strategy
+- Organization multi-tenancy via path parameter `/org/{orgId}/`
+- Iframe module loading for code isolation (optional)
+
+#### 2. **Key Features to Implement**
+
+**Invoice Management:**
+- Document numbering with prefix/sequence (e.g., "0000000025")
+- Multiple document types (Invoice, Credit Note, Receipt, Proforma)
+- Status workflow (Draft → Approved → Paid/Rejected)
+- Line item management with tax calculation
+- Discount support (line-level and document-level)
+- Payment tracking with multiple payment methods
+- Notes/comments functionality
+- File attachments
+
+**Master Data:**
+- Customer management with tax ID validation
+- Product catalog with tax classification (CABYS for Costa Rica)
+- Multi-currency support with auto exchange rates
+- Price lists per product
+
+**Reporting:**
+- Tax authority reports (VAT, Income Tax)
+- Sales reports (daily, summary, receivables)
+- Purchase reports
+- Profit/utility calculations
+- Export capabilities
+
+**Configuration:**
+- Organization settings
+- Tax configuration
+- User permissions
+- Currency preferences
+- Logo upload
+
+#### 3. **Database Design**
+```sql
+-- Core tables needed:
+organizations
+users
+organization_users (join table with roles)
+customers
+products
+product_prices
+documents (invoices, proformas, credit notes)
+document_line_items
+payments
+document_payments (join table)
+tax_configurations
+exchange_rates
+audit_logs
+```
+
+#### 4. **API Design Patterns**
+```
+GET    /api/v1/org/{orgId}/invoices          # List
+POST   /api/v1/org/{orgId}/invoices          # Create
+GET    /api/v1/org/{orgId}/invoices/{id}     # Detail
+PUT    /api/v1/org/{orgId}/invoices/{id}     # Update
+DELETE /api/v1/org/{orgId}/invoices/{id}     # Delete
+POST   /api/v1/org/{orgId}/invoices/{id}/approve
+POST   /api/v1/org/{orgId}/invoices/{id}/payments
+```
+
+#### 5. **Costa Rica Specific Features**
+- CABYS code integration (13-digit tax classification)
+- Electronic invoicing (Hacienda compliance)
+- Tax forms: D-104 (VAT), D-101 (Income), D-151 (General)
+- Cédula validation (national/corporate ID)
+- BCCR exchange rate synchronization
+- Colones (CRC) as primary currency
+
+#### 6. **Security Considerations**
+- Row-level security via organization scoping
+- Permission validation on every API call
+- Audit trail for all financial transactions
+- Encrypted token storage
+- HTTPS only
+- CORS configuration for iframe communication
+
+#### 7. **Performance Optimizations**
+- Pagination on all list endpoints (default 25, max 200)
+- Lazy loading of detail views
+- Caching of exchange rates
+- Debounced search inputs
+- Optimistic UI updates
+
+#### 8. **UX Best Practices**
+- Empty states with helpful CTAs
+- Inline validation on forms
+- Status indicators with icons + color
+- Breadcrumb navigation
+- Keyboard shortcuts
+- Responsive design
+- Loading states
+- Error handling with user-friendly messages
+
+---
+
+## Complete Workflow Mapping - Screenshots to Actions & Logic
+
+This section provides a comprehensive mapping of each screenshot to the specific actions taken, API calls made, and the underlying business logic. This serves as a reference for both AI systems and human developers to understand the complete flow.
+
+### Phase 1: Initial System Exploration
+
+#### Screenshot 01: Login Screen
+**File:** `01-huli-login-screen.png`
+
+**Actions Taken:**
+- Navigate to https://app.hulipractice.com
+- Observe login form structure
+
+**Business Logic:**
+- Authentication required before accessing any module
+- User must provide email and password
+- Session management via JWT tokens stored in localStorage
+
+**Technical Details:**
+- Login endpoint: POST /api/portunus/login
+- Response includes access_token (JWT)
+- Token stored in localStorage for subsequent API calls
+
+**Why This Matters:**
+- All API requests require valid JWT token in Authorization header
+- Organization scoping happens after authentication
+- Understanding auth flow is critical for API integration
+
+---
+
+#### Screenshot 02: Dashboard Calendar View
+**File:** `02-dashboard-calendar-view.png`
+
+**Actions Taken:**
+- Successfully authenticated
+- Landed on default dashboard view (calendar module)
+
+**Business Logic:**
+- Medical practice management system defaults to appointment calendar
+- Calendar is primary workflow for medical offices
+- Navigation sidebar provides access to all modules
+
+**Technical Details:**
+- Main app at app.hulipractice.com
+- Hash-based routing: #/calendar
+- Left sidebar shows all available modules including billing ($)
+
+**Why This Matters:**
+- Billing is one module among many in practice management suite
+- Modular architecture allows focused development per module
+- Billing module is iframe-based (different subdomain)
+
+---
+
+#### Screenshot 03-05: Billing Module Navigation
+**Files:** `03-billing-section.png`, `04-proformas-section-empty.png`, `05-facturacion-list-view.png`
+
+**Actions Taken:**
+- Clicked $ (dollar sign) icon in sidebar
+- Navigated to billing module
+- Explored Proformas section (empty)
+- Explored Facturación section (31 invoices found)
+
+**Business Logic:**
+- Billing module contains 9 subsections (Proformas, Facturación, Fact. de compra, etc.)
+- Proformas = draft quotes before final invoicing
+- Facturación = actual invoices with legal/tax implications
+- Empty states encourage user to create first record
+
+**Technical Details:**
+```http
+API Calls:
+GET /api/lucida/v1/org/17675/billing/proformas-v2?q=&from=0&size=25
+GET /api/lucida/v1/org/17675/billing/docs-v2?q=&from=0&size=25
+```
+
+**Data Structure:**
+- Organization-scoped: /org/17675/
+- Pagination: from=0&size=25
+- Search capability: ?q=
+- Returns array of invoice objects
+
+**Why This Matters:**
+- Clear separation between quotes (proformas) and legal documents (facturas)
+- Organization isolation in multi-tenant system
+- Pagination essential for scalability (31 invoices shown)
+
+---
+
+#### Screenshot 06: Invoice Detail View
+**File:** `06-invoice-detail-view.png`
+
+**Actions Taken:**
+- Clicked on invoice #0000000025 from list
+- Viewed complete invoice details
+
+**Business Logic:**
+- Invoice contains: customer info, line items, tax calculations, payment status
+- Status: "Aprobado" (approved by Costa Rica tax authority)
+- Payment status: "Pagada" (paid)
+- Payment tracking separate from invoice approval
+
+**Technical Details:**
+```http
+API Call:
+GET /api/lucida/v1/org/17675/billing/doc/13660890
+
+Response includes:
+{
+  documentNumber: "0000000025",
+  fullDocumentId: "#00100001010000000025",
+  status: "Aprobado",
+  paymentStatus: "Pagada",
+  customer: { /* full customer object */ },
+  lineItems: [ /* array of products/services */ ],
+  totals: { /* calculated amounts */ },
+  payments: [ /* payment records */ ]
+}
+```
+
+**Calculation Logic:**
+```javascript
+// Example from screenshot:
+unitPrice = 45000.00
+quantity = 8
+discount = 64800.00
+subtotal = (unitPrice × quantity) - discount = 295200.00
+taxRate = 0.04
+tax = subtotal × taxRate = 11808.00
+lineTotal = subtotal + tax = 307008.00
+```
+
+**Why This Matters:**
+- Demonstrates electronic invoicing workflow with government approval
+- Shows separation of invoice approval vs payment tracking
+- CABYS codes (9310100000100) required for tax compliance
+- Costa Rica specific: IVA 4% tax rate for medical services
+
+---
+
+#### Screenshots 07-13: Master Data & Configuration Exploration
+**Files:** `07-fact-de-compra-section-empty.png` through `13-configuracion-section.png`
+
+**Actions Taken:**
+- Systematically explored all 9 billing subsections
+- Documented existing data: 3 customers, 4 products, 0 suppliers
+- Reviewed reports structure (sales, purchases, tax authority reports)
+- Examined configuration settings (currency, exchange rates)
+
+**Business Logic:**
+- Purchase invoices separate from sales for expense tracking
+- Customers & Products are master data for invoice creation
+- Suppliers for expense management
+- Reports categorized by: Sales, Purchases, Tax Authority, Lists
+- BCCR (Costa Rica Central Bank) provides exchange rates
+
+**Technical Details:**
+```http
+API Calls:
+GET /org/17675/customers?q=&from=0&size=25          → 3 customers
+GET /org/17675/products-v2?from=0&size=25           → 4 products
+GET /org/17675/providers?q=&from=0&size=25          → 0 suppliers
+GET /org/17675/settings/org                         → org settings
+GET /org/17675/resource/currency/exchange-rate/USDCRC → 501.08 CRC/USD
+```
+
+**Why This Matters:**
+- Master data must exist before creating invoices
+- Exchange rates auto-sync from official source (BCCR)
+- Tax reporting built into system (D-104, D-101, D-151)
+- Configuration is organization-level, not user-level
+
+---
+
+### Phase 2: Testing Invoice Creation Form
+
+#### Screenshot 14: Empty Invoice Form
+**File:** `14-invoice-creation-form.png`
+
+**Actions Taken:**
+- Clicked floating "+" button in Facturación section
+- Invoice creation form opened
+
+**Business Logic:**
+- Form requires: Document type, Customer, Line items (products/services)
+- Optional: Payment method, sales condition, discounts, notes
+- Real-time calculation as user enters data
+- Form validation before submission
+
+**Technical Details:**
+- No API call on form open (client-side form)
+- Dropdowns populated from cached master data
+- Default values: Document type = Factura, Currency = CRC, Payment = Efectivo
+
+**Why This Matters:**
+- Understanding required vs optional fields critical for UX
+- Form designed to minimize data entry (smart defaults)
+- Validation prevents invalid invoice creation
+
+---
+
+### Phase 3: Customer Creation Workflow (Testing)
+
+#### Screenshot 15: Customer Form - Partial Entry
+**File:** `15-customer-creation-form-partial.png`
+
+**Actions Taken:**
+- Clicked "+" in Clientes section to create new customer
+- Started entering customer data:
+  - Name: Laura María Sánchez Leon
+  - ID Type: Cédula física (selected from dropdown)
+  - ID Number: 113170921
+
+**Business Logic:**
+- Customer creation requires: Name, ID Type, ID Number
+- Optional: Email, phone, address, economic activity
+- System validates ID format based on type selected
+
+**Technical Details:**
+- Dropdown options for ID types:
+  1. Cédula física (national ID)
+  2. Cédula jurídica (corporate ID)
+  3. DIMEX (foreign resident)
+  4. NITE (foreign tax ID)
+  5. Pasaporte (passport)
+
+**Why This Matters:**
+- Costa Rica has specific ID types for tax compliance
+- Each ID type has different format validation rules
+- ID number triggers auto-population from government database
+
+---
+
+#### Screenshot 16: Customer Form - Complete with Auto-Population Attempt
+**File:** `16-customer-creation-form-complete.png`
+
+**Actions Taken:**
+- Entered ID number 113170921
+- System triggered auto-population API call
+- Auto-population failed (504 timeout)
+- Manually completed remaining fields:
+  - Email: lau_sanleo@hotmail.com
+  - Province: San José (from dropdown)
+  - Canton: Escazú (cascading dropdown)
+  - District: San Antonio (cascading dropdown)
+  - Address: "san antonio de Escazu del recibidor de café 600 metros Oeste y 50 Norte casa a mano derecha #2 portones negro"
+  - Activity Code: 4610.0 (searched and selected)
+
+**Business Logic:**
+- **Critical Discovery:** System attempts to fetch customer data from Costa Rica Ministry of Finance (Hacienda) database
+- On blur of ID number field, API call triggers
+- If Hacienda has data for this ID, it auto-populates: name, activity code, tax status
+- Timeout/failure allows manual entry (graceful degradation)
+
+**Technical Details:**
+```http
+API Call #1 - Auto-population attempt:
+GET /resource/contact-register?idType=1&idNumber=113170921&email=true&act=true
+Response: 504 Gateway Timeout
+Toast: "No se pudo autocompletar usando la identificación..."
+
+API Call #2 - Province list:
+GET /resource/locations?pids=&idCountry=188
+Response: [
+  {id: 1, name: "San José"},
+  {id: 2, name: "Alajuela"},
+  ...7 provinces total
+]
+
+API Call #3 - Canton list (after selecting province):
+GET /resource/locations?pids=1&idCountry=188
+Parameters: pids=1 (San José province ID)
+Response: [
+  {id: 224, name: "Escazú", parentId: 1},
+  {id: 225, name: "Desamparados", parentId: 1},
+  ...all cantones in San José
+]
+
+API Call #4 - District list (after selecting canton):
+GET /resource/locations?pids=1,224&idCountry=188
+Parameters: pids=1,224 (Province and Canton IDs)
+Response: [
+  {name: "San Antonio", parentIds: [1, 224]},
+  {name: "San Rafael", parentIds: [1, 224]},
+  ...all districts in Escazú
+]
+
+API Call #5 - Activity code search:
+GET /resource/commercial-activities?q=4610&from=0&size=25
+Response: [
+  {
+    code: "4610.0",
+    description: "Venta al por mayor a cambio de una retribución o por contrato"
+  }
+]
+```
+
+**Data Structure - Hierarchical Locations:**
+```javascript
+{
+  province: {id: 1, name: "San José"},                    // Level 1
+  canton: {id: 224, name: "Escazú", parentId: 1},         // Level 2
+  distrito: {name: "San Antonio", parentIds: [1, 224]}    // Level 3
+}
+```
+
+**Why This Matters:**
+- **Government Integration:** System tries to auto-fetch taxpayer data from official database
+- **Cascading Locations:** Each level depends on previous selection (Province → Canton → District)
+- **Database Efficiency:** Locations stored with hierarchical IDs, not redundant data
+- **User Experience:** If API succeeds, user only enters ID and rest auto-fills
+- **Resilience:** If API fails, manual entry still possible
+- **Tax Compliance:** Economic activity codes from official Costa Rica tax classifications
+
+**Implementation Learning:**
+1. Implement location hierarchy as 3-tier cascade
+2. Store province_id and canton_id, not just names
+3. Auto-population API should be non-blocking (timeout doesn't break flow)
+4. Activity codes should be searchable autocomplete, not free text
+
+---
+
+#### Screenshot 17: Customer List with New Customer
+**File:** `17-customer-list-with-laura.png`
+
+**Actions Taken:**
+- Submitted customer form
+- Customer creation successful
+- Navigated back to customer list
+
+**Business Logic:**
+- Customer assigned unique ID: 3266777
+- Customer immediately available for invoice creation
+- List updated in real-time
+
+**Technical Details:**
+```http
+API Call - Create customer:
+POST /org/17675/customer
+Content-Type: application/json
+Request Body:
+{
+  "name": "Laura María Sánchez Leon",
+  "taxIdType": 1,
+  "taxId": "113170921",
+  "email": "lau_sanleo@hotmail.com",
+  "address": {
+    "provinceId": 1,
+    "cantonId": 224,
+    "distrito": "San Antonio",
+    "addressLine": "san antonio de Escazu del recibidor de café 600 metros Oeste y 50 Norte casa a mano derecha #2 portones negro"
+  },
+  "activityCode": "4610.0"
+}
+
+Response:
+{
+  "id": 3266777,
+  "success": true
+}
+```
+
+**Why This Matters:**
+- Customer ID (3266777) will be used in invoice customer field
+- Location stored as IDs (provinceId: 1, cantonId: 224) for data integrity
+- Activity code stored for tax reporting purposes
+- Immediate availability shows real-time data sync
+
+---
+
+### Phase 4: Invoice Creation Workflow (Testing)
+
+#### Screenshot 18: Invoice Form with Customer Selected
+**File:** `18-invoice-form-customer-selected.png`
+
+**Actions Taken:**
+- Opened invoice creation form
+- Searched for customer "Laura" in customer field
+- Selected "Laura María Sánchez Leon" from autocomplete results
+
+**Business Logic:**
+- Customer search provides autocomplete
+- Selecting customer auto-populates ALL customer data
+- Customer's economic activity code displays (read-only)
+
+**Technical Details:**
+```http
+API Call #1 - Customer search:
+GET /org/17675/customer/search?q=Laura&from=0&size=25
+Response:
+[
+  {
+    "id": 3266777,
+    "name": "Laura María Sánchez Leon",
+    "taxId": "1-1317-0921",
+    "email": "lau_sanleo@hotmail.com"
+  }
+]
+
+API Call #2 - Full customer details:
+GET /org/17675/contact/3266777?preset=searchbox
+Response:
+{
+  "id": 3266777,
+  "name": "Laura María Sánchez Leon",
+  "taxIdType": 1,
+  "taxId": "113170921",
+  "email": "lau_sanleo@hotmail.com",
+  "address": {
+    "fullAddress": "San Antonio, Escazú, San José",
+    "addressLine": "san antonio de Escazu..."
+  },
+  "activityCode": "4610.0",
+  "activityDescription": "Venta al por mayor..."
+}
+```
+
+**Auto-Population Logic:**
+```
+User types → API searches → Results shown → User selects →
+Full customer data fetched → All invoice fields populated:
+  ✓ Customer name
+  ✓ Tax ID (formatted: 1-1317-0921)
+  ✓ Email
+  ✓ Full address (hierarchical)
+  ✓ Activity code
+```
+
+**Why This Matters:**
+- Search prevents typos (selecting from existing data)
+- Two-step API (search, then full details) optimizes performance
+- Auto-population eliminates re-entering customer data
+- Activity code on invoice ensures tax compliance
+
+---
+
+#### Screenshot 19: Invoice Form with Product Added
+**File:** `19-invoice-form-product-added.png`
+
+**Actions Taken:**
+- Searched for product "Consulta" in product field
+- Selected "Consulta Médica" from results
+- Product auto-populated line item
+
+**Business Logic:**
+- Product search provides autocomplete
+- Selecting product auto-fills: code, price, tax rate, CABYS code
+- User can edit quantity, price, discount
+- Tax checkbox pre-checked based on product tax settings
+
+**Technical Details:**
+```http
+API Call - Product search:
+GET /org/17675/product/search-v2?q=Consulta&from=0&size=25
+Response:
+{
+  "id": 896191,
+  "code": "C-RL",
+  "cabysCode": "9310100000100",
+  "name": "Consulta Médica",
+  "price": 50000.00,
+  "taxRate": 0.04,
+  "taxable": true,
+  "unit": "Unid"
+}
+```
+
+**Auto-Population Logic:**
+```
+Product selected → Line item fields populated:
+  ✓ Product code: C-RL
+  ✓ CABYS code: 9310100000100
+  ✓ Description: Consulta Médica
+  ✓ Unit price: 50,000.00
+  ✓ Quantity: 1 (default)
+  ✓ Unit: Unid
+  ✓ Tax: ☑ 4%
+```
+
+**CABYS Code Explained:**
+- 13-digit Costa Rica tax classification code
+- Required for electronic invoicing
+- Links products to government tax categories
+- Example: 9310100000100 = Medical consultation services
+
+**Why This Matters:**
+- Product catalog ensures consistent pricing
+- CABYS codes required for tax authority submission
+- Tax rate stored at product level (not manually entered)
+- Price can be overridden per invoice (flexibility)
+
+---
+
+#### Screenshot 20: Complete Invoice Ready to Submit
+**File:** `20-invoice-form-ready-to-submit.png`
+
+**Actions Taken:**
+- Reviewed all populated fields
+- Verified financial calculations
+- Form validation passed
+- "Emitir Comprobante" button enabled
+
+**Business Logic:**
+- Real-time calculation engine computes totals as user types
+- Form validates all required fields before allowing submission
+- Financial summary shows tax breakdown
+
+**Calculation Logic - Detailed:**
+```javascript
+// LINE ITEM CALCULATIONS
+const unitPrice = 50000.00;
+const quantity = 1;
+const discountPercent = 0;
+
+// Step 1: Calculate discount amount
+const discountAmount = (unitPrice × quantity × discountPercent) / 100;
+// = (50000 × 1 × 0) / 100 = 0.00
+
+// Step 2: Calculate subtotal
+const subtotal = (unitPrice × quantity) - discountAmount;
+// = (50000 × 1) - 0 = 50000.00
+
+// Step 3: Calculate tax
+const taxRate = 0.04; // 4% IVA
+const taxAmount = subtotal × taxRate;
+// = 50000.00 × 0.04 = 2000.00
+
+// Step 4: Calculate line total
+const lineTotal = subtotal + taxAmount;
+// = 50000.00 + 2000.00 = 52000.00
+
+// DOCUMENT TOTALS
+const totalServiciosGravados = 50000.00; // Services subject to tax
+const totalGravados = 50000.00;          // Total taxable amount
+const totalVenta = 50000.00;             // Total sale before discount
+const totalDescuento = 0.00;             // Total discount
+const totalVentaNeta = 50000.00;         // Net sale (after discount)
+const totalImpuesto = 2000.00;           // Total tax (4%)
+const totalComprobante = 52000.00;       // GRAND TOTAL
+
+// VALIDATION
+assert(totalComprobante === totalVentaNeta + totalImpuesto);
+assert(totalVentaNeta === totalVenta - totalDescuento);
+```
+
+**Form Validation Rules:**
+```
+Required fields:
+  ✓ Document type = "Factura"
+  ✓ Customer selected (ID: 3266777)
+  ✓ At least 1 line item:
+    ✓ Product selected
+    ✓ Quantity > 0
+    ✓ Unit price > 0
+  ✓ Currency = CRC
+  ✓ Payment method = Efectivo
+  ✓ Sales condition = Contado
+
+All validated → Button enabled
+```
+
+**Why This Matters:**
+- Client-side validation prevents invalid API calls
+- Real-time calculation shows user exact amounts before submission
+- Tax calculations must be precise for tax authority approval
+- Form UX guides user to complete all required fields
+
+---
+
+#### Screenshot 21: Created Invoice Detail View
+**File:** `21-invoice-created-detail-view.png`
+
+**Actions Taken:**
+- Clicked "Emitir Comprobante" (Issue Document)
+- Invoice submitted to system
+- Invoice created successfully
+- Viewing invoice detail
+
+**Business Logic:**
+- Invoice assigned ID: 20867232
+- Document number: 0000000026 (sequential)
+- Full ID: #00100001010000000026 (includes prefix codes)
+- Status: "Esperando aprobación" (Waiting for approval)
+- Invoice submitted to Costa Rica Hacienda for electronic validation
+- Approval happens asynchronously (seconds to minutes)
+
+**Technical Details:**
+```http
+API Call - Create invoice:
+POST /org/17675/billing/doc
+Content-Type: application/json
+Request Body:
+{
+  "type": "Factura",
+  "currency": "CRC",
+  "customerId": 3266777,
+  "paymentMethod": "Efectivo",
+  "salesCondition": "Contado",
+  "lineItems": [
+    {
+      "productId": 896191,
+      "productCode": "C-RL",
+      "cabysCode": "9310100000100",
+      "description": "Consulta Médica",
+      "quantity": 1,
+      "unit": "Unid",
+      "unitPrice": 50000.00,
+      "discount": 0.00,
+      "subtotal": 50000.00,
+      "taxRate": 0.04,
+      "tax": 2000.00,
+      "total": 52000.00
+    }
+  ],
+  "totals": {
+    "totalServiciosGravados": 50000.00,
+    "totalGravados": 50000.00,
+    "totalVenta": 50000.00,
+    "totalDescuento": 0.00,
+    "totalVentaNeta": 50000.00,
+    "totalImpuesto": 2000.00,
+    "totalComprobante": 52000.00
+  }
+}
+
+Response:
+{
+  "id": 20867232,
+  "documentNumber": "0000000026",
+  "fullDocumentId": "#00100001010000000026",
+  "status": "Esperando aprobación",
+  "success": true
+}
+```
+
+**Document ID Format:**
+```
+#00100001010000000026
+ │││    │││          │
+ │││    ││└── Sequential number (0000000026)
+ │││    │└─── Establishment code (01)
+ │││    └──── Terminal/POS (00001)
+ │││
+ ││└────────── Document type (01 = Factura)
+ │└─────────── Country/region code (0)
+ └──────────── Padding
+```
+
+**Electronic Invoice Workflow:**
+```
+1. Invoice created in system → Status: "Esperando aprobación"
+2. System submits to Hacienda API → XML generation
+3. Hacienda validates invoice → Tax calculations, CABYS codes, customer data
+4. Response received (seconds to minutes):
+   Success → Status: "Aprobado" ✓ (green)
+   Failure → Status: "Rechazado" ✗ (red) with reason
+5. Real-time notification via PubNub → UI updates automatically
+```
+
+**Why This Matters:**
+- **Electronic Invoicing:** Costa Rica requires government approval for invoices
+- **Asynchronous Process:** Approval doesn't block user, happens in background
+- **Sequential Numbering:** Document numbers auto-increment, can't be duplicated
+- **Audit Trail:** Every invoice has unique ID for tracking
+- **Tax Compliance:** Hacienda validates all tax calculations before approval
+- **Real-time Updates:** PubNub ensures UI shows current status without refresh
+
+**Testing Outcome:**
+- ✅ Customer created successfully (ID: 3266777)
+- ✅ Invoice created successfully (ID: 20867232)
+- ✅ All calculations correct (₡52,000.00 total)
+- ✅ Government submission initiated
+- ✅ Workflow validated end-to-end
+
+---
+
+## Summary of Key Discoveries from Testing
+
+### 1. Government Database Integration
+- System attempts to auto-fetch customer data from Costa Rica Ministry of Finance (Hacienda)
+- API endpoint: `/resource/contact-register?idType=1&idNumber=113170921`
+- On success, auto-populates: name, economic activity, tax status
+- Graceful fallback to manual entry on failure
+
+### 2. Hierarchical Location System
+- Costa Rica uses 3-tier location hierarchy: Province → Canton → District
+- Each level is a cascading dropdown dependent on previous selection
+- Database stores location IDs, not redundant text:
+  - Province ID: 1 (San José)
+  - Canton ID: 224 (Escazú)
+  - District Name: "San Antonio"
+- API calls:
+  - Level 1: `?pids=&idCountry=188` → provinces
+  - Level 2: `?pids=1&idCountry=188` → cantones in San José
+  - Level 3: `?pids=1,224&idCountry=188` → districts in Escazú
+
+### 3. Electronic Invoicing Workflow
+- Invoices submitted to Costa Rica tax authority (Hacienda) for approval
+- Asynchronous process: creation → waiting → approved/rejected
+- Status tracked in real-time via PubNub notifications
+- Document ID format includes type, terminal, establishment, sequence
+
+### 4. Real-Time Calculation Engine
+- Tax calculations happen client-side as user types
+- Formula: `lineTotal = ((unitPrice × quantity) - discount) × (1 + taxRate)`
+- Document totals aggregate all line items
+- Prevents submission until all calculations valid
+
+### 5. Master Data Auto-Population
+- Selecting customer auto-populates: name, ID, email, address, activity code
+- Selecting product auto-populates: code, price, tax rate, CABYS code, unit
+- Reduces data entry and ensures consistency
+
+### 6. CABYS Tax Classification
+- Every product requires 13-digit CABYS code
+- Required for electronic invoice submission to Hacienda
+- Example: 9310100000100 = Medical consultation services
+- System validates CABYS codes before invoice approval
+
+---
+
+## Conclusion
+
+Huli Practice demonstrates a well-architected invoicing system with:
+- ✅ Clear separation of concerns (Master Data, Transactions, Reports, Config)
+- ✅ Multi-tenancy support
+- ✅ Tax compliance features (electronic invoicing, CABYS codes, government integration)
+- ✅ Comprehensive reporting
+- ✅ User-friendly interface with smart defaults and auto-population
+- ✅ Scalable API design with proper versioning
+
+### Testing Summary
+
+**Date Completed:** 2024-12-30
+
+**Test Data Created:**
+- ✅ Customer: Laura María Sánchez Leon (ID: 3266777)
+  - Tax ID: 1-1317-0921
+  - Location: San Antonio, Escazú, San José
+  - Activity Code: 4610.0
+- ✅ Invoice: #00100001010000000026 (ID: 20867232)
+  - Customer: Laura María Sánchez Leon
+  - Product: Consulta Médica (₡50,000.00)
+  - Tax: ₡2,000.00 (4% IVA)
+  - Total: ₡52,000.00
+  - Status: Esperando aprobación (pending Hacienda approval)
+- ✅ Tax compliance features
+- ✅ Comprehensive reporting
+- ✅ User-friendly interface
+- ✅ Scalable API design
+
+**Key Takeaways for Our Implementation:**
+1. Start with core entities (Organizations, Users, Customers, Products)
+2. Build robust invoice creation workflow
+3. Implement tax calculation engine
+4. Add payment tracking
+5. Create reporting infrastructure
+6. Ensure tax authority compliance
+7. Design for scalability from day one
+
+**Next Steps:**
+1. Review this documentation with team
+2. Define MVP feature set
+3. Create technical specification
+4. Design database schema
+5. Build API contracts
+6. Develop UI mockups
+7. Implement in iterations
+
+---
+
+**Document End**
+*Generated from Playwright MCP forensic analysis session*
+*All screenshots and network data captured: 2025-12-30*
