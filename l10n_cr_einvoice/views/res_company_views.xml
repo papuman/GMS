@@ -15,8 +15,8 @@
                     <group string="Hacienda API Configuration">
                         <group>
                             <field name="l10n_cr_hacienda_env" widget="radio" options="{'horizontal': true}"/>
-                            <field name="l10n_cr_hacienda_username" placeholder="cpj-xxx-xxxxxx"/>
-                            <field name="l10n_cr_hacienda_password" password="True"/>
+                            <field name="l10n_cr_active_username" placeholder="cpj-xxx-xxxxxx"/>
+                            <field name="l10n_cr_active_password" password="True"/>
                         </group>
                         <group>
                             <field name="l10n_cr_emisor_location" placeholder="01010100"/>
@@ -37,10 +37,10 @@
                     <separator string="Digital Certificate"/>
                     <group>
                         <group>
-                            <field name="l10n_cr_certificate" filename="l10n_cr_certificate_filename"
+                            <field name="l10n_cr_active_certificate" filename="l10n_cr_active_certificate_filename"
                                    string="Certificate File (.p12)"/>
-                            <field name="l10n_cr_certificate_filename" readonly="1"/>
-                            <field name="l10n_cr_key_password" password="True"
+                            <field name="l10n_cr_active_certificate_filename" readonly="1"/>
+                            <field name="l10n_cr_active_key_password" password="True"
                                    string="Certificate PIN / Password"
                                    placeholder="PIN provided with your .p12 certificate"/>
                         </group>
@@ -51,10 +51,10 @@
                                 Upload your .p12 file and enter the PIN. No separate private key needed.
                             </div>
                             <field name="l10n_cr_needs_private_key" invisible="1"/>
-                            <field name="l10n_cr_private_key" filename="l10n_cr_private_key_filename"
+                            <field name="l10n_cr_active_private_key" filename="l10n_cr_active_private_key_filename"
                                    string="Private Key (PEM only)"
                                    invisible="not l10n_cr_needs_private_key"/>
-                            <field name="l10n_cr_private_key_filename" readonly="1"
+                            <field name="l10n_cr_active_private_key_filename" readonly="1"
                                    invisible="not l10n_cr_needs_private_key"/>
                         </group>
                     </group>

@@ -37,7 +37,7 @@ class CertificateManager(models.AbstractModel):
         Raises:
             UserError: If certificate is missing or invalid
         """
-        if not company.l10n_cr_certificate:
+        if not company.l10n_cr_active_certificate:
             raise UserError(_(
                 'Digital certificate not configured for company %s. '
                 'Please upload your X.509 certificate in company settings.'
@@ -45,35 +45,35 @@ class CertificateManager(models.AbstractModel):
 
         try:
             # Decode certificate data
-            cert_data = base64.b64decode(company.l10n_cr_certificate)
+            cert_data = base64.b64decode(company.l10n_cr_active_certificate)
 
             # Determine format from filename or try both
-            filename = company.l10n_cr_certificate_filename or ''
+            filename = company.l10n_cr_active_certificate_filename or ''
 
             if filename.endswith('.p12') or filename.endswith('.pfx'):
                 return self._load_pkcs12_certificate(
                     cert_data,
-                    company.l10n_cr_key_password
+                    company.l10n_cr_active_key_password
                 )
             elif filename.endswith('.pem') or filename.endswith('.crt'):
                 return self._load_pem_certificate(
                     cert_data,
-                    company.l10n_cr_private_key,
-                    company.l10n_cr_key_password
+                    company.l10n_cr_active_private_key,
+                    company.l10n_cr_active_key_password
                 )
             else:
                 # Try PKCS#12 first (most common for Hacienda)
                 try:
                     return self._load_pkcs12_certificate(
                         cert_data,
-                        company.l10n_cr_key_password
+                        company.l10n_cr_active_key_password
                     )
                 except Exception:
                     # Fallback to PEM
                     return self._load_pem_certificate(
                         cert_data,
-                        company.l10n_cr_private_key,
-                        company.l10n_cr_key_password
+                        company.l10n_cr_active_private_key,
+                        company.l10n_cr_active_key_password
                     )
 
         except Exception as e:
