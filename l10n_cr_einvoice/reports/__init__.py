@@ -1,3 +1,5 @@
 # -*- coding: utf-8 -*-
 # Reports module will contain PDF report generation with QR codes
-# To be implemented in Phase 5
+from . import einvoice_pdf_generator
+from . import customer_analytics
+from . import performance_metrics

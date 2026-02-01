@@ -65,9 +65,9 @@ Integrate TiloPay payment gateway to enable automated online payment processing 
 
 **Sandbox Test Credentials:**
 ```
-API Key:  6609-5850-8330-8034-3464
-API User: lSrT45
-API Password: Zlb8H9
+API Key:  [REDACTED - use environment variable TILOPAY_API_KEY]
+API User: [REDACTED - use environment variable TILOPAY_API_USER]
+API Password: [REDACTED - use environment variable TILOPAY_API_PASSWORD]
 ```
 
 **Supported Payment Methods:**

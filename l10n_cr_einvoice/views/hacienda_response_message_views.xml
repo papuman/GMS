@@ -127,13 +127,12 @@
 
                 <separator/>
                 <filter name="filter_today" string="Today"
-                        domain="[('response_date', '&gt;=', context_today)]"/>
+                        domain="[('response_date', '&gt;=', context_today())]"/>
                 <filter name="filter_this_week" string="This Week"
                         domain="[('response_date', '&gt;=', (context_today - datetime.timedelta(days=7)).strftime('%Y-%m-%d'))]"/>
                 <filter name="filter_this_month" string="This Month"
                         domain="[('response_date', '&gt;=', (context_today.replace(day=1)).strftime('%Y-%m-%d'))]"/>
 
-                <group expand="0" string="Group By">
                     <filter name="group_message_type" string="Message Type"
                             context="{'group_by': 'message_type'}"/>
                     <filter name="group_status" string="Status"
@@ -143,7 +142,6 @@
                     <filter name="group_company" string="Company"
                             context="{'group_by': 'company_id'}"
                             groups="base.group_multi_company"/>
-                </group>
             </search>
         </field>
     </record>
@@ -168,7 +166,7 @@
     <!-- Menu Item: Response Messages -->
     <menuitem id="menu_hacienda_response_message"
               name="Response Messages"
-              parent="menu_hacienda_main"
+              parent="menu_hacienda_root"
               action="action_hacienda_response_message"
               sequence="40"/>
 

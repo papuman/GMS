@@ -41,7 +41,7 @@
                             <field name="l10n_cr_offline_queue" widget="boolean_toggle" readonly="1"/>
                         </group>
                         <group>
-                            <field name="l10n_cr_customer_id_type"/>
+                            <!-- field l10n_cr_customer_id_type removed: not defined in model -->
                             <field name="l10n_cr_customer_id_number"/>
                             <field name="l10n_cr_customer_name"/>
                             <field name="l10n_cr_customer_email"/>
@@ -104,10 +104,8 @@
                             domain="[('l10n_cr_hacienda_status', '=', 'rejected')]"/>
                     <filter name="offline_queue" string="In Offline Queue"
                             domain="[('l10n_cr_offline_queue', '=', True)]"/>
-                    <group expand="0" string="Group By">
                         <filter name="group_hacienda_status" string="Hacienda Status"
                                 context="{'group_by': 'l10n_cr_hacienda_status'}"/>
-                    </group>
                 </xpath>
             </field>
         </record>

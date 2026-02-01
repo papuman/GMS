@@ -6,13 +6,13 @@
         <field name="name">l10n_cr.tax.report.period.list</field>
         <field name="model">l10n_cr.tax.report.period</field>
         <field name="arch" type="xml">
-            <list string="Tax Report Periods" decoration-success="state=='accepted'" decoration-info="state=='ready'" decoration-warning="state=='submitted'" decoration-danger="state=='overdue'">
+            <list string="Tax Report Periods" decoration-success="state=='accepted'" decoration-info="state=='draft'" decoration-warning="state=='submitted'" decoration-danger="state=='rejected'">
                 <field name="name"/>
                 <field name="report_type"/>
                 <field name="date_from"/>
                 <field name="date_to"/>
-                <field name="deadline" decoration-danger="deadline &lt; context_today() and state in ['draft', 'ready']"/>
-                <field name="state" widget="badge" decoration-success="state=='accepted'" decoration-info="state=='ready'" decoration-warning="state=='submitted'" decoration-muted="state=='draft'" decoration-danger="state=='overdue'"/>
+                <field name="deadline" decoration-danger="deadline &lt; context_today() and state in ['draft', 'calculated']"/>
+                <field name="state" widget="badge" decoration-success="state=='accepted'" decoration-info="state=='draft'" decoration-warning="state=='submitted'" decoration-muted="state=='calculated'" decoration-danger="state=='rejected'"/>
             </list>
         </field>
     </record>
@@ -27,12 +27,6 @@
                     <field name="state" widget="statusbar" statusbar_visible="draft,ready,submitted,accepted"/>
                 </header>
                 <sheet>
-                    <div class="oe_button_box" name="button_box">
-                        <button name="action_view_reports" type="object" class="oe_stat_button" icon="fa-file-text-o">
-                            <field name="report_count" widget="statinfo" string="Reports"/>
-                        </button>
-                    </div>
-
                     <div class="oe_title">
                         <h1>
                             <field name="name" readonly="1"/>
@@ -51,18 +45,7 @@
                             <field name="deadline" required="1"/>
                         </group>
                     </group>
-
-                    <notebook>
-                        <page string="Description" name="description">
-                            <field name="description" placeholder="Optional notes about this tax period..."/>
-                        </page>
-                    </notebook>
                 </sheet>
-                <div class="oe_chatter">
-                    <field name="message_follower_ids"/>
-                    <field name="activity_ids"/>
-                    <field name="message_ids"/>
-                </div>
             </form>
         </field>
     </record>
@@ -76,24 +59,18 @@
                 <field name="name"/>
                 <field name="year"/>
                 <field name="month"/>
-                <separator/>
                 <filter string="D-150 (VAT)" name="filter_d150" domain="[('report_type', '=', 'd150')]"/>
                 <filter string="D-101 (Income Tax)" name="filter_d101" domain="[('report_type', '=', 'd101')]"/>
                 <filter string="D-151 (Informative)" name="filter_d151" domain="[('report_type', '=', 'd151')]"/>
-                <separator/>
                 <filter string="Draft" name="filter_draft" domain="[('state', '=', 'draft')]"/>
                 <filter string="Ready" name="filter_ready" domain="[('state', '=', 'ready')]"/>
                 <filter string="Submitted" name="filter_submitted" domain="[('state', '=', 'submitted')]"/>
                 <filter string="Accepted" name="filter_accepted" domain="[('state', '=', 'accepted')]"/>
                 <filter string="Overdue" name="filter_overdue" domain="[('state', '=', 'overdue')]"/>
-                <separator/>
                 <filter string="Current Year" name="filter_current_year" domain="[('year', '=', context_today().year)]"/>
-                <separator/>
-                <group expand="0" string="Group By">
-                    <filter string="Report Type" name="group_report_type" context="{'group_by': 'report_type'}"/>
-                    <filter string="Year" name="group_year" context="{'group_by': 'year'}"/>
-                    <filter string="State" name="group_state" context="{'group_by': 'state'}"/>
-                </group>
+                <filter string="Report Type" name="group_report_type" context="{'group_by': 'report_type'}"/>
+                <filter string="Year" name="group_year" context="{'group_by': 'year'}"/>
+                <filter string="State" name="group_state" context="{'group_by': 'state'}"/>
             </search>
         </field>
     </record>

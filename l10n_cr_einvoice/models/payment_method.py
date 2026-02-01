@@ -54,9 +54,7 @@ class L10nCRPaymentMethod(models.Model):
         help='Bootstrap 5 badge color class (e.g., success, primary, warning, info, purple)'
     )
 
-    _sql_constraints = [
-        ('code_unique', 'UNIQUE(code)', 'Payment method code must be unique!'),
-    ]
+    _code_unique = models.Constraint('UNIQUE(code)', 'Payment method code must be unique!')
 
     @api.constrains('code')
     def _check_code_format(self):
@@ -68,10 +66,8 @@ class L10nCRPaymentMethod(models.Model):
                     'Got: %s'
                 ) % record.code)
 
-    def name_get(self):
+    @api.depends('code', 'name')
+    def _compute_display_name(self):
         """Display code and name together."""
-        result = []
         for record in self:
-            name = f"{record.code} - {record.name}"
-            result.append((record.id, name))
-        return result
+            record.display_name = f"{record.code} - {record.name}"

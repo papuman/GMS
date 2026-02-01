@@ -54,9 +54,12 @@ COPY --chown=odoo:odoo ./payment_tilopay /opt/odoo/custom_addons/payment_tilopay
 COPY ./requirements.txt /tmp/requirements.txt
 RUN pip3 install --no-cache-dir --break-system-packages -r /tmp/requirements.txt
 
-# Install custom module dependencies (compatible with Python 3.11)
+# Install custom module dependencies (compatible with Python 3.11 and Odoo 19)
+# Note: signxml requires cryptography>=43 which breaks Odoo's urllib3 pyopenssl integration.
+# Using custom xml_signer.py instead, which works with cryptography 3.4.8.
 RUN pip3 install --no-cache-dir --break-system-packages \
     xmlschema==3.0.1 \
+    lxml_html_clean \
     cryptography==3.4.8 \
     pyOpenSSL==21.0.0
 

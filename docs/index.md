@@ -90,10 +90,10 @@ This is the **global master index** for the GMS (Gym Management System) Knowledg
 
 ### ✅ QA Engineer
 **Your Starting Point:**
-1. [Testing Documentation](./07-testing/index.md) - Test plans & results
+1. [Testing Documentation](./07-Testing/index.md) - Test plans & results
 2. [Validation Plan](./validation-plan.md) - Validation strategy
 3. [Compliance Requirements](./02-research/costa-rica/compliance-requirements.md) - Legal requirements
-4. [Test Results Archive](./07-testing/test-results/) - Historical test data
+4. [Test Results Archive](./07-Testing/test-results/) - Historical test data
 
 ### 🚢 DevOps / System Admin
 **Your Starting Point:**
@@ -121,7 +121,7 @@ GMS/
 │   ├── index.md                                 🌐 YOU ARE HERE
 │   ├── KNOWLEDGE-REPOSITORY-ARCHITECTURE.md     📐 Architecture blueprint
 │   │
-│   ├── 01-getting-started/                     🚀 Onboarding & Quickstarts
+│   ├── 01-Getting-Started/                     🚀 Onboarding & Quickstarts
 │   │   ├── index.md                             → Domain navigation
 │   │   ├── new-developer-onboarding.md
 │   │   ├── new-pm-onboarding.md
@@ -186,7 +186,7 @@ GMS/
 │   │   ├── docker-setup.md
 │   │   └── monitoring-setup.md
 │   │
-│   ├── 07-testing/                             ✅ Testing & Validation
+│   ├── 07-Testing/                             ✅ Testing & Validation
 │   │   ├── index.md
 │   │   ├── validation-plan.md
 │   │   ├── test-execution-guide.md
@@ -240,9 +240,9 @@ GMS/
 
 ## 📚 Domain Navigation (Tier 2)
 
-### 01-getting-started/ 🚀
+### 01-Getting-Started/ 🚀
 **Purpose:** Onboarding materials for new team members
-**Index:** `docs/01-getting-started/index.md` *(coming soon)*
+**Index:** [docs/01-Getting-Started/index.md](./01-Getting-Started/index.md)
 
 **Key Documents:**
 - New developer onboarding
@@ -361,9 +361,9 @@ GMS/
 
 ---
 
-### 07-testing/ ✅
+### 07-Testing/ ✅
 **Purpose:** Test plans, test results, validation reports
-**Index:** `docs/07-testing/index.md` *(coming soon)*
+**Index:** [docs/07-Testing/index.md](./07-Testing/index.md)
 
 **Key Documents:**
 - [validation-plan.md](./validation-plan.md) - Validation strategy
@@ -547,7 +547,7 @@ related_docs: ["path/to/related/doc.md"]
 | **Implementation** | 27+ | ✅ Complete (9 phases) |
 | **Testing** | 15+ | ✅ Complete |
 | **API Integration** | 3+ | ✅ Complete |
-| **Domain Indices** | 2/12 | 🔄 In Progress |
+| **Domain Indices** | 12/12 | ✅ Complete |
 
 ### Content Metrics
 
@@ -564,7 +564,7 @@ related_docs: ["path/to/related/doc.md"]
 - ✅ **Organized** 12-domain structure
 - ✅ **Indexed** all major documents
 - ✅ **YAML metadata** for LLM optimization
-- 🔄 **Domain indices** (2/12 complete, 10 pending)
+- ✅ **Domain indices** (12/12 complete)
 
 ---
 
@@ -657,13 +657,13 @@ related_docs: ["path/to/related/doc.md"]
 
 **Domain Indices:** ✅ **12/12 Complete (100%)**
 
-1. ✅ `01-getting-started/index.md` - Complete
+1. ✅ `01-Getting-Started/index.md` - Complete
 2. ✅ `02-research/index.md` - Complete
 3. ✅ `03-planning/index.md` - Complete
 4. ✅ `04-architecture/index.md` - Complete
 5. ✅ `05-implementation/index.md` - Complete
 6. ✅ `06-deployment/index.md` - Complete
-7. ✅ `07-testing/index.md` - Complete
+7. ✅ `07-Testing/index.md` - Complete
 8. ✅ `08-ui-ux/index.md` - Complete
 9. ✅ `09-user-guides/index.md` - Complete
 10. ✅ `10-api-integration/index.md` - Complete

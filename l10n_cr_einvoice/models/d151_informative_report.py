@@ -368,25 +368,31 @@ class D151InformativeReport(models.Model):
         self.ensure_one()
 
         if not self.xml_signed:
-            raise UserError(_('Sign XML before submitting to Hacienda.'))
+            raise UserError(_('Firme el XML antes de enviar a Hacienda.'))
 
-        HaciendaAPI = self.env['l10n_cr.hacienda.api']
-        result = HaciendaAPI.submit_tax_report(
-            tax_report=self,
-            report_type='D151',
-            xml_content=self.xml_signed
-        )
+        try:
+            HaciendaAPI = self.env['l10n_cr.hacienda.api']
+            result = HaciendaAPI.submit_d151_report(
+                report_id=self.id,
+                signed_xml=self.xml_signed
+            )
 
-        if result.get('success'):
-            self.submission_key = result.get('key')
-            self.submission_date = fields.Datetime.now()
-            self.state = 'submitted'
-            self.hacienda_message = result.get('message', 'Submitted successfully')
-            self.message_post(body=_('D-151 submitted to Hacienda: %s') % self.submission_key)
-        else:
+            if result.get('success'):
+                self.submission_key = result.get('key')
+                self.submission_date = fields.Datetime.now()
+                self.state = 'submitted'
+                self.hacienda_message = result.get('message', _('Enviado exitosamente'))
+                self.message_post(body=_('D-151 enviado a Hacienda: %s') % self.submission_key)
+            else:
+                self.state = 'error'
+                self.hacienda_message = result.get('error', _('Error desconocido'))
+                self.message_post(body=_('Envío fallido: %s') % self.hacienda_message)
+
+        except Exception as e:
             self.state = 'error'
-            self.hacienda_message = result.get('error', 'Unknown error')
-            self.message_post(body=_('Submission failed: %s') % self.hacienda_message)
+            self.hacienda_message = str(e)
+            self.message_post(body=_('Error durante el envío: %s') % str(e))
+            raise
 
         return True
 
@@ -395,25 +401,44 @@ class D151InformativeReport(models.Model):
         self.ensure_one()
 
         if not self.submission_key:
-            raise UserError(_('No submission key found. Submit first.'))
+            raise UserError(_('No se encontró clave de envío. Envíe primero.'))
 
-        HaciendaAPI = self.env['l10n_cr.hacienda.api']
-        result = HaciendaAPI.check_tax_report_status(
-            submission_key=self.submission_key,
-            report_type='D151'
-        )
+        try:
+            HaciendaAPI = self.env['l10n_cr.hacienda.api']
+            result = HaciendaAPI.check_tax_report_status(
+                submission_key=self.submission_key,
+                report_type='D151'
+            )
 
-        if result.get('state') == 'accepted':
-            self.state = 'accepted'
-            self.acceptance_date = fields.Datetime.now()
-            self.hacienda_message = result.get('message', 'Accepted')
-            self.message_post(body=_('D-151 accepted by Hacienda'))
-            self.period_id.state = 'accepted'
+            estado = result.get('estado', '').lower()
 
-        elif result.get('state') == 'rejected':
-            self.state = 'rejected'
-            self.hacienda_message = result.get('message', 'Rejected')
-            self.message_post(body=_('D-151 rejected: %s') % self.hacienda_message)
+            if estado == 'aceptado':
+                self.state = 'accepted'
+                self.acceptance_date = fields.Datetime.now()
+                self.hacienda_message = result.get('message', _('Aceptado'))
+                self.message_post(body=_('D-151 aceptado por Hacienda'))
+                if self.period_id:
+                    self.period_id.state = 'accepted'
+
+            elif estado == 'rechazado':
+                self.state = 'rejected'
+                error_details = result.get('detalle', '')
+                errores = result.get('errores', [])
+                if errores:
+                    error_details += '\n' + '\n'.join([str(e) for e in errores])
+                self.hacienda_message = result.get('message', _('Rechazado')) + '\n' + error_details
+                self.message_post(body=_('D-151 rechazado: %s') % self.hacienda_message)
+
+            elif estado in ['procesando', 'recibido']:
+                self.hacienda_message = result.get('message', _('En procesamiento'))
+                self.message_post(body=_('D-151 en procesamiento'))
+
+            else:
+                self.hacienda_message = result.get('message', _('Estado desconocido: %s') % estado)
+
+        except Exception as e:
+            self.message_post(body=_('Error al verificar estado: %s') % str(e))
+            raise
 
         return True
 

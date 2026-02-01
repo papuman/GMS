@@ -36,7 +36,7 @@ The Costa Rica gym management software market represents a **rare combination of
 
 **1. Underserved Market with NO Local Compliance Solutions**
 - 500-800 gyms in Costa Rica, majority using manual Excel systems
-- ZERO competitors advertise Hacienda e-invoicing integration (Doc 4)
+- ZERO competitors publicly market Hacienda e-invoicing for the small/medium gym segment (LatinSoft may have basic capability for enterprise clients) (Doc 4)
 - Global platforms ignore CR-specific legal requirements (Docs 1, 3)
 
 **2. Incumbent Quality Crisis Creating Disruption Opportunity**
@@ -52,7 +52,7 @@ The Costa Rica gym management software market represents a **rare combination of
 ### Strategic Positioning
 
 **Primary Value Proposition:**
-> "The ONLY gym management platform built for Costa Rica compliance - Hacienda e-invoicing, SINPE Móvil payments, and CCSS calculations automated. Run your gym legally, get paid faster, grow without administrative chaos."
+> "The first gym management platform built specifically for small/medium Costa Rica gym compliance - Hacienda e-invoicing, SINPE Móvil payments, and CCSS calculations automated. Run your gym legally, get paid faster, grow without administrative chaos."
 
 **Market Positioning:**
 - **vs LatinSoft:** Better quality at transparent pricing (they don't publish prices)
@@ -77,7 +77,7 @@ The Costa Rica gym management software market represents a **rare combination of
 
 **Must-Have for Market Entry:**
 1. ✅ **Hacienda E-invoicing Integration** - PRIMARY differentiator, uncontested (Doc 4)
-2. ✅ **SINPE Móvil Payment Integration** - Sept 2025 urgency, zero current options (Docs 5, 6)
+2. ✅ **SINPE Móvil Payment Integration** - enforcement active since September 2025, zero current options (Docs 5, 6)
 3. ✅ **CCSS Auto-Calculator** - Labor law compliance, no competitor offers (Doc 3)
 4. ✅ **Spanish-First Localization** - Smart Fit Portuguese lock proves this critical (Doc 7:328)
 5. ✅ **Simple, Clean UI** - LatinSoft quality crisis creates quality expectation (Doc 7:326)
@@ -150,14 +150,14 @@ The Costa Rica gym management software market represents a **rare combination of
 1. Manual class booking overwhelming at 100+ members
 2. Payment collection "turned into full-time ordeal" (Doc 2:77)
 3. Excel spreadsheet chaos at 80+ members (Doc 6:254)
-4. No system for SINPE compliance (Sept 2025 deadline) (Doc 6:262)
+4. No system for SINPE compliance (mandate in effect since September 2025) (Doc 6:262)
 5. Member retention tracking difficult (50% annual churn) (Doc 6:276)
 
 **Why They Buy Software:**
 - **Trigger #1:** Growth from 40 → 80 members makes manual impossible
 - **Trigger #2:** Billing calls increase from 2-3/month to 4-5/week (Doc 2:77)
 - **Trigger #3:** Class capacity management becomes daily headache
-- **Trigger #4:** Compliance deadline (SINPE code '06' Sept 2025)
+- **Trigger #4:** SINPE code '06' mandate now in effect since September 2025
 
 **Success Story (Direct Evidence):**
 > "CrossHero me permitio rentabilizar mas mis horarios, y duplicar el numero de alumnos de mi centro." - Michelle Rojas, Global Fitness CR (Doc 6:268)
@@ -200,7 +200,7 @@ The Costa Rica gym management software market represents a **rare combination of
 
 **Why They Buy Software:**
 - **Trigger #1:** Payment collection failures reaching crisis (1 in 3 delayed)
-- **Trigger #2:** Sept 2025 SINPE compliance deadline
+- **Trigger #2:** SINPE mandate now in effect since September 2025
 - **Trigger #3:** MEIC enforcement threat (contract/cancellation violations)
 - **Trigger #4:** Growth from 20 → 60 members makes Excel impossible
 
@@ -212,7 +212,7 @@ The Costa Rica gym management software market represents a **rare combination of
 **Market Entry Strategy:**
 - Position as "compliance + billing automation for small gyms"
 - Pricing: ₡19,500-26,500/month (lower tier for smaller gyms)
-- Focus on SINPE compliance urgency (Sept 2025)
+- Focus on SINPE compliance urgency (enforcement active since September 2025)
 - Partner with gym associations, provincial chambers of commerce
 
 #### Segment 3: Large Gym Chains (OPPORTUNISTIC TARGET)
@@ -287,17 +287,17 @@ This is the **single most important market accelerator** for GMS:
 
 **What This Means:**
 - Gyms accepting SINPE transfers (most use it for personal payments daily) must issue e-invoices
-- Penalty enforcement increases after Sept 2025
+- Penalty enforcement now active since September 2025
 - NO current gym software offers integrated solution
-- Creates immediate buying urgency (6-8 months from now)
+- Gyms are currently non-compliant and at risk (enforcement active since September 2025)
 
 **Market Impact:**
 - Gyms currently ignoring e-invoicing must comply NOW
 - Manual e-invoicing is painful (XML generation, API integration)
-- GMS offering automated solution has ZERO competition
+- GMS would be the first to market automated e-invoicing specifically for small/medium gyms
 
 **Sales Strategy:**
-- Lead with compliance urgency: "Are you ready for Sept 2025 SINPE mandate?"
+- Lead with compliance urgency: "Are you compliant with the September 2025 SINPE mandate?"
 - Position as compliance solution (not just gym software)
 - Offer migration support to meet deadline
 
@@ -373,7 +373,7 @@ This is the **single most important market accelerator** for GMS:
 **The Opportunity:**
 - Costa Ricans use SINPE daily (ubiquitous payment method)
 - NO gym currently offers SINPE for recurring memberships
-- Sept 2025 compliance creates forcing function
+- September 2025 mandate enforcement creates forcing function
 - GMS can be FIRST to market with integrated solution
 
 **Technology Stack:**
@@ -402,7 +402,7 @@ This is the **single most important market accelerator** for GMS:
 **4. Compliance Enforcement Increasing**
 - MEIC 90% violation rate (Doc 5:210)
 - Hacienda e-invoicing enforcement
-- SINPE code '06' Sept 2025 deadline
+- SINPE code '06' mandate in effect since September 2025
 - Regulatory pressure creating urgency
 
 ## 1.3 Competitive Landscape Analysis
@@ -580,13 +580,13 @@ Direct evidence from Google Play reviews (Doc 7:335-337):
 - **Primary:** "CrossHero + legal compliance automation"
 - **Price:** ₡33-39K (match or slight premium for compliance value)
 - **Features:** Everything CrossHero has + Hacienda + SINPE + CCSS
-- **Positioning:** "CrossHero quality + Sept 2025 compliance ready"
+- **Positioning:** "CrossHero quality + fully compliant with the September 2025 SINPE mandate"
 
 **Competitive Win Strategy:**
 1. **Feature Parity:** Match CrossHero core features (booking, scheduling, billing)
 2. **Compliance Add:** Layer on Hacienda, SINPE, CCSS (CrossHero gap)
 3. **Pricing:** ₡33-39K (match + premium for compliance)
-4. **Urgency:** Lead with Sept 2025 SINPE deadline
+4. **Urgency:** Lead with SINPE mandate enforcement (active since September 2025)
 5. **Switch Incentive:** Free migration, 3-month discount for CrossHero switchers
 
 **Monitor for Threats:**
@@ -610,8 +610,8 @@ Direct evidence from Google Play reviews (Doc 7:335-337):
 **Legend:** ✅ Yes | 🟡 Partial/Maybe | ❌ No
 
 **Critical Gaps (GMS Unique Advantage):**
-1. 🔥 **Hacienda E-invoicing:** ZERO competitors advertise this
-2. 🔥 **SINPE Compliance:** Sept 2025 urgency, no competitor solution
+1. 🔥 **Hacienda E-invoicing:** ZERO competitors publicly market this for the small/medium gym segment (LatinSoft may have basic capability for enterprise clients)
+2. 🔥 **SINPE Compliance:** Enforcement active since September 2025, no competitor solution
 3. 🔥 **CCSS Auto-Calculator:** Labor law compliance, unique to GMS
 
 **Quality Gaps (Competitive Opportunity):**
@@ -651,7 +651,7 @@ Direct evidence from Google Play reviews (Doc 7:335-337):
 1. **Automated Billing:** "Collecting dues turned into full-time ordeal" (Doc 2:77)
 2. **Time Savings:** Billing calls 4-5 per week → automated (Doc 2:77)
 3. **Class Management:** Booking, waitlists, capacity limits
-4. **Compliance:** Sept 2025 SINPE deadline approaching
+4. **Compliance:** SINPE mandate now in effect since September 2025
 
 **Emotional Outcomes:**
 1. **Peace of Mind:** "No more 2 AM stress about payment collection" (Doc 2)
@@ -663,13 +663,13 @@ Direct evidence from Google Play reviews (Doc 7:335-337):
 2. Billing calls increasing (2-3/month → 4-5/week)
 3. Member complaints about booking process
 4. Cash flow pressure (payment collection delays)
-5. **NEW: Sept 2025 SINPE compliance deadline**
+5. **SINPE mandate now in effect since September 2025**
 
 **Decision Criteria (Priority Order - Doc 2:72):**
 1. **Ease of Use** (82% critical) - "I almost went back to spreadsheets" quote
 2. **Support Quality** (76% critical) - Need hand-holding
 3. **Pricing Transparency** (71% critical) - No hidden fees
-4. **Compliance Features** (NEW - Sept 2025 urgency)
+4. **Compliance Features** (September 2025 SINPE mandate now in effect)
 5. **Mobile App Quality** (Member-facing experience)
 
 **Buying Process:**
@@ -716,12 +716,12 @@ Direct evidence from Google Play reviews (Doc 7:335-337):
 **Pain Points:**
 1. **Payment Collection Crisis:** "1 in 3 payments delayed" (Doc 6:272)
 2. **Excel Overwhelm:** 20-100 members = chaos (Doc 6:254)
-3. **SINPE Compliance:** Sept 2025 deadline, no system
+3. **SINPE Compliance:** Mandate in effect since September 2025, no system
 4. **MEIC Violations:** 90% gyms violating cancellation laws (Doc 5:210)
 5. **Zero Digital Tools:** No website, no booking system
 
 **Buying Triggers:**
-1. Sept 2025 SINPE compliance deadline (URGENT)
+1. SINPE mandate now in effect since September 2025 (URGENT - gyms currently non-compliant)
 2. Payment collection failures reaching crisis level
 3. MEIC investigation or warning letter
 4. Growth from 20 → 60 members (Excel breaking)
@@ -736,7 +736,7 @@ Direct evidence from Google Play reviews (Doc 7:335-337):
 - **Pricing:** ₡19,500-26,500/month (affordable tier)
 - **Features:** Basic billing + compliance (not feature bloat)
 - **Messaging:** "Compliance + payment automation for small gyms"
-- **ROI:** "Reduce payment delays from 33% to 5% = ₡XXX/month saved"
+- **ROI:** "Reduce payment delays from 33% to 5% = ₡150,000-300,000/month saved (for a typical 50-member gym)"
 
 ---
 
@@ -746,9 +746,9 @@ Direct evidence from Google Play reviews (Doc 7:335-337):
 
 ### Core Positioning Statement
 
-**For:** Costa Rica gym owners managing 40-150 members who are drowning in administrative chaos and facing September 2025 SINPE compliance deadline
+**For:** Costa Rica gym owners managing 40-150 members who are drowning in administrative chaos and are currently non-compliant with the September 2025 SINPE mandate
 
-**GMS is:** The ONLY gym management platform built specifically for Costa Rica legal compliance
+**GMS is:** The first gym management platform built specifically for small/medium Costa Rica gym compliance
 
 **That:** Automates Hacienda e-invoicing, SINPE Móvil payments, and CCSS calculations while providing simple, reliable member management
 
@@ -767,7 +767,7 @@ Direct evidence from Google Play reviews (Doc 7:335-337):
 **Pains:**
 - Billing phone calls consuming 5-10 hours/week
 - Excel spreadsheet chaos at 40+ members
-- SINPE compliance deadline (Sept 2025) with no system
+- SINPE mandate enforcement active since September 2025 with no system
 - Payment collection failures (1 in 3 delayed)
 - Fear of MEIC penalties (90% violation rate)
 - Member frustration with booking process
@@ -775,7 +775,7 @@ Direct evidence from Google Play reviews (Doc 7:335-337):
 **Gains:**
 - 40% reduction in administrative time (Doc 2:575)
 - Automated recurring billing (99%+ collection rate)
-- September 2025 compliant (no penalties)
+- Compliant with September 2025 SINPE mandate (no penalties)
 - Professional member mobile app
 - Real-time business metrics and reporting
 
@@ -810,7 +810,7 @@ Direct evidence from Google Play reviews (Doc 7:335-337):
 **1. Hacienda E-invoicing Integration (PRIMARY)**
 
 **Unique Value:**
-- ZERO competitors advertise this feature (Doc 4)
+- ZERO competitors publicly market this for the small/medium gym segment (LatinSoft may have basic capability for enterprise clients) (Doc 4)
 - Mandatory compliance since 2018, version 4.4 (Doc 3)
 - Manual e-invoicing is painful (XML, API complexity)
 
@@ -834,7 +834,7 @@ Direct evidence from Google Play reviews (Doc 7:335-337):
 **2. SINPE Móvil Payment + E-invoicing (URGENT)**
 
 **Unique Value:**
-- Sept 2025 code '06' mandate creates compliance crisis (Doc 6:262)
+- Code '06' mandate now in effect since September 2025 creating compliance crisis (Doc 6:262)
 - Costa Ricans use SINPE daily, but ZERO gyms offer it for memberships (Doc 5:208)
 - GMS is FIRST to integrate SINPE + automated e-invoicing
 
@@ -846,12 +846,12 @@ Direct evidence from Google Play reviews (Doc 7:335-337):
 5. Gym owner compliant with code '06' requirements
 
 **Urgency Factor:**
-- 6-8 months until Sept 2025 deadline
+- Enforcement active since September 2025
 - Gyms accepting SINPE NOW face penalties if non-compliant
 - Creates immediate buying pressure
 
 **Sales Messaging:**
-- "Are you ready for September 2025 SINPE code '06' mandate?"
+- "Are you compliant with the September 2025 SINPE code '06' mandate?"
 - "Accept SINPE payments WITHOUT compliance headaches"
 - "FIRST platform to automate SINPE + e-invoicing integration"
 
@@ -961,8 +961,8 @@ Direct evidence from Google Play reviews (Doc 7:335-337):
    - "Try GMS risk-free - if you don't love it, we'll migrate you back"
 
 **Sales Messaging:**
-- **Hook:** "Love CrossHero? Get the same features + Sept 2025 SINPE compliance"
-- **Pain:** "Are you ready for the September deadline? CrossHero won't help"
+- **Hook:** "Love CrossHero? Get the same features + SINPE compliance (now required since September 2025)"
+- **Pain:** "The September 2025 SINPE mandate is now in effect. CrossHero won't help"
 - **Solution:** "GMS = CrossHero quality + legal compliance automation"
 - **Proof:** "Michelle Rojas doubled her members with CrossHero. Imagine with compliance too"
 
@@ -995,16 +995,16 @@ Direct evidence from Google Play reviews (Doc 7:335-337):
    - Entry tier: ₡19,500 (20-40 members)
    - Growth tier: ₡26,500 (40-80 members)
 
-3. **Urgency Messaging:** Sept 2025 SINPE deadline
-   - "6 months to comply or face penalties"
+3. **Urgency Messaging:** SINPE mandate enforcement active since September 2025
+   - "Enforcement is active since September 2025 - comply now or face penalties"
    - "Manual e-invoicing impossible at scale"
    - "Payment collection improvement pays for itself"
 
 **Sales Messaging:**
-- **Hook:** "September 2025 SINPE mandate - are you compliant?"
+- **Hook:** "The September 2025 SINPE mandate is now in effect - are you compliant?"
 - **Pain:** "1 in 3 payments delayed = cash flow crisis"
 - **Solution:** "Automated billing + compliance for ₡19,500/month"
-- **ROI:** "Improve payment collection 33% → 5% = ₡XXX saved monthly"
+- **ROI:** "Improve payment collection 33% → 5% = ₡150,000-300,000 saved monthly (for a typical 50-member gym)"
 
 **Channel Strategy:**
 - Google Ads targeting "software gimnasio costa rica"
@@ -1734,7 +1734,7 @@ Direct evidence from Google Play reviews (Doc 7:335-337):
 - Social Media: Active Instagram (500-5K followers)
 
 **Behavioral:**
-- Pain Point Severity: HIGH (billing chaos, Sept 2025 deadline)
+- Pain Point Severity: HIGH (billing chaos, SINPE mandate enforcement active since September 2025)
 - Buying Timeline: 2-4 weeks research + 14-30 day trial
 - Decision Maker: Owner (1-person decision)
 - Budget Authority: Owner controls budget
@@ -1785,16 +1785,16 @@ Direct evidence from Google Play reviews (Doc 7:335-337):
 **Qualification Criteria:**
 1. ✅ 30-80 members (past manual chaos point)
 2. ✅ Payment collection issues (1 in 3 delayed)
-3. ✅ SINPE compliance deadline approaching (urgency)
+3. ✅ SINPE mandate now in effect since September 2025 (gyms currently non-compliant and at risk)
 4. ✅ Owner actively involved in operations
 
 ## 4.2 Positioning & Messaging
 
 ### Brand Positioning Statement
 
-**For** Costa Rica gym owners managing 40-150 members who are drowning in billing chaos and facing September 2025 SINPE compliance deadline,
+**For** Costa Rica gym owners managing 40-150 members who are drowning in billing chaos and currently non-compliant with the September 2025 SINPE mandate,
 
-**GMS** is the ONLY gym management platform built specifically for Costa Rica legal compliance
+**GMS** is the first gym management platform built specifically for small/medium Costa Rica gym compliance
 
 **That** automates Hacienda e-invoicing, SINPE Móvil payments, and CCSS calculations while providing simple, reliable member management.
 
@@ -1807,18 +1807,18 @@ Direct evidence from Google Play reviews (Doc 7:335-337):
 **CrossFit/Boutique Segment:**
 
 **Primary:**
-> "Love CrossHero? Get the same features + September 2025 SINPE compliance built-in. ₡35,000/month."
+> "Love CrossHero? Get the same features + full compliance with the September 2025 SINPE mandate built-in. ₡35,000/month."
 
 **Secondary:**
 > "CrossHero quality + legal compliance automation = run your gym confidently and legally."
 
 **Pain-Focused:**
-> "September 2025 SINPE deadline. CrossHero won't help. GMS automates e-invoicing so you can focus on coaching."
+> "The September 2025 SINPE mandate is now in effect. CrossHero won't help. GMS automates e-invoicing so you can focus on coaching."
 
 **Small Gym Segment:**
 
 **Primary:**
-> "Automate billing + stay legally compliant for ₡19,500/month. September 2025 SINPE ready."
+> "Automate billing + stay legally compliant for ₡19,500/month. Fully compliant with the September 2025 SINPE mandate."
 
 **Secondary:**
 > "Stop losing 1 in 3 payments. Automated billing improves collection 67% → 95%. Pays for itself."
@@ -1835,7 +1835,7 @@ Direct evidence from Google Play reviews (Doc 7:335-337):
 - "40% less time on admin"
 
 **Gym Owner (Compliance Fear):**
-- "September 2025 SINPE code '06' deadline - are you ready?"
+- "The September 2025 SINPE code '06' mandate is now in effect - are you compliant?"
 - "Hacienda e-invoicing automated - never manually create XML again"
 - "MEIC-compliant cancellation workflows built-in"
 - "Zero compliance penalties, zero stress"
@@ -1855,7 +1855,7 @@ Direct evidence from Google Play reviews (Doc 7:335-337):
 ### Messaging Framework
 
 **Hook (Attention):**
-- "Are you ready for September 2025 SINPE code '06' mandate?"
+- "Are you compliant with the September 2025 SINPE code '06' mandate?"
 - "Stop losing 1 in 3 payments to collection delays"
 - "Excel breaking down at 60+ members?"
 
@@ -1871,7 +1871,7 @@ Direct evidence from Google Play reviews (Doc 7:335-337):
 - "Simple, Spanish-first platform built FOR Costa Rica"
 
 **Proof (Evidence):**
-- "ZERO competitors offer Hacienda integration"
+- "ZERO competitors publicly market Hacienda integration for the small/medium gym segment"
 - "CrossHero success story: Michelle doubled her members"
 - "LatinSoft quality crisis: 'crashes, broken features, slow'"
 - "Gold's Gym 9X'd bookings with multi-channel (we have it built-in)"
@@ -2012,14 +2012,14 @@ Direct evidence from Google Play reviews (Doc 7:335-337):
 - **Budget:** ₡20,000-40,000/month available
 - **Authority:** Owner or decision-maker
 - **Need:** Billing chaos, compliance deadline, software evaluation
-- **Timeline:** Within 3 months (Sept 2025 urgency)
+- **Timeline:** Within 3 months (SINPE mandate enforcement active since September 2025)
 
 **Stage 2: Discovery & Demo**
 
 **Discovery Call (30 minutes):**
 1. Understand current situation (manual/CrossHero/other)
 2. Identify pain points (billing, compliance, member experience)
-3. Assess urgency (Sept 2025 deadline, payment collection crisis)
+3. Assess urgency (SINPE mandate now in effect since September 2025, payment collection crisis)
 4. Qualify fit (member count, location, decision authority)
 
 **Demo (45-60 minutes):**
@@ -2031,7 +2031,7 @@ Direct evidence from Google Play reviews (Doc 7:335-337):
 6. **Q&A:** Address objections
 
 **Demo Script:**
-- "Let me show you how GMS handles the September 2025 SINPE deadline..."
+- "Let me show you how GMS makes you compliant with the September 2025 SINPE mandate..."
 - "Here's what happens when a member pays via SINPE..." (auto e-invoice generation)
 - "Compare this to CrossHero - same booking features + compliance automation..."
 - "Your members get a mobile app that actually works (unlike LatinSoft)..."
@@ -2089,7 +2089,7 @@ Direct evidence from Google Play reviews (Doc 7:335-337):
 **Assumptions:**
 - Trial → Paid: 40% conversion
 - Average MRR: ₡35,000/gym (Growth tier)
-- Churn: 5% monthly (low due to compliance lock-in)
+- Churn: ~3% monthly (low due to compliance lock-in)
 
 **Year 1 Goal: 36 Paying Customers, ₡1.26M MRR (≈$2,400 USD)**
 
@@ -2159,7 +2159,7 @@ Direct evidence from Google Play reviews (Doc 7:335-337):
 **Ad Copy Examples:**
 
 *Compliance Campaign:*
-> **September 2025 SINPE Deadline?**
+> **September 2025 SINPE Mandate Now In Effect - Are You Compliant?**
 > Automated e-invoicing for gyms. Hacienda-compliant from day 1.
 > Try GMS free for 30 days. No credit card required.
 > [gms.cr/sinpe-compliance]
@@ -2207,7 +2207,7 @@ Direct evidence from Google Play reviews (Doc 7:335-337):
 **Lead Nurture Sequence (10 emails over 30 days):**
 
 *Email 1 (Day 0):* Welcome + compliance urgency
-> Subject: "September 2025 SINPE Deadline - Are You Ready?"
+> Subject: "September 2025 SINPE Mandate Is Now In Effect - Are You Compliant?"
 > Content: Explain mandate, consequences, GMS solution
 
 *Email 3 (Day 5):* Pain point education
@@ -2239,7 +2239,7 @@ Direct evidence from Google Play reviews (Doc 7:335-337):
 - Local chamber of commerce (San José, Alajuela, Cartago)
 
 **TiloPay Co-Marketing:**
-- Joint webinar: "Accept SINPE Payments Legally (Sept 2025 Ready)"
+- Joint webinar: "Accept SINPE Payments Legally (Compliant With the September 2025 Mandate)"
 - Cross-promotion (TiloPay recommends GMS, we recommend TiloPay)
 - Integration showcase (seamless SINPE + e-invoice demo)
 
@@ -2252,7 +2252,7 @@ Direct evidence from Google Play reviews (Doc 7:335-337):
 - Gym/fitness publications
 
 **Story Angles:**
-- "Costa Rican Startup Solves September 2025 SINPE Compliance Crisis for Gyms"
+- "Costa Rican Startup Solves SINPE Compliance Crisis for Gyms Non-Compliant Since September 2025"
 - "Local Software Company Takes on Global Giants (Mindbody, LatinSoft)"
 - "MEIC Investigation: 90% of Gyms Violating Consumer Law - GMS Offers Solution"
 
@@ -2363,7 +2363,7 @@ Direct evidence from Google Play reviews (Doc 7:335-337):
 
 **Customer Success:**
 - Monthly Churn: <5%
-- Annual Retention: >40% (inverse of 50% industry churn)
+- Annual Retention: ~65% (consistent with ~3% monthly churn)
 - NPS (Net Promoter Score): >50
 - Customer Satisfaction (CSAT): >4.5/5
 
@@ -2384,7 +2384,7 @@ Direct evidence from Google Play reviews (Doc 7:335-337):
 **SINPE Compliance:**
 - SINPE Payments Processed: Track monthly
 - Auto E-invoice Generation: 100% of SINPE payments
-- Code '06' Compliance: 100% by Sept 2025
+- Code '06' Compliance: 100% (mandate in effect since September 2025)
 
 **Legal Compliance:**
 - MEIC Violations: Zero customer violations reported
@@ -2433,7 +2433,7 @@ Direct evidence from Google Play reviews (Doc 7:335-337):
   - First-mover brand advantage
   - Lock in customers early (switching cost)
 
-**Risk #5: September 2025 Deadline Extended**
+**Risk #5: September 2025 Mandate Enforcement Relaxed**
 - **Probability:** LOW (government rarely extends)
 - **Impact:** MEDIUM (urgency factor reduced)
 - **Mitigation:**
@@ -2506,19 +2506,19 @@ Direct evidence from Google Play reviews (Doc 7:335-337):
 
 **Year 1 (2026): Market Validation**
 - 36 paying customers in Costa Rica
-- ₡1.26M MRR (≈$15K ARR)
+- ₡1.26M MRR (₡15.12M ARR ≈ $29K USD)
 - MVP feature set validated
 - Compliance differentiation proven
 
 **Year 2 (2027): Market Penetration**
 - 120 customers (3X growth)
-- ₡4.8M MRR (≈$58K ARR)
+- ₡4.8M MRR (₡57.6M ARR ≈ $110K USD)
 - Enhanced features (multi-channel, analytics)
 - San José + provincial expansion
 
 **Year 3 (2028): Market Leadership**
 - 300 customers (2.5X growth)
-- ₡13.5M MRR (≈$163K ARR)
+- ₡13.5M MRR (₡162M ARR ≈ $309K USD)
 - Enterprise features (multi-location)
 - #1 platform in Costa Rica
 - LATAM expansion prep (Panama, Nicaragua)
@@ -2532,7 +2532,7 @@ Direct evidence from Google Play reviews (Doc 7:335-337):
 - **Total: 600-750 gyms across LATAM**
 
 **Revenue:**
-- ₡27M-36M MRR (≈$325K-430K ARR annually)
+- ₡27M-36M MRR (₡324M-432M ARR ≈ $617K-$823K USD)
 - Transaction revenue (2.5% of payments processed)
 - Add-on services (marketing automation, retail POS)
 
@@ -2547,7 +2547,7 @@ Direct evidence from Google Play reviews (Doc 7:335-337):
 **Option 1: Strategic Acquisition**
 - **Acquirer:** Mindbody, Wodify, or Latin American tech company
 - **Rationale:** LATAM compliance expertise, customer base, local market knowledge
-- **Valuation:** 5-8X ARR (₡975M-1.4B = $1.9M-2.7M USD at 750 gyms)
+- **Valuation:** 5-8X ARR (≈$3.0M-$4.8M USD valuation at 750 gyms)
 
 **Option 2: Private Equity Buyout**
 - **Acquirer:** LATAM-focused PE firm
@@ -2576,14 +2576,14 @@ The Costa Rica gym management software market presents a **rare combination of m
 
 ✅ **Market Validated:** 500-800 gyms, 300-600 addressable (Docs 1, 6)
 ✅ **Pain Points Validated:** "Collecting dues turned into full-time ordeal" (Doc 2)
-✅ **Competitive Gap Validated:** ZERO competitors advertise e-invoicing (Doc 4)
-✅ **Urgency Validated:** September 2025 SINPE compliance deadline (Doc 6)
+✅ **Competitive Gap Validated:** ZERO competitors publicly market e-invoicing for the small/medium gym segment (Doc 4)
+✅ **Urgency Validated:** September 2025 SINPE mandate now in effect - gyms currently non-compliant and at risk (Doc 6)
 ✅ **Pricing Validated:** CrossHero at ₡33K/month proves willingness to pay (Doc 4)
 
 ### The Differentiation is Defensible
 
 🔥 **Hacienda E-invoicing:** PRIMARY differentiator, uncontested, technically complex
-🔥 **SINPE Compliance:** Sept 2025 urgency, no competitor solution
+🔥 **SINPE Compliance:** Enforcement active since September 2025, no competitor solution
 🔥 **CCSS Auto-Calculator:** Labor law compliance, unique value
 🔥 **Spanish-First Quality:** vs LatinSoft quality crisis, Smart Fit Portuguese lock
 

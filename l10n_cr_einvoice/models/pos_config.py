@@ -29,7 +29,8 @@ class PosConfig(models.Model):
 
     # Anonymous Customer Defaults
     l10n_cr_default_partner_id = fields.Many2one('res.partner', string="Default Partner")
-    l10n_cr_default_customer_id_type = fields.Selection(related='l10n_cr_default_partner_id.l10n_cr_ident_type_id.code')
+    # TODO: Fix related field - l10n_cr_ident_type_id doesn't exist in res.partner
+    # l10n_cr_default_customer_id_type = fields.Selection(related='l10n_cr_default_partner_id.l10n_cr_ident_type_id.code')
     l10n_cr_default_customer_id_number = fields.Char(related='l10n_cr_default_partner_id.vat')
 
     def action_test_hacienda_connection(self):
