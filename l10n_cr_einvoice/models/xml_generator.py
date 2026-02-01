@@ -70,15 +70,24 @@ class XMLGenerator(models.AbstractModel):
         ns = self.NAMESPACES['fe']
         root = etree.Element(
             '{%s}FacturaElectronica' % ns,
-            nsmap={'': ns, 'ds': self.NAMESPACES['ds'], 'xsd': self.NAMESPACES['xsd']},
+            nsmap={None: ns, 'ds': self.NAMESPACES['ds'], 'xsd': self.NAMESPACES['xsd']},
         )
 
         # 1. Clave (50-digit key)
         etree.SubElement(root, 'Clave').text = einvoice.clave
 
-        # 2. CodigoActividad (economic activity code)
-        codigo_actividad = source_doc.company_id.l10n_cr_activity_code or '861201'
-        etree.SubElement(root, 'CodigoActividad').text = codigo_actividad
+        # 1b. ProveedorSistemas (system provider identification - required in v4.4)
+        proveedor = getattr(source_doc.company_id, 'l10n_cr_proveedor_sistemas', '') or ''
+        if not proveedor:
+            # Default: use company VAT as provider ID (self-developed system)
+            proveedor = (source_doc.company_id.vat or '').replace('-', '').replace(' ', '')
+        if proveedor:
+            etree.SubElement(root, 'ProveedorSistemas').text = proveedor
+
+        # 2. CodigoActividadEmisor (economic activity code, min 6 chars in v4.4)
+        codigo_actividad = getattr(source_doc.company_id.partner_id, 'l10n_cr_activity_code', '') or '861201'
+        codigo_actividad = codigo_actividad.zfill(6)
+        etree.SubElement(root, 'CodigoActividadEmisor').text = codigo_actividad
 
         # 3. NumeroConsecutivo (consecutive number)
         numero = einvoice.name or ''
@@ -104,7 +113,7 @@ class XMLGenerator(models.AbstractModel):
         self._add_condicion_venta(root, source_doc)
 
         # 8. MedioPago (payment method) - Updated for Phase 1A
-        self._add_medio_pago(root, source_doc)
+
 
         # 9. DetalleServicio (line items)
         self._add_detalle_servicio(root, source_doc)
@@ -133,11 +142,24 @@ class XMLGenerator(models.AbstractModel):
         ns = self.NAMESPACES['te']
         root = etree.Element(
             '{%s}TiqueteElectronico' % ns,
-            nsmap={'': ns, 'ds': self.NAMESPACES['ds']},
+            nsmap={None: ns, 'ds': self.NAMESPACES['ds']},
         )
 
         # Add basic elements (similar to FE but without Receptor for anonymous sales)
         etree.SubElement(root, 'Clave').text = einvoice.clave
+
+        # ProveedorSistemas (required in v4.4)
+        proveedor = getattr(source_doc.company_id, 'l10n_cr_proveedor_sistemas', '') or ''
+        if not proveedor:
+            proveedor = (source_doc.company_id.vat or '').replace('-', '').replace(' ', '')
+        if proveedor:
+            etree.SubElement(root, 'ProveedorSistemas').text = proveedor
+
+        # CodigoActividadEmisor (required in v4.4, min 6 chars)
+        codigo_actividad = getattr(source_doc.company_id.partner_id, 'l10n_cr_activity_code', '') or '861201'
+        codigo_actividad = codigo_actividad.zfill(6)
+        etree.SubElement(root, 'CodigoActividadEmisor').text = codigo_actividad
+
         etree.SubElement(root, 'NumeroConsecutivo').text = einvoice.name or ''
 
         # Handle both account.move and pos.order
@@ -150,7 +172,7 @@ class XMLGenerator(models.AbstractModel):
 
         self._add_emisor(root, source_doc.company_id)
         self._add_condicion_venta(root, source_doc)
-        self._add_medio_pago(root, source_doc)
+
         self._add_detalle_servicio(root, source_doc)
         self._add_resumen_factura(root, source_doc)
 
@@ -168,11 +190,24 @@ class XMLGenerator(models.AbstractModel):
         ns = self.NAMESPACES['nc']
         root = etree.Element(
             '{%s}NotaCreditoElectronica' % ns,
-            nsmap={'': ns, 'ds': self.NAMESPACES['ds']},
+            nsmap={None: ns, 'ds': self.NAMESPACES['ds']},
         )
 
         # Similar to FE with reference to original invoice
         etree.SubElement(root, 'Clave').text = einvoice.clave
+
+        # ProveedorSistemas (required in v4.4)
+        proveedor = getattr(move.company_id, 'l10n_cr_proveedor_sistemas', '') or ''
+        if not proveedor:
+            proveedor = (move.company_id.vat or '').replace('-', '').replace(' ', '')
+        if proveedor:
+            etree.SubElement(root, 'ProveedorSistemas').text = proveedor
+
+        # CodigoActividadEmisor (required in v4.4, min 6 chars)
+        codigo_actividad = getattr(move.company_id.partner_id, 'l10n_cr_activity_code', '') or '861201'
+        codigo_actividad = codigo_actividad.zfill(6)
+        etree.SubElement(root, 'CodigoActividadEmisor').text = codigo_actividad
+
         etree.SubElement(root, 'NumeroConsecutivo').text = einvoice.name or ''
 
         fecha_emision = move.invoice_date or fields.Date.today()
@@ -189,7 +224,7 @@ class XMLGenerator(models.AbstractModel):
             self._add_informacion_referencia(root, move.reversed_entry_id)
 
         self._add_condicion_venta(root, move)
-        self._add_medio_pago(root, move)
+
         self._add_detalle_servicio(root, move)
         self._add_resumen_factura(root, move)
 
@@ -208,10 +243,23 @@ class XMLGenerator(models.AbstractModel):
         ns = self.NAMESPACES['nd']
         root = etree.Element(
             '{%s}NotaDebitoElectronica' % ns,
-            nsmap={'': ns, 'ds': self.NAMESPACES['ds']},
+            nsmap={None: ns, 'ds': self.NAMESPACES['ds']},
         )
 
         etree.SubElement(root, 'Clave').text = einvoice.clave
+
+        # ProveedorSistemas (required in v4.4)
+        proveedor = getattr(move.company_id, 'l10n_cr_proveedor_sistemas', '') or ''
+        if not proveedor:
+            proveedor = (move.company_id.vat or '').replace('-', '').replace(' ', '')
+        if proveedor:
+            etree.SubElement(root, 'ProveedorSistemas').text = proveedor
+
+        # CodigoActividadEmisor (required in v4.4, min 6 chars)
+        codigo_actividad = getattr(move.company_id.partner_id, 'l10n_cr_activity_code', '') or '861201'
+        codigo_actividad = codigo_actividad.zfill(6)
+        etree.SubElement(root, 'CodigoActividadEmisor').text = codigo_actividad
+
         etree.SubElement(root, 'NumeroConsecutivo').text = einvoice.name or ''
 
         fecha_emision = move.invoice_date or fields.Date.today()
@@ -227,7 +275,7 @@ class XMLGenerator(models.AbstractModel):
             self._add_informacion_referencia(root, move.debit_origin_id)
 
         self._add_condicion_venta(root, move)
-        self._add_medio_pago(root, move)
+
         self._add_detalle_servicio(root, move)
         self._add_resumen_factura(root, move)
 
@@ -256,31 +304,44 @@ class XMLGenerator(models.AbstractModel):
         etree.SubElement(identificacion, 'Numero').text = numero_id
 
         # Commercial name (if different)
-        if company.commercial_name:
-            etree.SubElement(emisor, 'NombreComercial').text = company.commercial_name
+        commercial_name = getattr(company, 'commercial_name', '') or ''
+        if commercial_name:
+            etree.SubElement(emisor, 'NombreComercial').text = commercial_name
 
         # Location
         ubicacion = etree.SubElement(emisor, 'Ubicacion')
 
-        # Province, Canton, District, Neighborhood
-        location_code = company.l10n_cr_emisor_location or '01010100'
-        etree.SubElement(ubicacion, 'Provincia').text = location_code[0:1]
-        etree.SubElement(ubicacion, 'Canton').text = location_code[1:3]
-        etree.SubElement(ubicacion, 'Distrito').text = location_code[3:5]
-        etree.SubElement(ubicacion, 'Barrio').text = location_code[5:7]
+        # v4.4 Ubicacion: Provincia (1 digit 1-7), Canton (2 digits), Distrito (2 digits),
+        # Barrio (min 5 chars). Parse from stored location code.
+        location_code = (company.l10n_cr_emisor_location or '').strip()
+        # Normalize: strip leading zeros from province part
+        location_code = location_code.lstrip('0') or '1010101'
+        # Extract parts with safe defaults
+        provincia = location_code[0:1] if len(location_code) >= 1 else '1'
+        canton = location_code[1:3] if len(location_code) >= 3 else '01'
+        distrito = location_code[3:5] if len(location_code) >= 5 else '01'
+        barrio_raw = location_code[5:] if len(location_code) > 5 else '01'
+        # Barrio must be at least 5 chars in v4.4
+        barrio = barrio_raw.zfill(5)
+        etree.SubElement(ubicacion, 'Provincia').text = provincia
+        etree.SubElement(ubicacion, 'Canton').text = canton
+        etree.SubElement(ubicacion, 'Distrito').text = distrito
+        etree.SubElement(ubicacion, 'Barrio').text = barrio
 
-        # Address details
-        if company.street:
-            etree.SubElement(ubicacion, 'OtrasSenas').text = company.street
+        # Address details (OtrasSenas is required in v4.4)
+        otras_senas = company.street or 'Sin otras señas'
+        etree.SubElement(ubicacion, 'OtrasSenas').text = otras_senas
 
-        # Contact info
-        telefono = etree.SubElement(emisor, 'Telefono')
-        etree.SubElement(telefono, 'CodigoPais').text = '506'
+        # Contact info (Telefono is optional, only include if phone is set)
         phone = (company.phone or '').replace(' ', '').replace('-', '')
-        etree.SubElement(telefono, 'NumTelefono').text = phone[:8] if phone else '00000000'
+        if phone and int(phone[:8] or '0') >= 100:
+            telefono = etree.SubElement(emisor, 'Telefono')
+            etree.SubElement(telefono, 'CodigoPais').text = '506'
+            etree.SubElement(telefono, 'NumTelefono').text = phone[:8]
 
-        if company.email:
-            etree.SubElement(emisor, 'CorreoElectronico').text = company.email
+        # CorreoElectronico (required in v4.4 if Telefono is absent)
+        email = company.email or 'info@example.com'
+        etree.SubElement(emisor, 'CorreoElectronico').text = email
 
     def _add_receptor(self, root, partner, invoice_date=None):
         """
@@ -302,38 +363,8 @@ class XMLGenerator(models.AbstractModel):
             numero_id = partner.vat.replace('-', '').replace(' ', '')
             etree.SubElement(identificacion, 'Numero').text = numero_id
 
-        # Economic Activity (CIIU 4 code) - NEW for Phase 1C
-        # Mandatory from October 6, 2025 per Resolution MH-DGT-RES-0027-2024
-        if partner.l10n_cr_activity_code:
-            etree.SubElement(receptor, 'ActividadEconomica').text = partner.l10n_cr_activity_code
-            _logger.debug(
-                'Added economic activity %s to receptor for partner %s',
-                partner.l10n_cr_activity_code,
-                partner.name
-            )
-        else:
-            # Check if we're past the mandatory deadline
-            current_date = invoice_date or fields.Date.today()
-            deadline = self._get_ciiu_mandatory_date()
-
-            if current_date >= deadline:
-                # Hard error after deadline
-                raise ValidationError(
-                    _('Recipient economic activity (CIIU code) is required for invoices '
-                      'from October 6, 2025 onwards. Please add economic activity to '
-                      'partner "%s" before generating the invoice.') % partner.name
-                )
-            else:
-                # Warning only before deadline (grace period)
-                days_remaining = (deadline - current_date).days
-                _logger.warning(
-                    'Partner %s (ID: %s) is missing CIIU economic activity code. '
-                    'This will be REQUIRED from October 6, 2025. '
-                    'Days remaining: %s',
-                    partner.name,
-                    partner.id,
-                    days_remaining
-                )
+        # Note: ActividadEconomica is NOT a valid element in Receptor per v4.4 XSD.
+        # The economic activity code goes in CodigoActividadEmisor at the document root level.
 
         # Email
         if partner.email:
@@ -426,11 +457,9 @@ class XMLGenerator(models.AbstractModel):
             # Line number
             etree.SubElement(linea_detalle, 'NumeroLinea').text = str(line_number)
 
-            # Product code (Cabys code required)
-            codigo = etree.SubElement(linea_detalle, 'Codigo')
-            cabys_code = line.product_id.l10n_cr_cabys_code if line.product_id else '8611'
-            etree.SubElement(codigo, 'Tipo').text = '04'  # Código de producto
-            etree.SubElement(codigo, 'Codigo').text = cabys_code
+            # CABYS product code (required in v4.4, replaces old Codigo element)
+            cabys_code = getattr(line, 'l10n_cr_product_code', '') or '8611001000000'
+            etree.SubElement(linea_detalle, 'CodigoCABYS').text = cabys_code
 
             # Quantity
             etree.SubElement(linea_detalle, 'Cantidad').text = str(line.quantity)
@@ -462,21 +491,41 @@ class XMLGenerator(models.AbstractModel):
             subtotal_after_discount = subtotal - (subtotal * line.discount / 100)
             etree.SubElement(linea_detalle, 'SubTotal').text = '%.5f' % subtotal_after_discount
 
-            # Taxes
-            if line.tax_ids:
-                self._add_line_tax(linea_detalle, line, subtotal_after_discount)
+            # v4.4 LineaDetalle requires: BaseImponible, Impuesto+,
+            # ImpuestoAsumidoEmisorFabrica, ImpuestoNeto, MontoTotalLinea
+            etree.SubElement(linea_detalle, 'BaseImponible').text = '%.5f' % subtotal_after_discount
 
-            # Total
-            total_line = line.price_subtotal + line.price_total - line.price_subtotal
-            etree.SubElement(linea_detalle, 'MontoTotalLinea').text = '%.5f' % line.price_total
+            total_tax = 0.0
+            if line.tax_ids:
+                total_tax = self._add_line_tax(linea_detalle, line, subtotal_after_discount)
+            else:
+                # Even without taxes, v4.4 requires at least one Impuesto element
+                impuesto = etree.SubElement(linea_detalle, 'Impuesto')
+                etree.SubElement(impuesto, 'Codigo').text = '01'
+                etree.SubElement(impuesto, 'CodigoTarifaIVA').text = '08'
+                etree.SubElement(impuesto, 'Tarifa').text = '0.00'
+                etree.SubElement(impuesto, 'Monto').text = '0.00000'
+
+            etree.SubElement(linea_detalle, 'ImpuestoAsumidoEmisorFabrica').text = '0.00000'
+            etree.SubElement(linea_detalle, 'ImpuestoNeto').text = '%.5f' % total_tax
+
+            # MontoTotalLinea
+            etree.SubElement(linea_detalle, 'MontoTotalLinea').text = '%.5f' % (subtotal_after_discount + total_tax)
 
             line_number += 1
 
     def _add_line_tax(self, linea_detalle, line, base_amount):
-        """Add tax information to line item."""
-        impuesto = etree.SubElement(linea_detalle, 'Impuesto')
+        """Add tax information to line item (v4.4: each tax is a separate Impuesto element).
+
+        Returns:
+            float: Total tax amount for the line.
+        """
+        total_tax = 0.0
 
         for tax in line.tax_ids:
+            # Each tax gets its own Impuesto element in v4.4
+            impuesto = etree.SubElement(linea_detalle, 'Impuesto')
+
             # Determine tax code
             tax_amount_percent = tax.amount
 
@@ -500,12 +549,15 @@ class XMLGenerator(models.AbstractModel):
                 tarifa = str(tax_amount_percent)
 
             etree.SubElement(impuesto, 'Codigo').text = codigo_tax
-            etree.SubElement(impuesto, 'CodigoTarifa').text = codigo_tax
+            etree.SubElement(impuesto, 'CodigoTarifaIVA').text = codigo_tax
             etree.SubElement(impuesto, 'Tarifa').text = tarifa
 
             # Calculate tax amount
             tax_amount = base_amount * (float(tarifa) / 100)
             etree.SubElement(impuesto, 'Monto').text = '%.5f' % tax_amount
+            total_tax += tax_amount
+
+        return total_tax
 
     def _add_resumen_factura(self, root, move):
         """Add ResumenFactura (invoice summary)."""

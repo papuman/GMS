@@ -289,7 +289,7 @@
 
     <!-- Alternative simplified template for tickets (TE) -->
     <template id="report_einvoice_ticket" inherit_id="report_einvoice_document">
-        <xpath expr="//div[@class='page']" position="attributes">
+        <xpath expr="//div[hasclass('page')]" position="attributes">
             <attribute name="style">font-size: 12px;</attribute>
         </xpath>
     </template>

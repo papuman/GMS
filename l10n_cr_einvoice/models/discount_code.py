@@ -63,9 +63,7 @@ class L10nCrDiscountCode(models.Model):
         help='If True, users must provide a description when using this code (e.g., code 99 - Otro)',
     )
 
-    _sql_constraints = [
-        ('code_unique', 'UNIQUE(code)', 'Discount code must be unique!'),
-    ]
+    _code_unique = models.Constraint('UNIQUE(code)', 'Discount code must be unique!')
 
     @api.constrains('code')
     def _check_code_format(self):
@@ -76,20 +74,14 @@ class L10nCrDiscountCode(models.Model):
                     _('Discount code must be exactly 2 digits (e.g., 01, 02, 99)')
                 )
 
-    def name_get(self):
-        """
-        Display format: "01 - Comercial descuento"
-
-        This format makes it easy to see both code and name in dropdowns.
-        """
-        result = []
+    @api.depends('code', 'name')
+    def _compute_display_name(self):
+        """Display format: "01 - Comercial descuento"."""
         for record in self:
-            display_name = f"{record.code} - {record.name}"
-            result.append((record.id, display_name))
-        return result
+            record.display_name = f"{record.code} - {record.name}"
 
     @api.model
-    def _name_search(self, name='', args=None, operator='ilike', limit=100, name_get_uid=None):
+    def _name_search(self, name='', args=None, operator='ilike', limit=100):
         """
         Enable searching by code or name.
 
@@ -101,4 +93,4 @@ class L10nCrDiscountCode(models.Model):
         if name:
             domain = ['|', ('code', operator, name), ('name', operator, name)]
 
-        return self._search(domain + args, limit=limit, access_rights_uid=name_get_uid)
+        return self._search(domain + args, limit=limit)

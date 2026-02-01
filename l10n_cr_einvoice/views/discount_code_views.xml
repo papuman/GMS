@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Discount Code List View -->
+    <record id="view_discount_code_list" model="ir.ui.view">
+        <field name="name">l10n_cr.discount.code.list</field>
+        <field name="model">l10n_cr.discount.code</field>
+        <field name="arch" type="xml">
+            <list string="Discount Codes">
+                <field name="code"/>
+                <field name="name"/>
+                <field name="description"/>
+                <field name="requires_description" widget="boolean_toggle"/>
+                <field name="active" widget="boolean_toggle"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Discount Code Form View -->
+    <record id="view_discount_code_form" model="ir.ui.view">
+        <field name="name">l10n_cr.discount.code.form</field>
+        <field name="model">l10n_cr.discount.code</field>
+        <field name="arch" type="xml">
+            <form string="Discount Code">
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <widget name="web_ribbon" title="Archived" bg_color="text-bg-danger" invisible="active"/>
+                    </div>
+
+                    <group>
+                        <group>
+                            <field name="code" readonly="1"/>
+                            <field name="name" readonly="1"/>
+                            <field name="active" widget="boolean_toggle"/>
+                        </group>
+                        <group>
+                            <field name="requires_description" widget="boolean_toggle" readonly="1"/>
+                        </group>
+                    </group>
+
+                    <group>
+                        <field name="description" readonly="1"/>
+                    </group>
+
+                    <div class="alert alert-info" role="alert" invisible="not requires_description">
+                        <strong>Note:</strong> This discount code requires a description when used in invoices.
+                    </div>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- Discount Code Search View -->
+    <record id="view_discount_code_search" model="ir.ui.view">
+        <field name="name">l10n_cr.discount.code.search</field>
+        <field name="model">l10n_cr.discount.code</field>
+        <field name="arch" type="xml">
+            <search string="Discount Codes">
+                <field name="name"/>
+                <field name="code"/>
+                <filter string="Active" name="filter_active" domain="[('active', '=', True)]"/>
+                <filter string="Archived" name="filter_inactive" domain="[('active', '=', False)]"/>
+                <filter string="Requires Description" name="filter_requires_desc" domain="[('requires_description', '=', True)]"/>
+            </search>
+        </field>
+    </record>
+
+    <!-- Discount Code Action -->
+    <record id="action_discount_code" model="ir.actions.act_window">
+        <field name="name">Discount Codes</field>
+        <field name="res_model">l10n_cr.discount.code</field>
+        <field name="view_mode">list,form</field>
+        <field name="context">{'search_default_filter_active': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                No discount codes found
+            </p>
+            <p>
+                Discount codes are predefined by Hacienda (codes 01-10, 99) and loaded during module installation.
+                You can activate/deactivate codes as needed for your business.
+            </p>
+        </field>
+    </record>
+
+</odoo>

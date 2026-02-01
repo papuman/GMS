@@ -94,19 +94,35 @@ Requirements:
         'data/report_cron_jobs.xml',
         'data/tax_report_cron_jobs.xml',
 
-        # Views - Order matters for dependencies
-        'views/res_partner_views.xml',
-        'views/einvoice_document_views.xml',
-        'views/account_move_views.xml',
-        'views/res_config_settings_views.xml',
-        'views/res_company_views.xml',
-        'views/hacienda_menu.xml',
-        'views/einvoice_wizard_views.xml',
-        'views/einvoice_dashboard_views.xml',
-        'views/ciiu_bulk_assign_views.xml',
+        # Views - Core views enabled (functional views only)
+        'views/res_partner_views.xml',          # Partner CIIU fields
+        'views/einvoice_document_views.xml',    # E-invoice document views
+        'views/res_company_views.xml',          # Company Hacienda settings
+
+        # Phase 9B: Tax Reports Views (MUST load BEFORE hacienda_menu.xml to define actions)
+        'views/tax_report_period_views.xml',    # Tax report periods
+        'views/d150_vat_report_views.xml',      # D-150 Monthly VAT
+        'views/d101_income_tax_report_views.xml', # D-101 Annual Income Tax
+        'views/d151_informative_report_views.xml', # D-151 Informative Declaration
+
+        # Catalog Views (MUST load BEFORE hacienda_menu.xml to define actions)
+        'views/payment_method_views.xml',       # Payment methods catalog
+        'views/discount_code_views.xml',        # Discount codes catalog
+
+        # Menu structure (MUST load AFTER view files to reference their actions)
+        'views/hacienda_menu.xml',              # Hacienda menu structure
+
+        # TODO: Enable when models are implemented:
+        # 'views/einvoice_wizard_views.xml',      # Wizards (models not implemented)
+        # 'views/einvoice_dashboard_views.xml',   # Dashboard (analytics model)
+        # 'views/ciiu_bulk_assign_views.xml',     # Bulk wizard (model exists, needs testing)
+
+        # TODO: Fix Odoo 19 XPath issues for these views:
+        # 'views/account_move_views.xml',       # Discount code fields (Phase 1B optional)
+        # 'views/res_config_settings_views.xml', # Settings page integration (optional)
 
         # Reports
-        'reports/einvoice_report_templates.xml',
+        'reports/einvoice_report_templates.xml',  # PDF report templates
     ],
     'demo': [],
     'installable': True,

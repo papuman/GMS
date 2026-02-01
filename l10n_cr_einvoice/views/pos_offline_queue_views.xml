@@ -77,11 +77,9 @@
                     <filter name="synced" string="Synced" domain="[('state', '=', 'synced')]"/>
                     <separator/>
                     <filter name="ready_to_retry" string="Ready to Retry" domain="[('state', '=', 'pending'), '|', ('next_retry', '&lt;=', context_today()), ('next_retry', '=', False)]"/>
-                    <group expand="0" string="Group By">
                         <filter name="group_state" string="State" context="{'group_by': 'state'}"/>
                         <filter name="group_config" string="POS Terminal" context="{'group_by': 'config_id'}"/>
                         <filter name="group_priority" string="Priority" context="{'group_by': 'priority'}"/>
-                    </group>
                 </search>
             </field>
         </record>
@@ -106,7 +104,7 @@
         <!-- Menu Item -->
         <menuitem id="menu_pos_offline_queue"
                   name="POS Offline Queue"
-                  parent="hacienda_menu_root"
+                  parent="menu_hacienda_root"
                   action="action_pos_offline_queue"
                   sequence="60"/>
 

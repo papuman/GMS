@@ -310,7 +310,7 @@
                     </group>
 
                     <group string="Suggested Action">
-                        <div class="alert alert-info">
+                        <div class="alert alert-info" role="alert">
                             <field name="suggested_action" readonly="1" nolabel="1"/>
                         </div>
                     </group>
@@ -354,13 +354,11 @@
                 <filter string="Medium" name="medium" domain="[('severity', '=', 'medium')]"/>
                 <filter string="Low" name="low" domain="[('severity', '=', 'low')]"/>
                 <separator/>
-                <group expand="0" string="Group By">
                     <filter string="Error Type" name="group_error_type" context="{'group_by': 'error_type'}"/>
                     <filter string="Error Category" name="group_category" context="{'group_by': 'error_category'}"/>
                     <filter string="Severity" name="group_severity" context="{'group_by': 'severity'}"/>
                     <filter string="Batch" name="group_batch" context="{'group_by': 'batch_id'}"/>
                     <filter string="Status" name="group_status" context="{'group_by': 'is_resolved'}"/>
-                </group>
             </search>
         </field>
     </record>
@@ -402,7 +400,7 @@ action = records.action_bulk_retry()
     <!-- Menu Items -->
     <menuitem id="menu_einvoice_import"
               name="Import"
-              parent="hacienda_menu"
+              parent="menu_hacienda_root"
               sequence="50"/>
 
     <menuitem id="menu_einvoice_import_wizard"

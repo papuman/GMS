@@ -251,30 +251,3 @@ class AccountMove(models.Model):
             })
 
             _logger.info(f'Sent e-invoice email for {self.name}')
-
-
-class AccountMoveLine(models.Model):
-    _inherit = 'account.move.line'
-
-    # Costa Rica specific tax codes
-    l10n_cr_tax_code = fields.Selection([
-        ('01', 'IVA 13%'),
-        ('02', 'IVA 4%'),
-        ('03', 'IVA 2%'),
-        ('04', 'IVA 1%'),
-        ('05', 'Exento'),
-        ('06', 'Gravado 0%'),
-        ('07', 'No sujeto'),
-        ('08', 'Exonerado'),
-    ], string='CR Tax Code', help='Costa Rica tax code for electronic invoicing')
-
-    l10n_cr_product_code = fields.Char(
-        string='CR Product Code',
-        help='Costa Rica product classification code (Cabys)',
-    )
-
-    @api.onchange('product_id')
-    def _onchange_product_id_l10n_cr(self):
-        """Set CR product code from product."""
-        if self.product_id and self.product_id.l10n_cr_cabys_code:
-            self.l10n_cr_product_code = self.product_id.l10n_cr_cabys_code

@@ -90,69 +90,81 @@
                         </page>
 
                         <page string="Purchases (Input VAT)" name="purchases">
-                            <group>
-                                <group string="Purchases at 13%">
-                                    <field name="purchases_13_base" readonly="state != 'draft'"/>
-                                    <field name="purchases_13_tax" readonly="1"/>
+                            <!-- Purchases at 13% - Split by Goods/Services per CR regulation -->
+                            <group string="Purchases at 13% VAT">
+                                <group string="Goods (Bienes)">
+                                    <field name="purchases_goods_13_base" readonly="state != 'draft'"/>
+                                    <field name="purchases_goods_13_tax" readonly="1"/>
                                 </group>
+                                <group string="Services (Servicios)">
+                                    <field name="purchases_services_13_base" readonly="state != 'draft'"/>
+                                    <field name="purchases_services_13_tax" readonly="1"/>
+                                </group>
+                            </group>
+
+                            <!-- Purchases at Reduced Rates -->
+                            <group>
                                 <group string="Purchases at 4%">
                                     <field name="purchases_4_base" readonly="state != 'draft'"/>
                                     <field name="purchases_4_tax" readonly="1"/>
                                 </group>
-                            </group>
-                            <group>
                                 <group string="Purchases at 2%">
                                     <field name="purchases_2_base" readonly="state != 'draft'"/>
                                     <field name="purchases_2_tax" readonly="1"/>
                                 </group>
+                            </group>
+                            <group>
                                 <group string="Purchases at 1%">
                                     <field name="purchases_1_base" readonly="state != 'draft'"/>
                                     <field name="purchases_1_tax" readonly="1"/>
                                 </group>
-                            </group>
-                            <group>
                                 <group string="Exempt Purchases">
                                     <field name="purchases_exempt" readonly="state != 'draft'"/>
                                 </group>
+                            </group>
+
+                            <!-- Totals -->
+                            <group>
                                 <group string="Total Purchases">
                                     <field name="purchases_total_base" readonly="1" class="oe_subtotal_footer_separator"/>
                                     <field name="purchases_total_tax" readonly="1" class="oe_subtotal_footer_separator"/>
                                 </group>
+                                <group/>
                             </group>
                         </page>
 
                         <page string="VAT Settlement" name="settlement">
                             <group>
-                                <group string="Output VAT (Sales)">
-                                    <field name="sales_total_tax" readonly="1" class="text-success"/>
+                                <group string="Output VAT (Sales - IVA Generado)">
+                                    <field name="sales_total_tax" readonly="1" class="text-success" widget="monetary"/>
                                 </group>
-                                <group string="Input VAT (Purchases)">
-                                    <field name="purchases_total_tax" readonly="1" class="text-info"/>
+                                <group string="Input VAT (Purchases - IVA Soportado)">
+                                    <field name="purchases_total_tax" readonly="1" class="text-info" widget="monetary"/>
                                 </group>
                             </group>
                             <group>
                                 <group string="Proportionality Adjustment">
                                     <field name="proportionality_factor" readonly="1"/>
-                                    <field name="input_vat_credit" readonly="1"/>
+                                    <field name="adjusted_credit" readonly="1" widget="monetary"/>
                                 </group>
-                                <group string="Previous Period">
-                                    <field name="previous_balance" readonly="state != 'draft'"/>
+                                <group string="Previous Period Balance">
+                                    <field name="previous_balance" readonly="state != 'draft'" widget="monetary"/>
                                 </group>
                             </group>
+                            <separator/>
                             <group>
-                                <group>
-                                    <field name="total_output_vat" readonly="1" class="oe_subtotal_footer_separator"/>
-                                    <field name="total_input_vat" readonly="1" class="oe_subtotal_footer_separator"/>
-                                </group>
-                                <group>
+                                <group string="Final Settlement">
                                     <field name="net_amount_due" readonly="1" class="oe_subtotal_footer_separator" widget="monetary" decoration-danger="net_amount_due &gt; 0" decoration-success="net_amount_due &lt;= 0"/>
+                                    <field name="amount_to_pay" readonly="1" invisible="net_amount_due &lt;= 0" widget="monetary" class="text-danger"/>
+                                    <field name="credit_to_next_period" readonly="1" invisible="net_amount_due &gt; 0" widget="monetary" class="text-success"/>
                                 </group>
+                                <group/>
                             </group>
-                            <div class="alert alert-info" role="alert" invisible="net_amount_due &lt;= 0">
-                                <strong>VAT Payable:</strong> This amount must be paid to Hacienda by the deadline.
+                            <div class="alert alert-danger" role="alert" invisible="net_amount_due &lt;= 0">
+                                <strong>VAT Payable:</strong> ₡<field name="amount_to_pay" readonly="1" widget="monetary"/> must be paid to Hacienda by the deadline.
                             </div>
                             <div class="alert alert-success" role="alert" invisible="net_amount_due &gt; 0">
-                                <strong>VAT Credit:</strong> This credit will be carried forward to next month.
+                                <strong>VAT Credit:</strong> ₡<field name="credit_to_next_period" readonly="1" widget="monetary"/> will be carried forward to next month.
                             </div>
                         </page>
 
@@ -197,7 +209,6 @@
             <search string="D-150 VAT Reports">
                 <field name="name"/>
                 <field name="period_id"/>
-                <separator/>
                 <filter string="Draft" name="filter_draft" domain="[('state', '=', 'draft')]"/>
                 <filter string="Calculated" name="filter_calculated" domain="[('state', '=', 'calculated')]"/>
                 <filter string="Ready" name="filter_ready" domain="[('state', '=', 'ready')]"/>
@@ -208,11 +219,9 @@
                 <filter string="VAT Payable" name="filter_payable" domain="[('net_amount_due', '&gt;', 0)]"/>
                 <filter string="VAT Credit" name="filter_credit" domain="[('net_amount_due', '&lt;=', 0)]"/>
                 <separator/>
-                <group expand="0" string="Group By">
-                    <filter string="Period" name="group_period" context="{'group_by': 'period_id'}"/>
-                    <filter string="State" name="group_state" context="{'group_by': 'state'}"/>
-                    <filter string="Company" name="group_company" context="{'group_by': 'company_id'}" groups="base.group_multi_company"/>
-                </group>
+                <filter string="Period" name="group_period" context="{'group_by': 'period_id'}"/>
+                <filter string="State" name="group_state" context="{'group_by': 'state'}"/>
+                <filter string="Company" name="group_company" context="{'group_by': 'company_id'}" groups="base.group_multi_company"/>
             </search>
         </field>
     </record>

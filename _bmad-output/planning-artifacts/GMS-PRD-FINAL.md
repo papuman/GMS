@@ -6,6 +6,8 @@
 **Date:** January 16, 2026
 **Author:** Papu
 **Quality Score:** 96.8/100 (Grade: A+)
+> Note: Independent validation review scored this document lower. Fixes applied January 2026.
+
 **Status:** ✅ Approved for Architecture Phase
 
 ---
@@ -21,6 +23,7 @@
 **Quality Metrics:**
 - **Validation Score:** 96.8/100
 - **Grade:** A+
+- > Note: Independent validation review scored this document lower. Fixes applied January 2026.
 
 ---
 
@@ -42,7 +45,7 @@
 
 ### Vision
 
-GMS transforms Odoo 19 Enterprise into Costa Rica's first gym management platform purpose-built for local compliance and payment realities. By addressing the urgent e-invoicing v4.4 deadline (September 2025) and seamlessly integrating payment gateways (Tilopay) for SINPE Móvil automation, GMS solves the compliance crisis while delivering modern, gym-specific workflows that hide Odoo's technical complexity.
+GMS transforms Odoo 19 Enterprise into Costa Rica's first gym management platform purpose-built for local compliance and payment realities. By addressing e-invoicing v4.4 compliance (now in effect since September 2025) and seamlessly integrating payment gateways (Tilopay) for SINPE Móvil automation, GMS solves the compliance crisis while delivering modern, gym-specific workflows that hide Odoo's technical complexity.
 
 The platform operates as a multi-tenant SaaS where gym customers receive tailored GMS modules while the infrastructure can serve vanilla Odoo customers, maximizing platform leverage.
 
@@ -63,10 +66,10 @@ The platform operates as a multi-tenant SaaS where gym customers receive tailore
 ### The Problem (Costa Rica-Specific)
 
 **1. E-Invoicing Compliance Crisis** ⚠️ **URGENT**
-- Mandatory deadline: **September 1, 2025** (6-9 month window)
+- Mandatory deadline: **September 1, 2025** (now in effect since September 2025)
 - Hacienda v4.4 required (v4.3 deprecated)
 - Penalties: **₡8.3M+ ($14,800+)** or 2% of gross revenue
-- Most gyms unprepared, especially independents
+- Many gyms still non-compliant, especially independents
 
 **2. Payment Collection & Reconciliation Gap**
 - **76% of Costa Ricans use SINPE Móvil** (primary payment method)
@@ -153,9 +156,9 @@ Current market: Gyms use separate systems:
 **GMS**: All in ONE platform = time savings + seamless workflow
 
 **2. Regulatory Compliance Ready**
-- September 2025 deadline creates urgency
+- September 2025 e-invoicing mandate now in effect; non-compliant gyms face active enforcement
 - Penalties ($14,800+) motivate immediate action
-- 6-9 month window before competitors catch up
+- Non-compliant gyms increasingly exposed as enforcement ramps up
 
 **3. Underserved Market Segment**
 - 250-300 independent gyms have no viable option
@@ -342,7 +345,7 @@ GMS is deployed as optional modules on a multi-tenant Odoo platform:
 ### Technical Success
 
 **MVP Technical Requirements:**
-- **Uptime**: >99% (basic infrastructure stability)
+- **Uptime**: >99.5% during business hours (6 AM - 10 PM CST)
 - **E-Invoice Success Rate**: >95% first-submission acceptance by Hacienda
 - **Invoice Generation Speed**: <5 seconds (complete v4.4 compliance workflow)
 - **Data Loss**: Zero incidents (5-year archival requirement)
@@ -352,7 +355,7 @@ GMS is deployed as optional modules on a multi-tenant Odoo platform:
 - Interface responsiveness: <2 seconds for primary operations (Costa Rica internet speeds)
 - Invoice generation: <5 seconds (complete workflow)
 - Report availability: <10 seconds for standard reports
-- Bulk operations: Process 100 invoices in <2 minutes
+- Bulk operations: Process 100 invoices in <5 minutes
 
 **Post-MVP Integration Success (Tilopay Phase):**
 - **Tilopay Integration**: >98% redirect return success rate
@@ -393,9 +396,9 @@ GMS is deployed as optional modules on a multi-tenant Odoo platform:
 
 ## Product Scope
 
-### MVP - Minimum Viable Product (Launch by Q2 2025)
+### MVP - Minimum Viable Product (Launch by Q1 2026)
 
-**Core Focus: Get gyms Hacienda-compliant BEFORE the September 2025 deadline**
+**Core Focus: Get gyms Hacienda-compliant (v4.4 mandate in effect since September 2025)**
 
 **Must-Have for Launch:**
 
@@ -605,7 +608,7 @@ GMS is deployed as optional modules on a multi-tenant Odoo platform:
 
 **Current Pain Points:**
 - No clear path to e-invoicing compliance
-- September 2025 deadline causing urgency
+- September 2025 e-invoicing mandate now in effect; enforcement active
 - ₡8.3M+ penalties for non-compliance
 - Complex Hacienda technical requirements overwhelming
 
@@ -650,7 +653,7 @@ GMS is deployed as optional modules on a multi-tenant Odoo platform:
 7. **Archive compliant PDFs** → Download and store 5-year compliant records
 
 **Success State:**
-- 100+ invoices submitted in <30 minutes
+- 100+ invoices submitted in <5 minutes
 - >95% first-submission acceptance rate
 - Compliant archival for 5 years
 - Zero manual XML creation
@@ -813,7 +816,7 @@ GMS is deployed as optional modules on a multi-tenant Odoo platform:
 **Traceability:** Each FR maps to User Journey and Success Criteria
 **Acceptance Criteria:** Measurable, testable conditions
 
-### MVP Requirements (M1-M3: Q2 2025)
+### MVP Requirements (M1-M3: Q1 2026)
 
 **FR-001: Gym Owner can upload and configure digital certificate for Hacienda**
 - **Journey:** Journey 1 (Initial Setup)
@@ -1213,9 +1216,9 @@ GMS is deployed as optional modules on a multi-tenant Odoo platform:
 - **Priority:** MEDIUM (Growth Phase 2 - FR-026)
 
 **NFR-005: Batch invoice generation performance**
-- The system shall generate, sign, and submit 100 invoices (monthly billing cycle) within 30 minutes as measured by batch job execution time
+- The system shall generate, sign, and submit 100 invoices (monthly billing cycle) within 5 minutes as measured by batch job execution time
 - **Measurement:** Batch job logs
-- **Target:** 100 invoices in <30 minutes
+- **Target:** <5 minutes for batches up to 100 invoices
 - **Priority:** HIGH (Growth Phase 1 automation - FR-022)
 
 ### Security Requirements
@@ -1320,7 +1323,7 @@ GMS is deployed as optional modules on a multi-tenant Odoo platform:
 - The system shall achieve 100% compliance with Hacienda v4.4 e-invoicing technical specification as verified by Hacienda sandbox testing
 - **Measurement:** Hacienda sandbox approval rate + production validation
 - **Standard:** Hacienda v4.4 XML schema (Resolution MH-DGT-RES-0027-2024)
-- **Priority:** CRITICAL (legal requirement - mandatory September 2025)
+- **Priority:** CRITICAL (legal requirement - in effect since September 2025)
 
 **NFR-022: Electronic communications consent compliance**
 - The system shall achieve 100% compliance with electronic communications laws (Laws 8968/7975/8642) for email, SMS, and WhatsApp marketing as verified by legal compliance audit
@@ -1551,7 +1554,8 @@ GMS is deployed as optional modules on a multi-tenant Odoo platform:
 - **Transaction Fees**: Tilopay charges 2-3% per transaction (research exact pricing)
 
 **Pre-MVP Research:**
-- [ ] Tilopay API documentation review
+- [x] Validated: TiloPay API documented, redirect-based integration confirmed
+- [x] Validated: TiloPay uses redirect-based flow (NOT webhook-based)
 - [ ] Tilopay pricing structure (transaction fees, monthly costs)
 - [ ] Tilopay partnership terms and SLA
 - [✅] **BAC Credomatic Gateway Evaluation (COMPLETE)**:

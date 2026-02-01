@@ -250,12 +250,14 @@ class EInvoiceDocument(models.Model):
             if not doc.move_id and not doc.pos_order_id:
                 raise ValidationError(_('E-invoice document must be linked to either an Invoice or a POS Order.'))
 
-    @api.model
-    def create(self, vals):
+    @api.model_create_multi
+    def create(self, vals_list):
         """Override create to generate sequence number."""
-        if vals.get('name', _('New')) == _('New'):
-            vals['name'] = self.env['ir.sequence'].next_by_code('l10n_cr.einvoice') or _('New')
-        return super(EInvoiceDocument, self).create(vals)
+        # Odoo 19: create() now receives a list of dictionaries
+        for vals in vals_list:
+            if vals.get('name', _('New')) == _('New'):
+                vals['name'] = self.env['ir.sequence'].next_by_code('l10n_cr.einvoice') or _('New')
+        return super(EInvoiceDocument, self).create(vals_list)
 
     def action_generate_xml(self):
         """Generate the XML content for the electronic invoice."""
@@ -273,6 +275,10 @@ class EInvoiceDocument(models.Model):
         try:
             # Generate the clave (50-digit key)
             clave = self._generate_clave()
+            self.clave = clave
+            # Extract the 20-digit consecutive number from the clave
+            # Clave format: 506(3) + DDMMYY(6) + cedula(12) + consecutive(20) + security(8) + check(1)
+            self.name = clave[21:41]
 
             # Generate XML content
             xml_content = self._build_xml_content(clave)
@@ -316,14 +322,18 @@ class EInvoiceDocument(models.Model):
             raise UserError(_('No XML content to sign.'))
 
         try:
-            # Get company certificate
+            # Verify certificate is configured
             certificate = self.company_id.l10n_cr_certificate
+            if not certificate:
+                raise UserError(_('Company digital certificate must be configured.'))
+
+            # For .p12 files, private key is embedded; for PEM, it must be separate
             private_key = self.company_id.l10n_cr_private_key
+            filename = (self.company_id.l10n_cr_certificate_filename or '').lower()
+            if not filename.endswith(('.p12', '.pfx')) and not private_key:
+                raise UserError(_('Private key file is required for PEM certificates.'))
 
-            if not certificate or not private_key:
-                raise UserError(_('Company certificate and private key must be configured.'))
-
-            # Sign the XML
+            # Sign the XML (certificate manager handles .p12 extraction)
             signed_xml = self._sign_xml_content(self.xml_content, certificate, private_key)
 
             # Create XML attachment
@@ -377,7 +387,9 @@ class EInvoiceDocument(models.Model):
         if not self.company_id.l10n_cr_certificate:
             errors.append(_('Digital certificate not configured - upload in Company settings'))
 
-        if not self.company_id.l10n_cr_private_key:
+        # For PEM certs, private key file is required; for .p12/.pfx it's embedded
+        cert_filename = (self.company_id.l10n_cr_certificate_filename or '').lower()
+        if not cert_filename.endswith(('.p12', '.pfx')) and not self.company_id.l10n_cr_private_key:
             errors.append(_('Private key not configured - upload in Company settings'))
 
         # Partner/Customer validation
@@ -491,7 +503,7 @@ class EInvoiceDocument(models.Model):
             (self.id,)
         )
 
-        if self.state not in ['submitted', 'submission_error']:
+        if self.state not in ['submitted', 'submission_error', 'error']:
             raise UserError(_('Can only check status for submitted documents.'))
 
         try:
@@ -506,8 +518,18 @@ class EInvoiceDocument(models.Model):
             raise UserError(_('Error checking status: %s') % str(e))
 
     def action_retry(self):
-        """Retry failed operation based on current error state."""
+        """
+        Retry failed operation based on current error state.
+
+        This method intelligently retries the failed step in the e-invoice workflow.
+        It determines which action to retry based on the current error state.
+
+        Returns:
+            dict or None: Action dictionary if redirect needed, None otherwise
+        """
         self.ensure_one()
+
+        _logger.info(f'Retrying failed operation for document {self.name}, current state: {self.state}')
 
         if self.state == 'generation_error':
             return self.action_generate_xml()
@@ -754,32 +776,30 @@ class EInvoiceDocument(models.Model):
         """
         Generate the 50-digit Hacienda key (clave).
 
-        Format: CCPEDDMMAAAATTNNNNNNNNNNNNNNNNNSSSSSSSSC
-        CC = Country (506 for Costa Rica)
-        PE = Province + Canton + District (8 digits)
-        DD = Day
-        MM = Month
-        AAAA = Year
-        TT = Document type code
-        NNNNNNNNNNNNNNNNN = Cedula Juridica (12 digits)
-        SSSSSSSS = Sequential number (20 digits)
-        C = Verification digit
+        Format (50 digits total):
+        CCC DDMMYY CCCCCCCCCCCC CCCCCCCCCCCCCCCCCCCC SSSSSSSS V
+        506  date   cedula(12)   consecutive(20)      security  check
+         3    6       12              20                  8       1
         """
+        import random
+
         move = self.move_id
         company = self.company_id
 
-        # Country code (506)
+        # Country code (3 digits)
         country = '506'
 
-        # Get emisor location (8 digits: provincia-canton-distrito-barrio)
-        # For now using default, should be configured per company
-        emisor_location = company.l10n_cr_emisor_location or '01010100'
-
-        # Date (DDMMYYYY)
+        # Date DDMMYY (6 digits, 2-digit year)
         invoice_date = move.invoice_date or fields.Date.today()
-        date_str = invoice_date.strftime('%d%m%Y')
+        date_str = invoice_date.strftime('%d%m%y')
 
-        # Document type code
+        # Cedula juridica (12 digits, zero-padded)
+        cedula = (company.vat or '').replace('-', '').replace(' ', '').zfill(12)[:12]
+
+        # Consecutive number (20 digits)
+        # Format: EEE-TT-DD-SSSSSSSSSSSS
+        # EEE = emisor sucursal (3 digits), TT = terminal (2),
+        # DD = doc type (2), SSSSSSSSSSSS = sequence (13)
         doc_type_codes = {
             'FE': '01',
             'ND': '02',
@@ -787,17 +807,15 @@ class EInvoiceDocument(models.Model):
             'TE': '04',
         }
         doc_type = doc_type_codes.get(self.document_type, '01')
+        consecutive = '001' + '00001' + doc_type + str(self.id).zfill(10)  # 3+5+2+10 = 20
 
-        # Cedula juridica (remove dashes/spaces, pad to 12 digits)
-        cedula = (company.vat or '').replace('-', '').replace(' ', '').zfill(12)
+        # Security code (8 random digits)
+        security_code = str(random.randint(10000000, 99999999))
 
-        # Sequential (20 digits)
-        sequence = str(self.id).zfill(20)
+        # Build clave without verification digit (49 digits)
+        clave_without_check = country + date_str + cedula + consecutive + security_code
 
-        # Build clave without verification digit
-        clave_without_check = country + emisor_location + date_str + doc_type + cedula + sequence
-
-        # Calculate verification digit
+        # Calculate verification digit (1 digit)
         check_digit = self._calculate_check_digit(clave_without_check)
 
         clave = clave_without_check + check_digit

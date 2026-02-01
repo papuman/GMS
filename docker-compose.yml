@@ -34,6 +34,8 @@ services:
       - odoo-web-data:/var/lib/odoo
       # Mount config file
       - ./odoo.conf:/etc/odoo/odoo.conf:ro
+      # Mount custom addons for live development
+      - ./l10n_cr_einvoice:/opt/odoo/custom_addons/l10n_cr_einvoice
     networks:
       - odoo-network
     restart: unless-stopped

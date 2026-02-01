@@ -183,7 +183,7 @@ l10n_cr_einvoice/
 **Resources Available**:
 - ✅ Sandbox credentials
 - ✅ Test certificate (certificado.p12)
-- ✅ Certificate PIN (5147)
+- ✅ Certificate PIN ([REDACTED - use environment variable EINVOICE_CERT_PIN])
 
 ### Pending (Phases 3-8)
 

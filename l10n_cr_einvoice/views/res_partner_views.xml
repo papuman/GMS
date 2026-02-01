@@ -14,7 +14,7 @@
                        invisible="country_code != 'CR'"/>
 
                 <!-- Show suggested code if available -->
-                <div class="alert alert-info"
+                <div class="alert alert-info" role="alert"
                      invisible="not l10n_cr_suggested_ciiu_id or l10n_cr_economic_activity_id">
                     <p>
                         <strong>Suggested Economic Activity:</strong>
@@ -28,7 +28,7 @@
                 </div>
 
                 <!-- Warning for missing CIIU code -->
-                <div class="alert alert-warning"
+                <div class="alert alert-warning" role="alert"
                      invisible="not l10n_cr_missing_ciiu">
                     <p>
                         <strong>Warning:</strong> This Costa Rica partner is missing an economic activity code.
@@ -123,8 +123,8 @@
         </field>
     </record>
 
-    <!-- TODO: Fix Odoo 19 search view validation -->
-    <!-- CIIU Code Search View -->
+    <!-- TODO: CIIU Code Search View needs deeper Odoo 19 investigation -->
+    <!-- Commenting out - has validation issues beyond expand attribute -->
     <!--
     <record id="view_ciiu_code_search" model="ir.ui.view">
         <field name="name">l10n_cr.ciiu.code.search</field>
@@ -137,9 +137,7 @@
                 <filter name="active" string="Active" domain="[('active', '=', True)]"/>
                 <filter name="inactive" string="Archived" domain="[('active', '=', False)]"/>
                 <separator/>
-                <group expand="0" string="Group By">
                     <filter name="group_by_section" string="Section" context="{'group_by': 'section'}"/>
-                </group>
             </search>
         </field>
     </record>

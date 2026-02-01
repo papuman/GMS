@@ -48,10 +48,11 @@ class PosOrder(models.Model):
     )
 
     # Customer Data snapshot (for the invoice)
-    l10n_cr_customer_id_type = fields.Selection(
-        related='partner_id.l10n_cr_ident_type_id.code',
-        string='Customer ID Type'
-    )
+    # TODO: Fix related field - l10n_cr_ident_type_id doesn't exist in res.partner
+    # l10n_cr_customer_id_type = fields.Selection(
+    #     related='partner_id.l10n_cr_ident_type_id.code',
+    #     string='Customer ID Type'
+    # )
     l10n_cr_customer_id_number = fields.Char(
         related='partner_id.vat',
         string='Customer ID Number'
@@ -78,33 +79,25 @@ class PosOrder(models.Model):
             else:
                 order.l10n_cr_qr_code = False
 
-    @api.model
-    def _process_order(self, order, existing_order):
-        """Override to generate E-Invoice after order creation."""
-        # Create the order first
-        order_id = super(PosOrder, self)._process_order(order, existing_order)
-        
-        if not order_id:
-            return order_id
-
-        # Get the order record
-        pos_order = self.browse(order_id)
-        
-        # Odoo 16+ POS: 'order' dict usually contains flat fields directly
-        # depending on how export_as_JSON is implemented in JS.
-        # Fallback to standard Odoo behavior if customization works.
-        is_einvoice = order.get('l10n_cr_is_einvoice', False) or order.get('data', {}).get('l10n_cr_is_einvoice', False)
-        
-        # If enabled in config and requested by user
-        if pos_order.config_id.l10n_cr_enable_einvoice and is_einvoice:
-            pos_order.write({'l10n_cr_is_einvoice': True})
-            try:
-                pos_order._generate_cr_einvoice()
-            except Exception as e:
-                # Log error and ensure order doesn't fail, but notify via chatter
-                pos_order.message_post(body=f"⚠️ Electronic Invoice generation failed: {str(e)}")
-            
-        return order_id
+    # TODO: Odoo 19 refactored POS order processing.
+    # This override used the Odoo 14-16 _process_order API which no longer exists.
+    # Needs to be reimplemented using the Odoo 19 POS order flow.
+    #
+    # @api.model
+    # def _process_order(self, order, existing_order):
+    #     """Override to generate E-Invoice after order creation."""
+    #     order_id = super(PosOrder, self)._process_order(order, existing_order)
+    #     if not order_id:
+    #         return order_id
+    #     pos_order = self.browse(order_id)
+    #     is_einvoice = order.get('l10n_cr_is_einvoice', False) or order.get('data', {}).get('l10n_cr_is_einvoice', False)
+    #     if pos_order.config_id.l10n_cr_enable_einvoice and is_einvoice:
+    #         pos_order.write({'l10n_cr_is_einvoice': True})
+    #         try:
+    #             pos_order._generate_cr_einvoice()
+    #         except Exception as e:
+    #             pos_order.message_post(body=f"Electronic Invoice generation failed: {str(e)}")
+    #     return order_id
 
     def _generate_cr_einvoice(self):
         """Generate and submit the electronic invoice."""
@@ -123,8 +116,11 @@ class PosOrder(models.Model):
              raise UserError(_("Cannot generate e-invoice: No partner selected and no default configured."))
 
         # Create the document
+        # TODO: Odoo 19 pos.order no longer has 'account_move' field.
+        # This needs to be updated to use the correct Odoo 19 relationship
+        # (e.g., account_move_id or the invoice created via pos order invoicing).
         vals = {
-            'move_id': self.account_move.id if self.account_move else False,
+            'move_id': self.account_move.id if hasattr(self, 'account_move') and self.account_move else False,
             'pos_order_id': self.id,  # Link to POS order
             'document_type': doc_type,
             'company_id': self.company_id.id,

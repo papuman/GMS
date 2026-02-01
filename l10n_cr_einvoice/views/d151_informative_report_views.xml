@@ -36,13 +36,6 @@
                 </header>
                 <sheet>
                     <div class="oe_button_box" name="button_box">
-                        <!-- Smart buttons -->
-                        <button name="%(action_d151_customer_line)d" type="action" class="oe_stat_button" icon="fa-users" context="{'search_default_report_id': active_id}">
-                            <field name="total_customers_reported" widget="statinfo" string="Customers"/>
-                        </button>
-                        <button name="%(action_d151_supplier_line)d" type="action" class="oe_stat_button" icon="fa-shopping-cart" context="{'search_default_report_id': active_id}">
-                            <field name="total_suppliers_reported" widget="statinfo" string="Suppliers"/>
-                        </button>
                     </div>
 
                     <div class="oe_title">
@@ -168,29 +161,11 @@
                 <filter string="Accepted" name="filter_accepted" domain="[('state', '=', 'accepted')]"/>
                 <filter string="Errors" name="filter_error" domain="[('state', '=', 'error')]"/>
                 <separator/>
-                <group expand="0" string="Group By">
                     <filter string="Period" name="group_period" context="{'group_by': 'period_id'}"/>
                     <filter string="State" name="group_state" context="{'group_by': 'state'}"/>
                     <filter string="Company" name="group_company" context="{'group_by': 'company_id'}" groups="base.group_multi_company"/>
-                </group>
             </search>
         </field>
-    </record>
-
-    <!-- D-151 Customer Line Action (for smart button) -->
-    <record id="action_d151_customer_line" model="ir.actions.act_window">
-        <field name="name">Customer Transactions</field>
-        <field name="res_model">l10n_cr.d151.customer.line</field>
-        <field name="view_mode">list</field>
-        <field name="domain">[('report_id', '=', active_id)]</field>
-    </record>
-
-    <!-- D-151 Supplier Line Action (for smart button) -->
-    <record id="action_d151_supplier_line" model="ir.actions.act_window">
-        <field name="name">Supplier Transactions</field>
-        <field name="res_model">l10n_cr.d151.supplier.line</field>
-        <field name="view_mode">list</field>
-        <field name="domain">[('report_id', '=', active_id)]</field>
     </record>
 
     <!-- D-151 Informative Report Action -->

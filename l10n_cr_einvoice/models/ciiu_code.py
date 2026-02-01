@@ -72,9 +72,7 @@ class CIIUCode(models.Model):
         help='Number of partners using this economic activity',
     )
 
-    _sql_constraints = [
-        ('code_unique', 'unique(code)', 'CIIU code must be unique!'),
-    ]
+    _code_unique = models.Constraint('unique(code)', 'CIIU code must be unique!')
 
     @api.depends('code', 'name')
     def _compute_complete_name(self):
@@ -108,16 +106,8 @@ class CIIUCode(models.Model):
                         _('CIIU code must be exactly 4 digits: %s') % record.code
                     )
 
-    def name_get(self):
-        """Return code and name combined for selection fields."""
-        result = []
-        for record in self:
-            name = f"{record.code} - {record.name}"
-            result.append((record.id, name))
-        return result
-
     @api.model
-    def _name_search(self, name='', args=None, operator='ilike', limit=100, name_get_uid=None):
+    def _name_search(self, name='', args=None, operator='ilike', limit=100):
         """
         Search by code or name.
 
@@ -130,7 +120,7 @@ class CIIUCode(models.Model):
         if name:
             domain = ['|', ('code', operator, name), ('name', operator, name)]
 
-        return self._search(domain + args, limit=limit, access_rights_uid=name_get_uid)
+        return self._search(domain + args, limit=limit)
 
     def action_view_partners(self):
         """Open list of partners using this economic activity."""

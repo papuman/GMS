@@ -66,8 +66,8 @@ workflow_status:
     name: "Product Requirements Document"
     agent: "pm"
     command: "/bmad:bmm:workflows:create-prd"
-    status: "required"
-    note: "Define GMS requirements, integration with Odoo, Costa Rica compliance (AFTER validation)"
+    status: "_bmad-output/planning-artifacts/GMS-PRD-FINAL.md"
+    note: "GMS-PRD-FINAL.md exists, needs fixes per validation review"
 
   - id: "create-ux-design"
     phase: 1
@@ -75,7 +75,7 @@ workflow_status:
     agent: "ux-designer"
     command: "/bmad:bmm:workflows:create-ux-design"
     status: "required"
-    note: "Member portal, admin dashboard, POS interface, mobile apps"
+    note: "UX audit exists at docs/UX_AUDIT_COSTA_RICA_EINVOICING.md but formal UX design not complete. Member portal, admin dashboard, POS interface, mobile apps still needed."
 
   # PHASE 2: SOLUTIONING
   - id: "create-architecture"
@@ -84,7 +84,7 @@ workflow_status:
     agent: "architect"
     command: "/bmad:bmm:workflows:create-architecture"
     status: "recommended"
-    note: "CRITICAL: Decide Odoo approach (build on/modernize/hybrid) + integration design"
+    note: "CRITICAL: Decide Odoo approach (build on/modernize/hybrid) + integration design. docs/architecture.md exists but is generic Odoo tutorial content, not GMS-specific architecture."
 
   - id: "create-epics-and-stories"
     phase: 2
@@ -92,7 +92,7 @@ workflow_status:
     agent: "pm"
     command: "/bmad:bmm:workflows:create-epics-and-stories"
     status: "required"
-    note: "Break down 400+ features into implementable stories"
+    note: "Epics exist but scored poorly in validation (32-38/100). Need substantial rework to meet BMM standards."
 
   - id: "test-design"
     phase: 2

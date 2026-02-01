@@ -30,7 +30,7 @@ Create the most comprehensive, user-friendly Costa Rica electronic invoicing sol
 
 ### 1.4 Current Status
 - **Completion**: ~45% (Phases 1, 2, 2.5 complete, Phase 4 partial)
-- **Code Base**: 79 Python files, 47 XML views, 10,000+ lines
+- **Code Base**: 27 Python files, 27 XML files, 10,000+ lines
 - **Investment**: $7,900 spent, ~$7K remaining
 - **Risk**: Module currently unstable, requires rebuild/stabilization
 
@@ -215,6 +215,7 @@ Create the most comprehensive, user-friendly Costa Rica electronic invoicing sol
   - Include receiver economic activity (CIIU)
   - Support 11 discount code types
   - Include SINPE Móvil payment method (code 06)
+  - Include CABYS code per line item (mandatory since July 1, 2020)
   - Pass XSD validation
 - **Technical Notes**: Uses `xml_generator.py` with v4.4 templates
 - **Dependencies**: XSD schemas from Hacienda CDN
@@ -223,7 +224,7 @@ Create the most comprehensive, user-friendly Costa Rica electronic invoicing sol
 **REQ-COMP-002: 50-Digit Clave Generation**
 - **User Story**: As the system, I need to generate unique global identifiers for each invoice
 - **Acceptance Criteria**:
-  - Format: Country(3) + Date(8) + IssuerID(12) + Consecutive(20) + Security(8) + CheckDigit(1)
+  - Format: Country(3) + Day(2) + Month(2) + Year(2) + IssuerID(12) + Consecutive(20) + Situation(1) + Security(8) = 50 digits
   - Ensure global uniqueness
   - Calculate correct check digit
   - Validate against duplicates
@@ -298,6 +299,21 @@ Create the most comprehensive, user-friendly Costa Rica electronic invoicing sol
 - **Dependencies**: Invoice data, tax configuration
 - **Priority**: MEDIUM-HIGH
 
+#### 3.1.5 REP (Electronic Payment Receipt)
+
+**REQ-COMP-006: REP (Recibo Electrónico de Pago)**
+- **User Story**: As Carlos, I need to issue electronic payment receipts for credit sales to comply with Hacienda requirements
+- **Acceptance Criteria**:
+  - Track credit sales payments
+  - VAT deferral until payment received
+  - Required for government sales
+  - Generate XML v4.4 compliant REP
+- **Technical Notes**: Document type REP, mandatory since Sep 1, 2025
+- **Dependencies**: Payment tracking, Hacienda API
+- **Priority**: CRITICAL
+
+> ⚠️ REP has been mandatory since September 1, 2025. Non-compliance may result in Hacienda penalties.
+
 ---
 
 ### 3.2 SHOULD HAVE - Enhanced Features (Priority 2)
@@ -339,12 +355,6 @@ Create the most comprehensive, user-friendly Costa Rica electronic invoicing sol
 ---
 
 ### 3.3 COULD HAVE - Future Enhancements (Priority 3)
-
-**REQ-FUT-001: REP (Electronic Payment Receipt)**
-- Mandatory since Sep 1, 2025
-- Track credit sales payments
-- VAT deferral until payment received
-- Required for government sales
 
 **REQ-FUT-002: FEC (Electronic Purchase Invoice)**
 - Document purchases from non-registered suppliers
@@ -407,7 +417,7 @@ Create the most comprehensive, user-friendly Costa Rica electronic invoicing sol
 **Layout**:
 - **Header Section**: Document type selector, sequence number (auto), date
 - **Partner Section**: Customer selector with CIIU code display, autocomplete search
-- **Lines Section**: Product/service grid with columns: Item, Qty, Price, Discount Code, Tax, Total
+- **Lines Section**: Product/service grid with columns: Item, CABYS Code, Qty, Price, Discount Code, Tax, Total
 - **Totals Section**: Subtotal, Taxes (by rate), Discounts, Grand Total
 - **Payment Section**: Payment method selector, SINPE transaction ID (conditional)
 - **Actions Bar**: Draft/Validate/Submit/Cancel buttons, status badge
@@ -507,16 +517,16 @@ Solution:
 **Module Structure**:
 ```
 l10n_cr_einvoice/
-├── models/              # 79 Python files (10,000+ lines)
-│   ├── Core (6 files): einvoice_document, account_move, res_company, etc.
-│   ├── XML (5 files): xml_generator, xml_signer, xml_validator, etc.
-│   ├── Hacienda (4 files): hacienda_api_client, certificate_manager, etc.
-│   ├── Import (4 files): import_batch, import_error, xml_parser, etc.
-│   ├── POS (3 files): pos_config, pos_integration, pos_offline_queue
-│   ├── Tax Reports (3 files): d101, d150, d151
-│   ├── Catalogs (4 files): ciiu_code, discount_code, payment_method, etc.
-│   └── Config (4 files): res_config_settings, ir_sequence, etc.
-├── views/               # 47 XML files
+├── models/              # 27 Python files (10,000+ lines)
+│   ├── Core (6 files): einvoice_document, account_move, account_move_line, res_company, res_partner, res_config_settings
+│   ├── XML (3 files): xml_generator, xml_signer, xsd_validator
+│   ├── Hacienda (2 files): hacienda_api, certificate_manager
+│   ├── Import (3 files): einvoice_import_batch, einvoice_import_error, einvoice_xml_parser
+│   ├── POS (2 files): pos_config, pos_order
+│   ├── Tax Reports (5 files): d101_income_tax_report, d150_vat_report, d151_informative_report, tax_report_period, tax_report_xml_generator
+│   ├── Catalogs (3 files): ciiu_code, discount_code, payment_method
+│   └── Analytics (2 files): einvoice_analytics_dashboard, qr_generator
+├── views/               # 27 XML files
 ├── data/                # Master data (CIIU, discount codes, sequences)
 ├── security/            # Access rights, record rules
 ├── reports/             # PDF templates, QWeb reports
@@ -835,7 +845,7 @@ Given the current module instability, recommend the following approach:
    - Comprehensive testing
 
 2. **Code Audit & Refactoring (30h)**
-   - Review all 79 Python files for best practices
+   - Review all 27 Python files for best practices
    - Consolidate redundant code
    - Improve error handling
    - Add logging and debugging
@@ -1178,7 +1188,7 @@ Given the current module instability, recommend the following approach:
 
 **TEST-UNIT-002: XML Generation Tests**
 - Validate XML structure against XSD
-- Test all document types (FE, TE, NC, ND)
+- Test all document types (FE, TE, NC, ND, MR)
 - Test all edge cases (zero tax, multiple taxes, discounts)
 - Verify v4.4 compliance (146 requirements)
 
@@ -1371,6 +1381,8 @@ Given the current module instability, recommend the following approach:
 - **TE**: Tiquete Electrónico (Electronic Receipt)
 - **NC**: Nota de Crédito (Credit Note)
 - **ND**: Nota de Débito (Debit Note)
+- **MR**: Mensaje Receptor - acceptance/rejection message sent to Hacienda when receiving supplier invoices (types: 05-Acceptance, 06-Partial Acceptance, 07-Rejection)
+- **CABYS**: Catálogo de Bienes y Servicios - mandatory 13-digit product/service classification code required on all invoice line items since July 1, 2020
 - **CIIU**: International Standard Industrial Classification (economic activity codes)
 - **Hacienda**: Costa Rica Ministry of Finance (Ministerio de Hacienda)
 - **Tribu-CR**: Costa Rica e-invoice standard (v4.4 as of Sep 1, 2025)
@@ -1423,7 +1435,7 @@ Given the current module instability, recommend the following approach:
 **Technical Lead**: [To be assigned]
 **QA Lead**: [To be assigned]
 **Support Contact**: support@gms-einvoice.com (to be created)
-**Community Forum**: https://github.com/yourusername/l10n_cr_einvoice/discussions
+**Community Forum**: https://github.com/GMS-CR/l10n_cr_einvoice/discussions
 
 ---
 

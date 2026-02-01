@@ -156,7 +156,6 @@
                 <filter name="filter_check_status" string="Status Check"
                         domain="[('operation', '=', 'check_status')]"/>
 
-                <group expand="0" string="Group By">
                     <filter name="group_state" string="State"
                             context="{'group_by': 'state'}"/>
                     <filter name="group_operation" string="Operation"
@@ -170,7 +169,6 @@
                     <filter name="group_company" string="Company"
                             context="{'group_by': 'company_id'}"
                             groups="base.group_multi_company"/>
-                </group>
             </search>
         </field>
     </record>
@@ -257,7 +255,7 @@
     <!-- Menu Item: Retry Queue -->
     <menuitem id="menu_einvoice_retry_queue"
               name="Retry Queue"
-              parent="menu_hacienda_main"
+              parent="menu_hacienda_root"
               action="action_einvoice_retry_queue"
               sequence="50"/>
 
