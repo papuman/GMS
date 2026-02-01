@@ -71,3 +71,6 @@ sessions/
 
 # Auto Claude data directory
 .auto-claude/
+
+# Large binary captures (too large for GitHub)
+_bmad-output/planning-artifacts/MobileApps Captures/
