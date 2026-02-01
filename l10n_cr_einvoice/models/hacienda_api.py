@@ -71,7 +71,7 @@ class HaciendaAPI(models.AbstractModel):
         """
         company = self.env.company
 
-        if not company.l10n_cr_hacienda_username or not company.l10n_cr_hacienda_password:
+        if not company.l10n_cr_active_username or not company.l10n_cr_active_password:
             raise UserError(_('Hacienda API credentials not configured. Please check company settings.'))
 
         idp_url = self._get_idp_url()
@@ -80,8 +80,8 @@ class HaciendaAPI(models.AbstractModel):
         data = {
             'grant_type': 'password',
             'client_id': client_id,
-            'username': company.l10n_cr_hacienda_username,
-            'password': company.l10n_cr_hacienda_password,
+            'username': company.l10n_cr_active_username,
+            'password': company.l10n_cr_active_password,
         }
 
         try:
@@ -413,7 +413,7 @@ class HaciendaAPI(models.AbstractModel):
         """
         company = self.env.company
 
-        if not company.l10n_cr_hacienda_username or not company.l10n_cr_hacienda_password:
+        if not company.l10n_cr_active_username or not company.l10n_cr_active_password:
             return {
                 'success': False,
                 'message': _('API credentials not configured'),

@@ -323,13 +323,13 @@ class EInvoiceDocument(models.Model):
 
         try:
             # Verify certificate is configured
-            certificate = self.company_id.l10n_cr_certificate
+            certificate = self.company_id.l10n_cr_active_certificate
             if not certificate:
                 raise UserError(_('Company digital certificate must be configured.'))
 
             # For .p12 files, private key is embedded; for PEM, it must be separate
-            private_key = self.company_id.l10n_cr_private_key
-            filename = (self.company_id.l10n_cr_certificate_filename or '').lower()
+            private_key = self.company_id.l10n_cr_active_private_key
+            filename = (self.company_id.l10n_cr_active_certificate_filename or '').lower()
             if not filename.endswith(('.p12', '.pfx')) and not private_key:
                 raise UserError(_('Private key file is required for PEM certificates.'))
 
@@ -374,22 +374,22 @@ class EInvoiceDocument(models.Model):
         errors = []
 
         # Company validation
-        if not self.company_id.l10n_cr_hacienda_username:
+        if not self.company_id.l10n_cr_active_username:
             errors.append(_('Hacienda API username is missing - configure in Company settings'))
 
-        if not self.company_id.l10n_cr_hacienda_password:
+        if not self.company_id.l10n_cr_active_password:
             errors.append(_('Hacienda API password is missing - configure in Company settings'))
 
         if not self.company_id.vat:
             errors.append(_('Company Tax ID (VAT/Cédula Jurídica) is required'))
 
         # Digital certificate validation
-        if not self.company_id.l10n_cr_certificate:
+        if not self.company_id.l10n_cr_active_certificate:
             errors.append(_('Digital certificate not configured - upload in Company settings'))
 
         # For PEM certs, private key file is required; for .p12/.pfx it's embedded
-        cert_filename = (self.company_id.l10n_cr_certificate_filename or '').lower()
-        if not cert_filename.endswith(('.p12', '.pfx')) and not self.company_id.l10n_cr_private_key:
+        cert_filename = (self.company_id.l10n_cr_active_certificate_filename or '').lower()
+        if not cert_filename.endswith(('.p12', '.pfx')) and not self.company_id.l10n_cr_active_private_key:
             errors.append(_('Private key not configured - upload in Company settings'))
 
         # Partner/Customer validation

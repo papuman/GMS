@@ -17,47 +17,47 @@ class ResConfigSettings(models.TransientModel):
         string='Hacienda Environment',
     )
 
-    l10n_cr_hacienda_username = fields.Char(
-        related='company_id.l10n_cr_hacienda_username',
+    l10n_cr_active_username = fields.Char(
+        related='company_id.l10n_cr_active_username',
         readonly=False,
         string='Hacienda API Username',
     )
 
-    l10n_cr_hacienda_password = fields.Char(
-        related='company_id.l10n_cr_hacienda_password',
+    l10n_cr_active_password = fields.Char(
+        related='company_id.l10n_cr_active_password',
         readonly=False,
         string='Hacienda API Password',
     )
 
     # Digital Certificate
-    l10n_cr_certificate = fields.Binary(
-        related='company_id.l10n_cr_certificate',
+    l10n_cr_active_certificate = fields.Binary(
+        related='company_id.l10n_cr_active_certificate',
         readonly=False,
         string='Digital Certificate',
     )
 
-    l10n_cr_certificate_filename = fields.Char(
-        related='company_id.l10n_cr_certificate_filename',
+    l10n_cr_active_certificate_filename = fields.Char(
+        related='company_id.l10n_cr_active_certificate_filename',
         readonly=False,
         string='Certificate Filename',
     )
 
-    l10n_cr_private_key = fields.Binary(
-        related='company_id.l10n_cr_private_key',
+    l10n_cr_active_private_key = fields.Binary(
+        related='company_id.l10n_cr_active_private_key',
         readonly=False,
         string='Private Key',
     )
 
-    l10n_cr_private_key_filename = fields.Char(
-        related='company_id.l10n_cr_private_key_filename',
+    l10n_cr_active_private_key_filename = fields.Char(
+        related='company_id.l10n_cr_active_private_key_filename',
         readonly=False,
         string='Private Key Filename',
     )
 
-    l10n_cr_key_password = fields.Char(
-        related='company_id.l10n_cr_key_password',
+    l10n_cr_active_key_password = fields.Char(
+        related='company_id.l10n_cr_active_key_password',
         readonly=False,
-        string='Private Key Password',
+        string='Certificate PIN / Password',
     )
 
     # Emisor Location

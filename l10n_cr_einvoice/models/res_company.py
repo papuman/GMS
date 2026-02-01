@@ -18,24 +18,87 @@ class ResCompany(models.Model):
     ], string='Hacienda Environment', default='sandbox',
         help='Select the Hacienda API environment to use')
 
+    # ---- Sandbox credential storage (existing DB columns) ----
     l10n_cr_hacienda_username = fields.Char(
-        string='Hacienda API Username',
-        help='Username for Hacienda API authentication',
+        string='Sandbox API Username',
     )
-
     l10n_cr_hacienda_password = fields.Char(
-        string='Hacienda API Password',
-        help='Password for Hacienda API authentication',
+        string='Sandbox API Password',
     )
-
-    # Digital Certificate
     l10n_cr_certificate = fields.Binary(
-        string='Digital Certificate',
-        help='X.509 digital certificate in PEM format',
+        string='Sandbox Certificate',
+    )
+    l10n_cr_certificate_filename = fields.Char(
+        string='Sandbox Certificate Filename',
+    )
+    l10n_cr_private_key = fields.Binary(
+        string='Sandbox Private Key',
+    )
+    l10n_cr_private_key_filename = fields.Char(
+        string='Sandbox Private Key Filename',
+    )
+    l10n_cr_key_password = fields.Char(
+        string='Sandbox Key Password',
     )
 
-    l10n_cr_certificate_filename = fields.Char(
+    # ---- Production credential storage (new fields) ----
+    l10n_cr_prod_hacienda_username = fields.Char(
+        string='Production API Username',
+    )
+    l10n_cr_prod_hacienda_password = fields.Char(
+        string='Production API Password',
+    )
+    l10n_cr_prod_certificate = fields.Binary(
+        string='Production Certificate',
+    )
+    l10n_cr_prod_certificate_filename = fields.Char(
+        string='Production Certificate Filename',
+    )
+    l10n_cr_prod_private_key = fields.Binary(
+        string='Production Private Key',
+    )
+    l10n_cr_prod_private_key_filename = fields.Char(
+        string='Production Private Key Filename',
+    )
+    l10n_cr_prod_key_password = fields.Char(
+        string='Production Key Password',
+    )
+
+    # ---- Computed "active" fields (UI binds to these) ----
+    l10n_cr_active_username = fields.Char(
+        compute='_compute_active_credentials',
+        inverse='_inverse_active_username',
+        string='Hacienda API Username',
+    )
+    l10n_cr_active_password = fields.Char(
+        compute='_compute_active_credentials',
+        inverse='_inverse_active_password',
+        string='Hacienda API Password',
+    )
+    l10n_cr_active_certificate = fields.Binary(
+        compute='_compute_active_credentials',
+        inverse='_inverse_active_certificate',
+        string='Digital Certificate',
+    )
+    l10n_cr_active_certificate_filename = fields.Char(
+        compute='_compute_active_credentials',
+        inverse='_inverse_active_certificate_filename',
         string='Certificate Filename',
+    )
+    l10n_cr_active_private_key = fields.Binary(
+        compute='_compute_active_credentials',
+        inverse='_inverse_active_private_key',
+        string='Private Key',
+    )
+    l10n_cr_active_private_key_filename = fields.Char(
+        compute='_compute_active_credentials',
+        inverse='_inverse_active_private_key_filename',
+        string='Private Key Filename',
+    )
+    l10n_cr_active_key_password = fields.Char(
+        compute='_compute_active_credentials',
+        inverse='_inverse_active_key_password',
+        string='Certificate PIN / Password',
     )
 
     l10n_cr_needs_private_key = fields.Boolean(
@@ -44,24 +107,87 @@ class ResCompany(models.Model):
         help='True when a PEM/CRT certificate is uploaded that requires a separate private key file',
     )
 
-    l10n_cr_private_key = fields.Binary(
-        string='Private Key',
-        help='Private key for digital signature in PEM format',
+    @api.depends(
+        'l10n_cr_hacienda_env',
+        'l10n_cr_hacienda_username', 'l10n_cr_hacienda_password',
+        'l10n_cr_certificate', 'l10n_cr_certificate_filename',
+        'l10n_cr_key_password', 'l10n_cr_private_key', 'l10n_cr_private_key_filename',
+        'l10n_cr_prod_hacienda_username', 'l10n_cr_prod_hacienda_password',
+        'l10n_cr_prod_certificate', 'l10n_cr_prod_certificate_filename',
+        'l10n_cr_prod_key_password', 'l10n_cr_prod_private_key', 'l10n_cr_prod_private_key_filename',
     )
+    def _compute_active_credentials(self):
+        for company in self:
+            if company.l10n_cr_hacienda_env == 'production':
+                company.l10n_cr_active_username = company.l10n_cr_prod_hacienda_username
+                company.l10n_cr_active_password = company.l10n_cr_prod_hacienda_password
+                company.l10n_cr_active_certificate = company.l10n_cr_prod_certificate
+                company.l10n_cr_active_certificate_filename = company.l10n_cr_prod_certificate_filename
+                company.l10n_cr_active_private_key = company.l10n_cr_prod_private_key
+                company.l10n_cr_active_private_key_filename = company.l10n_cr_prod_private_key_filename
+                company.l10n_cr_active_key_password = company.l10n_cr_prod_key_password
+            else:
+                company.l10n_cr_active_username = company.l10n_cr_hacienda_username
+                company.l10n_cr_active_password = company.l10n_cr_hacienda_password
+                company.l10n_cr_active_certificate = company.l10n_cr_certificate
+                company.l10n_cr_active_certificate_filename = company.l10n_cr_certificate_filename
+                company.l10n_cr_active_private_key = company.l10n_cr_private_key
+                company.l10n_cr_active_private_key_filename = company.l10n_cr_private_key_filename
+                company.l10n_cr_active_key_password = company.l10n_cr_key_password
 
-    l10n_cr_private_key_filename = fields.Char(
-        string='Private Key Filename',
-    )
+    def _inverse_active_username(self):
+        for company in self:
+            if company.l10n_cr_hacienda_env == 'production':
+                company.l10n_cr_prod_hacienda_username = company.l10n_cr_active_username
+            else:
+                company.l10n_cr_hacienda_username = company.l10n_cr_active_username
 
-    l10n_cr_key_password = fields.Char(
-        string='Private Key Password',
-        help='Password to decrypt the private key if encrypted',
-    )
+    def _inverse_active_password(self):
+        for company in self:
+            if company.l10n_cr_hacienda_env == 'production':
+                company.l10n_cr_prod_hacienda_password = company.l10n_cr_active_password
+            else:
+                company.l10n_cr_hacienda_password = company.l10n_cr_active_password
 
-    @api.depends('l10n_cr_certificate_filename')
+    def _inverse_active_certificate(self):
+        for company in self:
+            if company.l10n_cr_hacienda_env == 'production':
+                company.l10n_cr_prod_certificate = company.l10n_cr_active_certificate
+            else:
+                company.l10n_cr_certificate = company.l10n_cr_active_certificate
+
+    def _inverse_active_certificate_filename(self):
+        for company in self:
+            if company.l10n_cr_hacienda_env == 'production':
+                company.l10n_cr_prod_certificate_filename = company.l10n_cr_active_certificate_filename
+            else:
+                company.l10n_cr_certificate_filename = company.l10n_cr_active_certificate_filename
+
+    def _inverse_active_private_key(self):
+        for company in self:
+            if company.l10n_cr_hacienda_env == 'production':
+                company.l10n_cr_prod_private_key = company.l10n_cr_active_private_key
+            else:
+                company.l10n_cr_private_key = company.l10n_cr_active_private_key
+
+    def _inverse_active_private_key_filename(self):
+        for company in self:
+            if company.l10n_cr_hacienda_env == 'production':
+                company.l10n_cr_prod_private_key_filename = company.l10n_cr_active_private_key_filename
+            else:
+                company.l10n_cr_private_key_filename = company.l10n_cr_active_private_key_filename
+
+    def _inverse_active_key_password(self):
+        for company in self:
+            if company.l10n_cr_hacienda_env == 'production':
+                company.l10n_cr_prod_key_password = company.l10n_cr_active_key_password
+            else:
+                company.l10n_cr_key_password = company.l10n_cr_active_key_password
+
+    @api.depends('l10n_cr_active_certificate_filename')
     def _compute_needs_private_key(self):
         for company in self:
-            filename = (company.l10n_cr_certificate_filename or '').lower()
+            filename = (company.l10n_cr_active_certificate_filename or '').lower()
             company.l10n_cr_needs_private_key = (
                 bool(filename) and not filename.endswith(('.p12', '.pfx'))
             )
@@ -112,13 +238,13 @@ class ResCompany(models.Model):
         # Step 1: Required fields
         # ----------------------------------------------------------
         missing = []
-        if not company.l10n_cr_hacienda_username:
+        if not company.l10n_cr_active_username:
             missing.append('Hacienda API Username')
-        if not company.l10n_cr_hacienda_password:
+        if not company.l10n_cr_active_password:
             missing.append('Hacienda API Password')
-        if not company.l10n_cr_certificate:
+        if not company.l10n_cr_active_certificate:
             missing.append('Digital Certificate')
-        if not company.l10n_cr_key_password:
+        if not company.l10n_cr_active_key_password:
             missing.append('Certificate PIN / Password')
 
         if missing:
