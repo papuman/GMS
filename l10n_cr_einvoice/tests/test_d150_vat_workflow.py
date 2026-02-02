@@ -368,10 +368,10 @@ class TestD150VATWorkflow(EInvoiceTestCase):
         })
 
         # Trigger computation
-        d150._compute_proportionality_factor()
+        d150._compute_proportionality()
 
-        # Factor = 800000 / (800000 + 200000) = 0.80
-        self.assertAlmostEqual(d150.proportionality_factor, 0.80, places=2)
+        # Factor = 800000 / (800000 + 200000) = 80.0 (percentage)
+        self.assertAlmostEqual(d150.proportionality_factor, 80.0, places=2)
 
     # =====================================================
     # XML GENERATION TESTS
@@ -424,8 +424,7 @@ class TestD150VATWorkflow(EInvoiceTestCase):
     # COMPLETE WORKFLOW TEST
     # =====================================================
 
-    @patch('odoo.addons.l10n_cr_einvoice.models.hacienda_api.requests.post')
-    def test_d150_complete_workflow_success(self, mock_post):
+    def test_d150_complete_workflow_success(self):
         """Test complete D-150 workflow from creation to acceptance."""
         # Step 1: Create period
         period = self.env['l10n_cr.tax.report.period'].create({
@@ -467,29 +466,26 @@ class TestD150VATWorkflow(EInvoiceTestCase):
         # Step 6: Sign XML (mock)
         d150.xml_signed = d150.xml_content
 
-        # Step 7: Submit to Hacienda
-        mock_response = Mock()
-        mock_response.status_code = 200
-        mock_response.json.return_value = {
-            'clave': '50625112300003101234567000000010000001000000001',
-            'mensaje': 'Recibido exitosamente',
-        }
-        mock_post.return_value = mock_response
+        # Step 7: Submit to Hacienda (mock the Hacienda API)
+        with patch.object(type(self.env['l10n_cr.hacienda.api']), 'submit_d150_report') as mock_submit:
+            mock_submit.return_value = {
+                'success': True,
+                'key': '50625112300003101234567000000010000001000000001',
+                'message': 'Recibido exitosamente',
+                'estado': 'recibido',
+            }
 
-        d150.action_submit_to_hacienda()
+            d150.action_submit_to_hacienda()
 
         self.assertEqual(d150.state, 'submitted')
         self.assertIsNotNone(d150.submission_key)
 
         # Step 8: Check status and accept
-        with patch('odoo.addons.l10n_cr_einvoice.models.hacienda_api.requests.get') as mock_get:
-            mock_get_response = Mock()
-            mock_get_response.status_code = 200
-            mock_get_response.json.return_value = {
+        with patch.object(type(self.env['l10n_cr.hacienda.api']), 'check_tax_report_status') as mock_check:
+            mock_check.return_value = {
                 'estado': 'aceptado',
-                'mensaje': 'Declaración aceptada',
+                'message': 'Declaración aceptada',
             }
-            mock_get.return_value = mock_get_response
 
             d150.action_check_status()
 

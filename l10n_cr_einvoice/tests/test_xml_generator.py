@@ -155,10 +155,10 @@ class TestXMLGeneratorCore(EInvoiceTestCase):
         move = self._create_test_invoice()
         move.action_post()
         einvoice = self._create_einvoice(move, 'FE')
-        einvoice.document_type = 'XX'  # Invalid type
 
-        with self.assertRaises(ValidationError):
-            self.xml_generator.generate_invoice_xml(einvoice)
+        # Test that setting invalid document type raises ValueError (Selection field validation)
+        with self.assertRaises(ValueError):
+            einvoice.document_type = 'XX'  # Invalid type
 
 
 @tagged('post_install', '-at_install', 'l10n_cr_einvoice', 'unit', 'p0')
@@ -381,8 +381,9 @@ class TestXMLGeneratorTaxCalculations(EInvoiceTestCase):
                 'country_id': cr_country_id,
             })
 
+        # Use unique tax name to avoid constraint violation
         tax_0 = self.env['account.tax'].create({
-            'name': 'Exento',
+            'name': 'Exento Test 0%',
             'amount': 0.0,
             'amount_type': 'percent',
             'type_tax_use': 'sale',
@@ -491,11 +492,15 @@ class TestXMLGeneratorEdgeCases(EInvoiceTestCase):
 
     def test_line_with_discount(self):
         """Test invoice line with discount."""
+        # Get discount code 01 from data
+        discount_code_01 = self.env.ref('l10n_cr_einvoice.discount_code_01')
+
         move = self._create_test_invoice(lines=[{
             'product_id': self.product.id,
             'quantity': 1,
             'price_unit': 10000.0,
             'discount': 10.0,  # 10% discount
+            'l10n_cr_discount_code_id': discount_code_01.id,  # Required discount code for CR e-invoicing
             'tax_ids': [(6, 0, [self.tax_13.id])],
         }])
         move.action_post()

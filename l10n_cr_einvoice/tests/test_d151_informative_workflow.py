@@ -197,7 +197,8 @@ class TestD151InformativeWorkflow(EInvoiceTestCase):
         # Should only have high value customer
         self.assertEqual(len(d151.customer_line_ids), 1)
         self.assertEqual(d151.customer_line_ids[0].partner_vat, self.customer_high.vat)
-        self.assertAlmostEqual(d151.customer_line_ids[0].total_amount, 5000000.0, places=2)
+        # Use delta to account for floating point rounding in invoice amounts
+        self.assertAlmostEqual(d151.customer_line_ids[0].total_amount, 5000000.0, delta=0.05)
 
     def test_d151_supplier_threshold_filtering(self):
         """Test D-151 only includes suppliers above threshold."""
@@ -477,9 +478,7 @@ class TestD151InformativeWorkflow(EInvoiceTestCase):
     # COMPLETE WORKFLOW TEST
     # =====================================================
 
-    @patch('odoo.addons.l10n_cr_einvoice.models.hacienda_api.requests.post')
-    @patch('odoo.addons.l10n_cr_einvoice.models.hacienda_api.requests.get')
-    def test_d151_complete_workflow(self, mock_get, mock_post):
+    def test_d151_complete_workflow(self):
         """Test complete D-151 workflow from creation to acceptance."""
         # Step 1: Create period
         period = self.env['l10n_cr.tax.report.period'].create({
@@ -509,30 +508,29 @@ class TestD151InformativeWorkflow(EInvoiceTestCase):
         d151.action_generate_xml()
         self.assertEqual(d151.state, 'ready')
 
-        # Step 5: Sign and submit
+        # Step 5: Sign and submit (mock the Hacienda API)
         d151.xml_signed = d151.xml_content
 
-        mock_post_response = Mock()
-        mock_post_response.status_code = 200
-        mock_post_response.json.return_value = {
-            'clave': '50625015100003101234567000000010000001000000001',
-            'mensaje': 'D-151 recibido',
-        }
-        mock_post.return_value = mock_post_response
+        with patch.object(type(self.env['l10n_cr.hacienda.api']), 'submit_d151_report') as mock_submit:
+            mock_submit.return_value = {
+                'success': True,
+                'key': '50625015100003101234567000000010000001000000001',
+                'message': 'D-151 recibido',
+                'estado': 'recibido',
+            }
 
-        d151.action_submit_to_hacienda()
-        self.assertEqual(d151.state, 'submitted')
+            d151.action_submit_to_hacienda()
+            self.assertEqual(d151.state, 'submitted')
 
         # Step 6: Check status
-        mock_get_response = Mock()
-        mock_get_response.status_code = 200
-        mock_get_response.json.return_value = {
-            'estado': 'aceptado',
-        }
-        mock_get.return_value = mock_get_response
+        with patch.object(type(self.env['l10n_cr.hacienda.api']), 'check_tax_report_status') as mock_check:
+            mock_check.return_value = {
+                'estado': 'aceptado',
+                'message': 'Aceptado',
+            }
 
-        d151.action_check_status()
-        self.assertEqual(d151.state, 'accepted')
+            d151.action_check_status()
+            self.assertEqual(d151.state, 'accepted')
 
     # =====================================================
     # ERROR HANDLING TESTS

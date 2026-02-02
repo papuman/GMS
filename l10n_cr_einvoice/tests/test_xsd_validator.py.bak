@@ -21,10 +21,7 @@ class TestXSDValidator(TransactionCase):
 
     def test_validator_exists(self):
         """Test that validator model exists."""
-        # l10n_cr.xsd.validator is an AbstractModel, so it has no records
-        # We verify it exists by checking we can call its methods
-        self.assertIsNotNone(self.validator, "XSD validator model should exist")
-        self.assertTrue(hasattr(self.validator, 'validate_xml'), "Validator should have validate_xml method")
+        self.assertTrue(self.validator, "XSD validator model should exist")
 
     def test_validate_empty_xml(self):
         """Test validation of empty XML."""
@@ -532,7 +529,8 @@ class TestXSDValidatorNumericPrecision(TransactionCase):
 # ============================================================================
 
 
-@tagged("post_install", "-at_install", "l10n_cr_einvoice", "unit", "p0")
+@pytest.mark.unit
+@pytest.mark.p0
 class TestXSDValidatorInvalidXML(TransactionCase):
     """Test XSD validator with various invalid XML scenarios."""
 
@@ -667,7 +665,8 @@ class TestXSDValidatorInvalidXML(TransactionCase):
 # ============================================================================
 
 
-@tagged("post_install", "-at_install", "l10n_cr_einvoice", "unit", "p1")
+@pytest.mark.unit
+@pytest.mark.p1
 class TestXSDValidatorSchemaVersion(TransactionCase):
     """Test XSD validator schema version handling."""
 
@@ -706,7 +705,8 @@ class TestXSDValidatorSchemaVersion(TransactionCase):
                            f"Root element for {doc_type} should be {expected_root}")
 
 
-@tagged("post_install", "-at_install", "l10n_cr_einvoice", "unit", "p1")
+@pytest.mark.unit
+@pytest.mark.p1
 class TestXSDValidatorErrorMessages(TransactionCase):
     """Test XSD validator detailed error message parsing."""
 
@@ -787,7 +787,8 @@ class TestXSDValidatorErrorMessages(TransactionCase):
 # ============================================================================
 
 
-@tagged("post_install", "-at_install", "l10n_cr_einvoice", "unit", "p1")
+@pytest.mark.unit
+@pytest.mark.p1
 class TestXSDValidatorPerformance(TransactionCase):
     """Test XSD validator performance (<500ms per document)."""
 

@@ -32,3 +32,5 @@ access_d151_supplier_line_manager,d151.supplier.line.manager,model_l10n_cr_d151_
 access_d151_expense_line_user,d151.expense.line.user,model_l10n_cr_d151_expense_line,account.group_account_invoice,1,0,0,0
 access_d151_expense_line_manager,d151.expense.line.manager,model_l10n_cr_d151_expense_line,account.group_account_manager,1,1,1,1
 access_ciiu_bulk_assign_manager,ciiu.bulk.assign.manager,model_l10n_cr_ciiu_bulk_assign,account.group_account_manager,1,1,1,1
+access_einvoice_retry_queue_user,einvoice.retry.queue.user,model_l10n_cr_einvoice_retry_queue,account.group_account_invoice,1,1,0,0
+access_einvoice_retry_queue_manager,einvoice.retry.queue.manager,model_l10n_cr_einvoice_retry_queue,account.group_account_manager,1,1,1,1

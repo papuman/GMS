@@ -470,8 +470,8 @@ class TaxReportXMLGenerator(models.AbstractModel):
 
                 id_cliente = etree.SubElement(cliente, 'Identificacion')
                 tipo = etree.SubElement(id_cliente, 'Tipo')
-                # Determine ID type from VAT format
-                tipo.text = self._detect_id_type(line.partner_vat)
+                # Determine ID type from VAT format and partner country
+                tipo.text = self._detect_id_type(line.partner_vat, line.partner_id)
                 numero = etree.SubElement(id_cliente, 'Numero')
                 numero.text = line.partner_vat
 
@@ -493,7 +493,7 @@ class TaxReportXMLGenerator(models.AbstractModel):
 
                 id_proveedor = etree.SubElement(proveedor, 'Identificacion')
                 tipo = etree.SubElement(id_proveedor, 'Tipo')
-                tipo.text = self._detect_id_type(line.partner_vat)
+                tipo.text = self._detect_id_type(line.partner_vat, line.partner_id)
                 numero = etree.SubElement(id_proveedor, 'Numero')
                 numero.text = line.partner_vat
 
@@ -522,16 +522,33 @@ class TaxReportXMLGenerator(models.AbstractModel):
         return xml_string
 
     @api.model
-    def _detect_id_type(self, vat):
+    def _detect_id_type(self, vat, partner=None):
         """
-        Detect Costa Rica ID type from VAT format
+        Detect Costa Rica ID type from VAT format and partner country
+
+        Args:
+            vat: VAT/Tax ID string
+            partner: res.partner record (optional)
 
         Returns:
             str: ID type code (01-05)
+                01 = Física (Physical person - 9 digits)
+                02 = Jurídica (Legal entity - 10 digits)
+                03 = DIMEX (Foreign resident - 11-12 digits)
+                04 = NITE (Reserved)
+                05 = Extranjero (Foreign non-resident)
         """
         if not vat:
             return '05'  # Extranjero
 
+        # Check if partner is from Costa Rica
+        if partner:
+            cr_country = self.env.ref('base.cr', raise_if_not_found=False)
+            if cr_country and partner.country_id and partner.country_id != cr_country:
+                # Foreign partner (not from Costa Rica) → always Extranjero
+                return '05'
+
+        # For Costa Rican partners, determine type by VAT length
         vat = vat.replace('-', '').strip()
         length = len(vat)
 

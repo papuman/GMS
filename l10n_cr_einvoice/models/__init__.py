@@ -13,6 +13,7 @@ from . import einvoice_import_batch
 from . import einvoice_import_error
 from . import einvoice_analytics_dashboard
 from . import einvoice_xml_parser
+from . import einvoice_retry_queue
 
 # Account extensions
 from . import account_move

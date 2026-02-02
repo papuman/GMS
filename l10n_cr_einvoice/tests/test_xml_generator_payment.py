@@ -3,72 +3,34 @@
 Integration tests for XML generator with payment methods (Phase 1A)
 Tests that XML contains correct MedioPago and NumeroTransaccion tags
 """
-from odoo.tests import TransactionCase
-import uuid
-
-
-def _generate_unique_vat_company():
-    """Generate unique VAT number for company (10 digits starting with 3)."""
-    return f"310{uuid.uuid4().hex[:7].upper()}"
-
-
-def _generate_unique_vat_person():
-    """Generate unique VAT number for person (9 digits)."""
-    return f"10{uuid.uuid4().hex[:7].upper()}"
-
-
-def _generate_unique_email(prefix='test'):
-    """Generate unique email address."""
-    return f"{prefix}-{uuid.uuid4().hex[:8]}@example.com"
-
-
 from lxml import etree
+from .common import EInvoiceTestCase
 
 
-class TestXMLGeneratorPayment(TransactionCase):
+class TestXMLGeneratorPayment(EInvoiceTestCase):
     """Test XML generation with payment methods."""
 
     def setUp(self):
         super(TestXMLGeneratorPayment, self).setUp()
 
-        # Create test company in Costa Rica
-        self.company = self.env['res.company'].create({
-            'name': 'Test Company CR',
-            'country_id': self.env.ref('base.cr').id,
-            'vat': _generate_unique_vat_company(),
-            'email': _generate_unique_email('company'),
-            'phone': '22001100',
-        })
-
-        # Create test partner
-        self.partner = self.env['res.partner'].create({
-            'name': 'Test Customer',
-            'country_id': self.env.ref('base.cr').id,
-            'vat': _generate_unique_vat_person(),
-            'email': _generate_unique_email('customer'),
-        })
+        # Use company, partner, and product from base class
+        # Base class provides: self.company, self.partner, self.product, self.sales_journal
 
         # Get payment methods
         self.payment_method_efectivo = self.env.ref('l10n_cr_einvoice.payment_method_efectivo')
         self.payment_method_sinpe = self.env.ref('l10n_cr_einvoice.payment_method_sinpe')
         self.payment_method_tarjeta = self.env.ref('l10n_cr_einvoice.payment_method_tarjeta')
 
-        # Create test product
-        self.product = self.env['product.product'].create({
-            'name': 'Test Service',
-            'type': 'service',
-            'list_price': 10000.0,
-        })
-
         # Get XML generator
         self.xml_generator = self.env['l10n_cr.xml.generator']
 
-    def _create_test_invoice(self, payment_method=None, transaction_id=None):
+    def _create_test_invoice_xml(self, payment_method=None, transaction_id=None):
         """Helper to create and post test invoice with e-invoice document."""
         invoice = self.env['account.move'].create({
             'move_type': 'out_invoice',
             'partner_id': self.partner.id,
             'company_id': self.company.id,
+            'journal_id': self.sales_journal.id,
             'invoice_date': '2025-12-28',
             'l10n_cr_payment_method_id': payment_method.id if payment_method else False,
             'l10n_cr_payment_transaction_id': transaction_id,
@@ -80,12 +42,14 @@ class TestXMLGeneratorPayment(TransactionCase):
         })
         invoice.action_post()
 
-        # Create e-invoice document
+        # Create e-invoice document and generate clave
         einvoice = self.env['l10n_cr.einvoice.document'].create({
             'move_id': invoice.id,
             'document_type': 'FE',
             'company_id': self.company.id,
         })
+        # Generate clave so XML generation doesn't fail
+        einvoice.action_generate_xml()
 
         return invoice, einvoice
 
@@ -95,7 +59,7 @@ class TestXMLGeneratorPayment(TransactionCase):
 
     def test_xml_contains_medio_pago_efectivo(self):
         """Test that XML contains MedioPago 01 for Efectivo."""
-        invoice, einvoice = self._create_test_invoice(payment_method=self.payment_method_efectivo)
+        invoice, einvoice = self._create_test_invoice_xml(payment_method=self.payment_method_efectivo)
 
         # Generate XML
         xml_str = self.xml_generator.generate_invoice_xml(einvoice)
@@ -110,7 +74,7 @@ class TestXMLGeneratorPayment(TransactionCase):
 
     def test_xml_contains_medio_pago_sinpe(self):
         """Test that XML contains MedioPago 06 for SINPE Móvil."""
-        invoice, einvoice = self._create_test_invoice(
+        invoice, einvoice = self._create_test_invoice_xml(
             payment_method=self.payment_method_sinpe,
             transaction_id='123456789'
         )
@@ -129,7 +93,7 @@ class TestXMLGeneratorPayment(TransactionCase):
     def test_xml_contains_numero_transaccion_for_sinpe(self):
         """Test that XML contains NumeroTransaccion for SINPE Móvil."""
         transaction_id = '123456789'
-        invoice, einvoice = self._create_test_invoice(
+        invoice, einvoice = self._create_test_invoice_xml(
             payment_method=self.payment_method_sinpe,
             transaction_id=transaction_id
         )
@@ -148,7 +112,7 @@ class TestXMLGeneratorPayment(TransactionCase):
 
     def test_xml_no_numero_transaccion_for_efectivo(self):
         """Test that XML does NOT contain NumeroTransaccion for Efectivo."""
-        invoice, einvoice = self._create_test_invoice(payment_method=self.payment_method_efectivo)
+        invoice, einvoice = self._create_test_invoice_xml(payment_method=self.payment_method_efectivo)
 
         # Generate XML
         xml_str = self.xml_generator.generate_invoice_xml(einvoice)
@@ -163,7 +127,7 @@ class TestXMLGeneratorPayment(TransactionCase):
 
     def test_xml_no_numero_transaccion_for_tarjeta(self):
         """Test that XML does NOT contain NumeroTransaccion for Tarjeta."""
-        invoice, einvoice = self._create_test_invoice(payment_method=self.payment_method_tarjeta)
+        invoice, einvoice = self._create_test_invoice_xml(payment_method=self.payment_method_tarjeta)
 
         # Generate XML
         xml_str = self.xml_generator.generate_invoice_xml(einvoice)
@@ -179,7 +143,7 @@ class TestXMLGeneratorPayment(TransactionCase):
     def test_xml_default_efectivo_when_no_payment_method(self):
         """Test that XML defaults to Efectivo (01) when no payment method set."""
         # Create invoice without payment method (will auto-assign on post)
-        invoice, einvoice = self._create_test_invoice()
+        invoice, einvoice = self._create_test_invoice_xml()
 
         # Generate XML
         xml_str = self.xml_generator.generate_invoice_xml(einvoice)
@@ -208,7 +172,7 @@ class TestXMLGeneratorPayment(TransactionCase):
                 method = self.env.ref(method_ref)
                 transaction_id = '987654321' if requires_transaction else None
 
-                invoice, einvoice = self._create_test_invoice(
+                invoice, einvoice = self._create_test_invoice_xml(
                     payment_method=method,
                     transaction_id=transaction_id
                 )
@@ -235,7 +199,7 @@ class TestXMLGeneratorPayment(TransactionCase):
 
     def test_xml_medio_pago_position(self):
         """Test that MedioPago appears in correct position in XML."""
-        invoice, einvoice = self._create_test_invoice(payment_method=self.payment_method_efectivo)
+        invoice, einvoice = self._create_test_invoice_xml(payment_method=self.payment_method_efectivo)
 
         # Generate XML
         xml_str = self.xml_generator.generate_invoice_xml(einvoice)
@@ -263,6 +227,7 @@ class TestXMLGeneratorPayment(TransactionCase):
             'move_type': 'out_invoice',
             'partner_id': self.partner.id,
             'company_id': self.company.id,
+            'journal_id': self.sales_journal.id,
             'invoice_date': '2025-12-28',
             'l10n_cr_payment_method_id': self.payment_method_sinpe.id,
             'l10n_cr_payment_transaction_id': '555555555',
@@ -274,12 +239,13 @@ class TestXMLGeneratorPayment(TransactionCase):
         })
         invoice.action_post()
 
-        # Create e-invoice as TE
+        # Create e-invoice as TE and generate clave
         einvoice = self.env['l10n_cr.einvoice.document'].create({
             'move_id': invoice.id,
             'document_type': 'TE',
             'company_id': self.company.id,
         })
+        einvoice.action_generate_xml()
 
         # Generate XML
         xml_str = self.xml_generator.generate_invoice_xml(einvoice)
