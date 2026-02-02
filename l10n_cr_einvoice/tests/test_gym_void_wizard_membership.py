@@ -8,6 +8,24 @@ import logging
 from datetime import datetime, timedelta
 
 from odoo.tests.common import TransactionCase
+import uuid
+
+
+def _generate_unique_vat_company():
+    """Generate unique VAT number for company (10 digits starting with 3)."""
+    return f"310{uuid.uuid4().hex[:7].upper()}"
+
+
+def _generate_unique_vat_person():
+    """Generate unique VAT number for person (9 digits)."""
+    return f"10{uuid.uuid4().hex[:7].upper()}"
+
+
+def _generate_unique_email(prefix='test'):
+    """Generate unique email address."""
+    return f"{prefix}-{uuid.uuid4().hex[:8]}@example.com"
+
+
 
 _logger = logging.getLogger(__name__)
 
@@ -33,7 +51,7 @@ class TestGymVoidWizardMembership(TransactionCase):
         # Create test member
         cls.member = cls.env['res.partner'].create({
             'name': 'Carlos Ramírez',
-            'email': 'carlos.ramirez@email.com',
+            'email': _generate_unique_email('customer'),
             'phone': '+506-7777-8888',
             'vat': '1-0456-0789',
             'l10n_cr_identification_type': '01',

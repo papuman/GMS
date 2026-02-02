@@ -6,6 +6,24 @@ Tests offline queue management, sync logic, and retry mechanisms
 
 from odoo.tests import tagged, TransactionCase
 from odoo.exceptions import UserError
+import uuid
+
+
+def _generate_unique_vat_company():
+    """Generate unique VAT number for company (10 digits starting with 3)."""
+    return f"310{uuid.uuid4().hex[:7].upper()}"
+
+
+def _generate_unique_vat_person():
+    """Generate unique VAT number for person (9 digits)."""
+    return f"10{uuid.uuid4().hex[:7].upper()}"
+
+
+def _generate_unique_email(prefix='test'):
+    """Generate unique email address."""
+    return f"{prefix}-{uuid.uuid4().hex[:8]}@example.com"
+
+
 from unittest.mock import patch, MagicMock
 from datetime import datetime, timedelta
 from odoo import fields
@@ -22,7 +40,7 @@ class TestPosOfflineQueue(TransactionCase):
         # Create test company
         cls.company = cls.env['res.company'].create({
             'name': 'Test GYM CR',
-            'vat': '3101234567',
+            'vat': _generate_unique_vat_company(),
             'country_id': cls.env.ref('base.cr').id,
             'l10n_cr_enable_einvoice': True,
         })

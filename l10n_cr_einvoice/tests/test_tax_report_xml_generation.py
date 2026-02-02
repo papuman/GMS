@@ -5,6 +5,24 @@ Tests XML structure, formatting, and validation for D-150, D-101, D-151
 """
 from odoo.tests.common import TransactionCase, tagged
 from odoo.exceptions import UserError
+import uuid
+
+
+def _generate_unique_vat_company():
+    """Generate unique VAT number for company (10 digits starting with 3)."""
+    return f"310{uuid.uuid4().hex[:7].upper()}"
+
+
+def _generate_unique_vat_person():
+    """Generate unique VAT number for person (9 digits)."""
+    return f"10{uuid.uuid4().hex[:7].upper()}"
+
+
+def _generate_unique_email(prefix='test'):
+    """Generate unique email address."""
+    return f"{prefix}-{uuid.uuid4().hex[:8]}@example.com"
+
+
 from lxml import etree
 from datetime import date
 
@@ -20,8 +38,8 @@ class TestTaxReportXMLGeneration(TransactionCase):
         self.company = self.env['res.company'].create({
             'name': 'Test Gym Costa Rica',
             'country_id': self.env.ref('base.cr').id,
-            'vat': '3101234567',
-            'email': 'admin@testgym.cr',
+            'vat': _generate_unique_vat_company(),
+            'email': _generate_unique_email('company'),
             'phone': '22001100',
         })
 
@@ -131,7 +149,7 @@ class TestTaxReportXMLGeneration(TransactionCase):
         self.assertEqual(tipo.text, '02', "Should be type 02 for legal entity")
 
         numero = identificacion.find('Numero')
-        self.assertEqual(numero.text, '3101234567')
+        self.assertEqual(numero.text, self.company.vat, "Should match company VAT")
 
         nombre = contribuyente.find('Nombre')
         self.assertEqual(nombre.text, 'Test Gym Costa Rica')
@@ -350,12 +368,17 @@ class TestTaxReportXMLGeneration(TransactionCase):
         xml_str = self.XMLGenerator.generate_d101_xml(d101)
         root = self._parse_xml(xml_str)
 
-        self.assertEqual(root.tag, 'D101')
+        # Handle namespace
+        ns = self._get_xml_namespaces(root)
+        if ns:
+            self.assertTrue(root.tag.endswith('D101'))
+        else:
+            self.assertEqual(root.tag, 'D101')
 
         required_elements = ['Periodo', 'Contribuyente', 'IngresosBrutos',
                             'GastosDeducibles', 'RentaNeta', 'Impuesto', 'Liquidacion']
         for elem_name in required_elements:
-            elem = root.find(elem_name)
+            elem = root.find(elem_name, ns) if ns else root.find(elem_name)
             self.assertIsNotNone(elem, f"Missing required element: {elem_name}")
 
     def test_d101_xml_income_section(self):
@@ -376,13 +399,16 @@ class TestTaxReportXMLGeneration(TransactionCase):
         xml_str = self.XMLGenerator.generate_d101_xml(d101)
         root = self._parse_xml(xml_str)
 
-        ingresos = root.find('IngresosBrutos')
+        # Handle namespace
+        ns = self._get_xml_namespaces(root)
+
+        ingresos = root.find('ns:IngresosBrutos', ns) if ns else root.find('IngresosBrutos')
         self.assertIsNotNone(ingresos)
 
-        ventas = ingresos.find('VentasServicios')
+        ventas = ingresos.find('ns:VentasServicios', ns) if ns else ingresos.find('VentasServicios')
         self.assertEqual(ventas.text, '50000000.00')
 
-        otros = ingresos.find('OtrosIngresos')
+        otros = ingresos.find('ns:OtrosIngresos', ns) if ns else ingresos.find('OtrosIngresos')
         self.assertEqual(otros.text, '5000000.00')
 
     def test_d101_xml_expenses_section(self):
@@ -404,16 +430,19 @@ class TestTaxReportXMLGeneration(TransactionCase):
         xml_str = self.XMLGenerator.generate_d101_xml(d101)
         root = self._parse_xml(xml_str)
 
-        gastos = root.find('GastosDeducibles')
+        # Handle namespace
+        ns = self._get_xml_namespaces(root)
+
+        gastos = root.find('ns:GastosDeducibles', ns) if ns else root.find('GastosDeducibles')
         self.assertIsNotNone(gastos)
 
-        costo = gastos.find('CostoVentas')
+        costo = gastos.find('ns:CostoVentas', ns) if ns else gastos.find('CostoVentas')
         self.assertEqual(costo.text, '10000000.00')
 
-        operacion = gastos.find('GastosOperacion')
+        operacion = gastos.find('ns:GastosOperacion', ns) if ns else gastos.find('GastosOperacion')
         self.assertEqual(operacion.text, '15000000.00')
 
-        depreciacion = gastos.find('Depreciacion')
+        depreciacion = gastos.find('ns:Depreciacion', ns) if ns else gastos.find('Depreciacion')
         self.assertEqual(depreciacion.text, '2000000.00')
 
     def test_d101_xml_tax_brackets(self):
@@ -440,11 +469,14 @@ class TestTaxReportXMLGeneration(TransactionCase):
         xml_str = self.XMLGenerator.generate_d101_xml(d101)
         root = self._parse_xml(xml_str)
 
-        impuesto = root.find('Impuesto')
+        # Handle namespace
+        ns = self._get_xml_namespaces(root)
+
+        impuesto = root.find('ns:Impuesto', ns) if ns else root.find('Impuesto')
         self.assertIsNotNone(impuesto)
 
         # Should have tax brackets based on taxable income
-        total_impuesto = impuesto.find('TotalImpuesto')
+        total_impuesto = impuesto.find('ns:TotalImpuesto', ns) if ns else impuesto.find('TotalImpuesto')
         self.assertIsNotNone(total_impuesto)
 
     # =====================================================
@@ -467,11 +499,15 @@ class TestTaxReportXMLGeneration(TransactionCase):
         xml_str = self.XMLGenerator.generate_d151_xml(d151)
         root = self._parse_xml(xml_str)
 
-        self.assertEqual(root.tag, 'D151')
+        # Handle namespaced tag
+        self.assertTrue(root.tag.endswith('D151'), f"Expected tag ending with 'D151', got: {root.tag}")
+
+        # Handle namespace in element finding
+        ns = self._get_xml_namespaces(root)
 
         required_elements = ['Periodo', 'Contribuyente', 'Configuracion', 'Resumen']
         for elem_name in required_elements:
-            elem = root.find(elem_name)
+            elem = root.find(f'ns:{elem_name}', ns) if ns else root.find(elem_name)
             self.assertIsNotNone(elem, f"Missing required element: {elem_name}")
 
     def test_d151_xml_customer_lines(self):
@@ -487,9 +523,17 @@ class TestTaxReportXMLGeneration(TransactionCase):
             'company_id': self.company.id,
         })
 
+        # Create test customer partner
+        customer = self.env['res.partner'].create({
+            'name': 'Juan Pérez',
+            'vat': '109876543',
+            'country_id': self.env.ref('base.cr').id,
+        })
+
         # Add customer line
         self.env['l10n_cr.d151.customer.line'].create({
             'report_id': d151.id,
+            'partner_id': customer.id,
             'partner_vat': '109876543',
             'partner_name': 'Juan Pérez',
             'total_amount': 5000000.00,
@@ -499,16 +543,19 @@ class TestTaxReportXMLGeneration(TransactionCase):
         xml_str = self.XMLGenerator.generate_d151_xml(d151)
         root = self._parse_xml(xml_str)
 
-        clientes = root.find('Clientes')
+        # Handle namespace
+        ns = self._get_xml_namespaces(root)
+
+        clientes = root.find('ns:Clientes', ns) if ns else root.find('Clientes')
         self.assertIsNotNone(clientes)
 
-        cliente = clientes.find('Cliente')
+        cliente = clientes.find('ns:Cliente', ns) if ns else clientes.find('Cliente')
         self.assertIsNotNone(cliente)
 
-        nombre = cliente.find('Nombre')
+        nombre = cliente.find('ns:Nombre', ns) if ns else cliente.find('Nombre')
         self.assertEqual(nombre.text, 'Juan Pérez')
 
-        monto = cliente.find('MontoTotal')
+        monto = cliente.find('ns:MontoTotal', ns) if ns else cliente.find('MontoTotal')
         self.assertEqual(monto.text, '5000000.00')
 
     def test_d151_xml_supplier_lines(self):
@@ -524,9 +571,17 @@ class TestTaxReportXMLGeneration(TransactionCase):
             'company_id': self.company.id,
         })
 
+        # Create test supplier partner
+        supplier = self.env['res.partner'].create({
+            'name': 'Proveedor ABC SA',
+            'vat': '3102345678',
+            'country_id': self.env.ref('base.cr').id,
+        })
+
         # Add supplier line
         self.env['l10n_cr.d151.supplier.line'].create({
             'report_id': d151.id,
+            'partner_id': supplier.id,
             'partner_vat': '3102345678',
             'partner_name': 'Proveedor ABC SA',
             'total_amount': 8000000.00,
@@ -536,13 +591,16 @@ class TestTaxReportXMLGeneration(TransactionCase):
         xml_str = self.XMLGenerator.generate_d151_xml(d151)
         root = self._parse_xml(xml_str)
 
-        proveedores = root.find('Proveedores')
+        # Handle namespace
+        ns = self._get_xml_namespaces(root)
+
+        proveedores = root.find('ns:Proveedores', ns) if ns else root.find('Proveedores')
         self.assertIsNotNone(proveedores)
 
-        proveedor = proveedores.find('Proveedor')
+        proveedor = proveedores.find('ns:Proveedor', ns) if ns else proveedores.find('Proveedor')
         self.assertIsNotNone(proveedor)
 
-        nombre = proveedor.find('Nombre')
+        nombre = proveedor.find('ns:Nombre', ns) if ns else proveedor.find('Nombre')
         self.assertEqual(nombre.text, 'Proveedor ABC SA')
 
     def test_d151_xml_id_type_detection(self):

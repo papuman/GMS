@@ -9,6 +9,24 @@ from datetime import datetime
 
 from odoo.tests.common import TransactionCase
 from odoo.exceptions import UserError
+import uuid
+
+
+def _generate_unique_vat_company():
+    """Generate unique VAT number for company (10 digits starting with 3)."""
+    return f"310{uuid.uuid4().hex[:7].upper()}"
+
+
+def _generate_unique_vat_person():
+    """Generate unique VAT number for person (9 digits)."""
+    return f"10{uuid.uuid4().hex[:7].upper()}"
+
+
+def _generate_unique_email(prefix='test'):
+    """Generate unique email address."""
+    return f"{prefix}-{uuid.uuid4().hex[:8]}@example.com"
+
+
 
 _logger = logging.getLogger(__name__)
 
@@ -29,7 +47,7 @@ class TestGymVoidWizardIntegration(TransactionCase):
         cls.company = cls.env['res.company'].create({
             'name': 'Test Gym Costa Rica',
             'vat': '3-101-654321',
-            'email': 'gym@testgym.cr',
+            'email': _generate_unique_email('company'),
             'phone': '+506-2222-3333',
             'street': 'San José, Costa Rica',
             'country_id': cls.env.ref('base.cr').id,
@@ -38,7 +56,7 @@ class TestGymVoidWizardIntegration(TransactionCase):
         # Create test customer
         cls.customer = cls.env['res.partner'].create({
             'name': 'María González',
-            'email': 'maria.gonzalez@email.com',
+            'email': _generate_unique_email('customer'),
             'phone': '+506-8888-9999',
             'vat': '1-0345-0678',
             'l10n_cr_identification_type': '01',

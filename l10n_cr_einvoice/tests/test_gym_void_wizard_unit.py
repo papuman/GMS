@@ -10,6 +10,24 @@ from unittest.mock import patch, MagicMock
 
 from odoo.tests.common import TransactionCase
 from odoo.exceptions import UserError, ValidationError
+import uuid
+
+
+def _generate_unique_vat_company():
+    """Generate unique VAT number for company (10 digits starting with 3)."""
+    return f"310{uuid.uuid4().hex[:7].upper()}"
+
+
+def _generate_unique_vat_person():
+    """Generate unique VAT number for person (9 digits)."""
+    return f"10{uuid.uuid4().hex[:7].upper()}"
+
+
+def _generate_unique_email(prefix='test'):
+    """Generate unique email address."""
+    return f"{prefix}-{uuid.uuid4().hex[:8]}@example.com"
+
+
 
 _logger = logging.getLogger(__name__)
 
@@ -28,14 +46,14 @@ class TestGymVoidWizardUnit(TransactionCase):
         self.company = self.env['res.company'].create({
             'name': 'Test Gym Company',
             'vat': '3-101-123456',
-            'email': 'test@testgym.cr',
+            'email': _generate_unique_email('company'),
             'phone': '+506-2222-3333',
         })
 
         # Create test partner (customer)
         self.partner = self.env['res.partner'].create({
             'name': 'Juan Pérez',
-            'email': 'juan.perez@email.com',
+            'email': _generate_unique_email('customer'),
             'phone': '+506-8888-9999',
             'vat': '1-0234-0567',
             'l10n_cr_identification_type': '01',  # Física

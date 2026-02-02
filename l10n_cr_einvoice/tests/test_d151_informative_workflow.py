@@ -3,75 +3,97 @@
 Comprehensive tests for D-151 Informative Annual Report Workflow (Phase 9C)
 Tests end-to-end workflow and threshold-based reporting
 """
-from odoo.tests.common import TransactionCase, tagged
+from odoo.tests.common import tagged
 from odoo.exceptions import UserError, ValidationError
+import uuid
+from .common import EInvoiceTestCase
+
+
+def _generate_unique_vat_company():
+    """Generate unique VAT number for company (10 digits starting with 3)."""
+    return f"310{uuid.uuid4().hex[:7].upper()}"
+
+
+def _generate_unique_vat_person():
+    """Generate unique VAT number for person (9 digits)."""
+    return f"10{uuid.uuid4().hex[:7].upper()}"
+
+
+def _generate_unique_email(prefix='test'):
+    """Generate unique email address."""
+    return f"{prefix}-{uuid.uuid4().hex[:8]}@example.com"
+
+
 from unittest.mock import patch, Mock
 from datetime import date
 
 
 @tagged('post_install', '-at_install', 'tax_reports', 'd151')
-class TestD151InformativeWorkflow(TransactionCase):
+class TestD151InformativeWorkflow(EInvoiceTestCase):
     """Test complete D-151 informative report workflow."""
 
     def setUp(self):
         super(TestD151InformativeWorkflow, self).setUp()
 
-        # Create test company
-        self.company = self.env['res.company'].create({
-            'name': 'Test Gym Costa Rica',
-            'country_id': self.env.ref('base.cr').id,
-            'vat': '3101234567',
-            'email': 'admin@testgym.cr',
-            'currency_id': self.env.ref('base.CRC').id,
-        })
+        # Inherited from EInvoiceTestCase:
+        # - self.company (with proper accounting setup)
+        # - self.tax_13 (13% IVA tax with proper tax_group_id)
 
+        # Set current user to use test company
         self.env.user.company_id = self.company
 
-        # Create multiple customers
+        # Create multiple customers with unique VATs for D151 tests
         self.customer_high = self.env['res.partner'].create({
-            'name': 'High Value Customer',
+            'name': 'D151 High Value Customer',
             'country_id': self.env.ref('base.cr').id,
-            'vat': '109876543',  # Física
+            'vat': _generate_unique_vat_person(),  # Física (9 digits)
+            'email': _generate_unique_email('d151-cust-high'),
         })
 
         self.customer_low = self.env['res.partner'].create({
-            'name': 'Low Value Customer',
+            'name': 'D151 Low Value Customer',
             'country_id': self.env.ref('base.cr').id,
-            'vat': '108765432',
+            'vat': _generate_unique_vat_person(),
+            'email': _generate_unique_email('d151-cust-low'),
         })
 
         # Create multiple suppliers
         self.supplier_high = self.env['res.partner'].create({
-            'name': 'High Value Supplier SA',
+            'name': 'D151 High Value Supplier SA',
             'country_id': self.env.ref('base.cr').id,
-            'vat': '3102345678',  # Jurídica
+            'vat': _generate_unique_vat_company(),  # Jurídica (10 digits)
+            'email': _generate_unique_email('d151-supp-high'),
         })
 
         self.supplier_low = self.env['res.partner'].create({
-            'name': 'Low Value Supplier',
+            'name': 'D151 Low Value Supplier',
             'country_id': self.env.ref('base.cr').id,
-            'vat': '3101111111',
+            'vat': _generate_unique_vat_company(),
+            'email': _generate_unique_email('d151-supp-low'),
         })
 
         # Create foreign partner
         self.foreign_customer = self.env['res.partner'].create({
-            'name': 'Foreign Customer',
+            'name': 'D151 Foreign Customer',
             'country_id': self.env.ref('base.us').id,
-            'vat': 'US123456789',
+            'vat': f"US{uuid.uuid4().hex[:9].upper()}",
+            'email': _generate_unique_email('d151-foreign'),
         })
 
-        # Create DIMEX partner
+        # Create DIMEX partner (11 digits)
         self.dimex_customer = self.env['res.partner'].create({
-            'name': 'DIMEX Customer',
+            'name': 'D151 DIMEX Customer',
             'country_id': self.env.ref('base.cr').id,
-            'vat': '12345678901',  # 11 digits = DIMEX
+            'vat': f"1{uuid.uuid4().hex[:10].upper()}",  # 11 digits = DIMEX
+            'email': _generate_unique_email('d151-dimex'),
         })
 
-        # Create product
+        # Create product for D151 tests (use inherited tax_13 from EInvoiceTestCase)
         self.product = self.env['product.product'].create({
-            'name': 'Gym Service',
+            'name': 'D151 Gym Service',
             'type': 'service',
             'list_price': 50000.0,
+            'taxes_id': [(6, 0, [self.tax_13.id])],
         })
 
     def _create_customer_invoices(self, partner, year, total_amount, count=1):
@@ -111,6 +133,7 @@ class TestD151InformativeWorkflow(TransactionCase):
                     'product_id': self.product.id,
                     'quantity': 1,
                     'price_unit': amount_per_bill,
+                    'tax_ids': [(6, 0, [self.tax_13_purchase.id])],  # Use purchase tax for bills
                 })],
             })
             bill.action_post()
@@ -173,7 +196,7 @@ class TestD151InformativeWorkflow(TransactionCase):
 
         # Should only have high value customer
         self.assertEqual(len(d151.customer_line_ids), 1)
-        self.assertEqual(d151.customer_line_ids[0].partner_vat, '109876543')
+        self.assertEqual(d151.customer_line_ids[0].partner_vat, self.customer_high.vat)
         self.assertAlmostEqual(d151.customer_line_ids[0].total_amount, 5000000.0, places=2)
 
     def test_d151_supplier_threshold_filtering(self):
@@ -200,7 +223,7 @@ class TestD151InformativeWorkflow(TransactionCase):
 
         # Should only have high value supplier
         self.assertEqual(len(d151.supplier_line_ids), 1)
-        self.assertEqual(d151.supplier_line_ids[0].partner_vat, '3102345678')
+        self.assertEqual(d151.supplier_line_ids[0].partner_vat, self.supplier_high.vat)
 
     def test_d151_multiple_customers_above_threshold(self):
         """Test D-151 includes all customers above threshold."""
@@ -516,13 +539,12 @@ class TestD151InformativeWorkflow(TransactionCase):
     # =====================================================
 
     def test_d151_calculate_without_period(self):
-        """Test error when calculating without period."""
-        d151 = self.env['l10n_cr.d151.report'].create({
-            'company_id': self.company.id,
-        })
-
-        with self.assertRaises(UserError):
-            d151.action_calculate()
+        """Test error when creating report without period (database constraint)."""
+        # period_id is required=True, so attempting to create without it should fail
+        with self.assertRaises(Exception):  # Will be psycopg2.errors.NotNullViolation
+            self.env['l10n_cr.d151.report'].create({
+                'company_id': self.company.id,
+            })
 
     def test_d151_reset_to_draft(self):
         """Test resetting D-151 to draft."""

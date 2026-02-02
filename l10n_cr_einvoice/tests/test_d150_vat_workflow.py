@@ -3,62 +3,63 @@
 Comprehensive tests for D-150 VAT Monthly Report Workflow (Phase 9C)
 Tests end-to-end workflow: create period → calculate → generate XML → sign → submit
 """
-from odoo.tests.common import TransactionCase, tagged
+from odoo.tests.common import tagged
 from odoo.exceptions import UserError, ValidationError
+import uuid
+from .common import EInvoiceTestCase
+
+
+def _generate_unique_vat_company():
+    """Generate unique VAT number for company (10 digits starting with 3)."""
+    return f"310{uuid.uuid4().hex[:7].upper()}"
+
+
+def _generate_unique_vat_person():
+    """Generate unique VAT number for person (9 digits)."""
+    return f"10{uuid.uuid4().hex[:7].upper()}"
+
+
+def _generate_unique_email(prefix='test'):
+    """Generate unique email address."""
+    return f"{prefix}-{uuid.uuid4().hex[:8]}@example.com"
+
+
 from unittest.mock import patch, Mock
 from datetime import date
 from dateutil.relativedelta import relativedelta
 
 
 @tagged('post_install', '-at_install', 'tax_reports', 'd150')
-class TestD150VATWorkflow(TransactionCase):
+class TestD150VATWorkflow(EInvoiceTestCase):
     """Test complete D-150 VAT report workflow."""
 
     def setUp(self):
         super(TestD150VATWorkflow, self).setUp()
 
-        # Create test company
-        self.company = self.env['res.company'].create({
-            'name': 'Test Gym Costa Rica',
-            'country_id': self.env.ref('base.cr').id,
-            'vat': '3101234567',
-            'email': 'admin@testgym.cr',
-            'phone': '22001100',
-            'currency_id': self.env.ref('base.CRC').id,
-        })
+        # Inherited from EInvoiceTestCase:
+        # - self.company (with proper accounting setup)
+        # - self.tax_13 (13% IVA tax with proper tax_group_id)
+        # - self.partner (test customer)
+        # - self.product (test service)
 
+        # Set current user to use test company
         self.env.user.company_id = self.company
 
-        # Create test partner
-        self.partner = self.env['res.partner'].create({
-            'name': 'Test Customer',
+        # Create unique test partner for D150 tests
+        self.partner_d150 = self.env['res.partner'].create({
+            'name': 'D150 Test Customer',
             'country_id': self.env.ref('base.cr').id,
-            'vat': '109876543',
-            'email': 'customer@test.cr',
+            'vat': _generate_unique_vat_person(),
+            'email': _generate_unique_email('d150-customer'),
         })
 
-        # Create test product
-        self.product = self.env['product.product'].create({
-            'name': 'Gym Membership',
+        # Create test product specific to D150 tests
+        self.product_d150 = self.env['product.product'].create({
+            'name': 'D150 Gym Membership',
             'type': 'service',
             'list_price': 25000.0,
+            'taxes_id': [(6, 0, [self.tax_13.id])],
         })
-
-        # Get 13% tax
-        self.tax_13 = self.env['account.tax'].search([
-            ('company_id', '=', self.company.id),
-            ('amount', '=', 13),
-            ('type_tax_use', '=', 'sale'),
-        ], limit=1)
-
-        if not self.tax_13:
-            self.tax_13 = self.env['account.tax'].create({
-                'name': 'IVA 13%',
-                'amount': 13.0,
-                'amount_type': 'percent',
-                'type_tax_use': 'sale',
-                'company_id': self.company.id,
-            })
 
     def _create_test_invoices(self, period_start, period_end, count=5):
         """Helper to create test invoices for a period."""
@@ -67,11 +68,11 @@ class TestD150VATWorkflow(TransactionCase):
         for i in range(count):
             invoice = self.env['account.move'].create({
                 'move_type': 'out_invoice',
-                'partner_id': self.partner.id,
+                'partner_id': self.partner_d150.id,
                 'company_id': self.company.id,
                 'invoice_date': period_start,
                 'invoice_line_ids': [(0, 0, {
-                    'product_id': self.product.id,
+                    'product_id': self.product_d150.id,
                     'quantity': 1,
                     'price_unit': 25000.0,
                     'tax_ids': [(6, 0, [self.tax_13.id])],
@@ -206,11 +207,11 @@ class TestD150VATWorkflow(TransactionCase):
         # Create credit note
         credit_note = self.env['account.move'].create({
             'move_type': 'out_refund',
-            'partner_id': self.partner.id,
+            'partner_id': self.partner_d150.id,
             'company_id': self.company.id,
             'invoice_date': date(2025, 11, 15),
             'invoice_line_ids': [(0, 0, {
-                'product_id': self.product.id,
+                'product_id': self.product_d150.id,
                 'quantity': 1,
                 'price_unit': 25000.0,
                 'tax_ids': [(6, 0, [self.tax_13.id])],
@@ -242,11 +243,11 @@ class TestD150VATWorkflow(TransactionCase):
         # Create tax-exempt invoice
         invoice = self.env['account.move'].create({
             'move_type': 'out_invoice',
-            'partner_id': self.partner.id,
+            'partner_id': self.partner_d150.id,
             'company_id': self.company.id,
             'invoice_date': date(2025, 11, 1),
             'invoice_line_ids': [(0, 0, {
-                'product_id': self.product.id,
+                'product_id': self.product_d150.id,
                 'quantity': 1,
                 'price_unit': 25000.0,
                 'tax_ids': [],  # No tax

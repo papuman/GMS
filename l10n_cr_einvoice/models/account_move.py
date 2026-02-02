@@ -63,6 +63,15 @@ class AccountMove(models.Model):
         tracking=True,
     )
 
+    # Debit Note Origin (Phase 7)
+    debit_origin_id = fields.Many2one(
+        'account.move',
+        string='Origin Invoice (for Debit Notes)',
+        help='Original invoice being debited (for Nota de Débito)',
+        copy=False,
+        domain="[('move_type', '=', 'out_invoice'), ('state', '=', 'posted'), ('company_id', '=', company_id)]",
+    )
+
     @api.depends('move_type', 'country_code', 'company_id')
     def _compute_requires_einvoice(self):
         """Determine if this invoice requires electronic invoicing."""
