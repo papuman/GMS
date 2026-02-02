@@ -12,9 +12,11 @@ Tests the complete end-to-end flow:
 
 Priority: P0 (Critical - must pass before production)
 Risk: R-001 (Compliance), R-002 (Data Integrity), R-005 (External Dependency)
+
+NOTE: To run these tests:
+  docker compose run --rm odoo -d GMS --test-enable --test-tags=e2e --stop-after-init --no-http
 """
 
-import pytest
 from datetime import datetime
 from odoo.tests.common import TransactionCase, tagged
 import uuid
@@ -37,7 +39,7 @@ def _generate_unique_email(prefix='test'):
 
 
 
-@tagged('e2e', 'external', 'p0', 'post_install', '-at_install')
+@tagged('e2e', 'external')
 class TestE2ESandboxLifecycle(TransactionCase):
     """
     End-to-end tests with real Hacienda sandbox API.
@@ -120,8 +122,8 @@ class TestE2ESandboxLifecycle(TransactionCase):
     # P0 TESTS
     # ========================================================================
 
-    @pytest.mark.p0
     def test_e2e_complete_lifecycle_factura_electronica(self):
+        """Priority: P0 (Critical)"""
         """
         P0: Complete invoice lifecycle (FE) - create to acceptance.
 
@@ -220,8 +222,8 @@ class TestE2ESandboxLifecycle(TransactionCase):
         ])
         self.assertEqual(submission_count, 1, "Should have exactly 1 submission (no duplicates)")
 
-    @pytest.mark.p0
     def test_e2e_tiquete_electronico_submission(self):
+        """Priority: P0 (Critical)"""
         """
         P0: Complete tiquete electrónico (TE) lifecycle.
 
@@ -266,7 +268,6 @@ class TestE2ESandboxLifecycle(TransactionCase):
         einvoice_doc.action_check_status()
         self.assertIn(einvoice_doc.state, ['accepted', 'processing'])
 
-    @pytest.mark.p1
     def test_e2e_nota_credito_submission(self):
         """
         P1: Credit note (NC) submission to sandbox.
@@ -308,7 +309,6 @@ class TestE2ESandboxLifecycle(TransactionCase):
     # ERROR HANDLING TESTS
     # ========================================================================
 
-    @pytest.mark.p0
     def test_e2e_retry_on_transient_failure(self):
         """
         P0: Verify retry queue handles transient failures.
@@ -340,7 +340,6 @@ class TestE2ESandboxLifecycle(TransactionCase):
             # May or may not have retry entries depending on failure type
             # This is more of a smoke test
 
-    @pytest.mark.p1
     def test_e2e_idempotency_no_double_submit(self):
         """
         P1: Verify calling submit twice doesn't create duplicate submissions.
@@ -390,7 +389,6 @@ class TestE2ESandboxLifecycle(TransactionCase):
     # PERFORMANCE TESTS
     # ========================================================================
 
-    @pytest.mark.p2
     def test_e2e_bulk_submission_performance(self):
         """
         P2: Test bulk submission performance (10 invoices).
