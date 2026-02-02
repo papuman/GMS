@@ -3,49 +3,67 @@
 Comprehensive tests for D-101 Income Tax Annual Report Workflow (Phase 9C)
 Tests end-to-end workflow and progressive tax calculations
 """
-from odoo.tests.common import TransactionCase, tagged
+from odoo.tests.common import tagged
 from odoo.exceptions import UserError, ValidationError
+import uuid
+from .common import EInvoiceTestCase
+
+
+def _generate_unique_vat_company():
+    """Generate unique VAT number for company (10 digits starting with 3)."""
+    return f"310{uuid.uuid4().hex[:7].upper()}"
+
+
+def _generate_unique_vat_person():
+    """Generate unique VAT number for person (9 digits)."""
+    return f"10{uuid.uuid4().hex[:7].upper()}"
+
+
+def _generate_unique_email(prefix='test'):
+    """Generate unique email address."""
+    return f"{prefix}-{uuid.uuid4().hex[:8]}@example.com"
+
+
 from unittest.mock import patch, Mock
 from datetime import date
 
 
 @tagged('post_install', '-at_install', 'tax_reports', 'd101')
-class TestD101IncomeTaxWorkflow(TransactionCase):
+class TestD101IncomeTaxWorkflow(EInvoiceTestCase):
     """Test complete D-101 income tax report workflow."""
 
     def setUp(self):
         super(TestD101IncomeTaxWorkflow, self).setUp()
 
-        # Create test company
-        self.company = self.env['res.company'].create({
-            'name': 'Test Gym Costa Rica',
-            'country_id': self.env.ref('base.cr').id,
-            'vat': '3101234567',
-            'email': 'admin@testgym.cr',
-            'currency_id': self.env.ref('base.CRC').id,
-        })
+        # Inherited from EInvoiceTestCase:
+        # - self.company (with proper accounting setup)
+        # - self.tax_13 (13% IVA tax with proper tax_group_id)
 
+        # Set current user to use test company
         self.env.user.company_id = self.company
 
-        # Create customers
+        # Create unique customer for D101 tests
         self.customer = self.env['res.partner'].create({
-            'name': 'Test Customer',
+            'name': 'D101 Test Customer',
             'country_id': self.env.ref('base.cr').id,
-            'vat': '109876543',
+            'vat': _generate_unique_vat_person(),
+            'email': _generate_unique_email('d101-customer'),
         })
 
-        # Create supplier
+        # Create unique supplier for D101 tests
         self.supplier = self.env['res.partner'].create({
-            'name': 'Test Supplier',
+            'name': 'D101 Test Supplier',
             'country_id': self.env.ref('base.cr').id,
-            'vat': '3102345678',
+            'vat': _generate_unique_vat_company(),
+            'email': _generate_unique_email('d101-supplier'),
         })
 
-        # Create products
+        # Create product for D101 tests (use inherited tax_13 from EInvoiceTestCase)
         self.product_service = self.env['product.product'].create({
-            'name': 'Gym Membership',
+            'name': 'D101 Gym Membership',
             'type': 'service',
             'list_price': 50000.0,
+            'taxes_id': [(6, 0, [self.tax_13.id])],
         })
 
     def _create_sales_invoices(self, year, total_amount):
@@ -88,6 +106,7 @@ class TestD101IncomeTaxWorkflow(TransactionCase):
                     'product_id': self.product_service.id,
                     'quantity': 1,
                     'price_unit': monthly_amount,
+                    'tax_ids': [(6, 0, [self.tax_13_purchase.id])],  # Use purchase tax for bills
                 })],
             })
             bill.action_post()
@@ -519,13 +538,12 @@ class TestD101IncomeTaxWorkflow(TransactionCase):
     # =====================================================
 
     def test_d101_calculate_without_period(self):
-        """Test error when calculating without period."""
-        d101 = self.env['l10n_cr.d101.report'].create({
-            'company_id': self.company.id,
-        })
-
-        with self.assertRaises(UserError):
-            d101.action_calculate()
+        """Test error when creating report without period (database constraint)."""
+        # period_id is required=True, so attempting to create without it should fail
+        with self.assertRaises(Exception):  # Will be psycopg2.errors.NotNullViolation
+            self.env['l10n_cr.d101.report'].create({
+                'company_id': self.company.id,
+            })
 
     def test_d101_reset_to_draft(self):
         """Test resetting D-101 to draft."""

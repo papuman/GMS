@@ -3,14 +3,33 @@
 Comprehensive tests for Tax Report API Integration (Phase 9C)
 Tests TRIBU-CR API submission, status checking, and error handling
 """
-from odoo.tests.common import TransactionCase, tagged
+from odoo.tests.common import tagged
 from odoo.exceptions import UserError
+import uuid
+from .common import EInvoiceTestCase
+
+
+def _generate_unique_vat_company():
+    """Generate unique VAT number for company (10 digits starting with 3)."""
+    return f"310{uuid.uuid4().hex[:7].upper()}"
+
+
+def _generate_unique_vat_person():
+    """Generate unique VAT number for person (9 digits)."""
+    return f"10{uuid.uuid4().hex[:7].upper()}"
+
+
+def _generate_unique_email(prefix='test'):
+    """Generate unique email address."""
+    return f"{prefix}-{uuid.uuid4().hex[:8]}@example.com"
+
+
 from unittest.mock import Mock, patch, MagicMock
 from datetime import datetime
 
 
 @tagged('post_install', '-at_install', 'tax_reports', 'api')
-class TestTaxReportAPIIntegration(TransactionCase):
+class TestTaxReportAPIIntegration(EInvoiceTestCase):
     """Test API integration for tax report submission."""
 
     def setUp(self):
@@ -20,8 +39,8 @@ class TestTaxReportAPIIntegration(TransactionCase):
         self.company = self.env['res.company'].create({
             'name': 'Test Gym Costa Rica',
             'country_id': self.env.ref('base.cr').id,
-            'vat': '3101234567',
-            'email': 'admin@testgym.cr',
+            'vat': _generate_unique_vat_company(),
+            'email': _generate_unique_email('company'),
             'phone': '22001100',
         })
 

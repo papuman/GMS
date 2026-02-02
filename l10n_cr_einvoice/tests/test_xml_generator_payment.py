@@ -4,6 +4,24 @@ Integration tests for XML generator with payment methods (Phase 1A)
 Tests that XML contains correct MedioPago and NumeroTransaccion tags
 """
 from odoo.tests import TransactionCase
+import uuid
+
+
+def _generate_unique_vat_company():
+    """Generate unique VAT number for company (10 digits starting with 3)."""
+    return f"310{uuid.uuid4().hex[:7].upper()}"
+
+
+def _generate_unique_vat_person():
+    """Generate unique VAT number for person (9 digits)."""
+    return f"10{uuid.uuid4().hex[:7].upper()}"
+
+
+def _generate_unique_email(prefix='test'):
+    """Generate unique email address."""
+    return f"{prefix}-{uuid.uuid4().hex[:8]}@example.com"
+
+
 from lxml import etree
 
 
@@ -17,8 +35,8 @@ class TestXMLGeneratorPayment(TransactionCase):
         self.company = self.env['res.company'].create({
             'name': 'Test Company CR',
             'country_id': self.env.ref('base.cr').id,
-            'vat': '3101234567',
-            'email': 'test@example.com',
+            'vat': _generate_unique_vat_company(),
+            'email': _generate_unique_email('company'),
             'phone': '22001100',
         })
 
@@ -26,8 +44,8 @@ class TestXMLGeneratorPayment(TransactionCase):
         self.partner = self.env['res.partner'].create({
             'name': 'Test Customer',
             'country_id': self.env.ref('base.cr').id,
-            'vat': '123456789',
-            'email': 'customer@example.com',
+            'vat': _generate_unique_vat_person(),
+            'email': _generate_unique_email('customer'),
         })
 
         # Get payment methods

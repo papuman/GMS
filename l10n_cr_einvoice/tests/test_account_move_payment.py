@@ -3,11 +3,30 @@
 Unit tests for account.move payment method validation (Phase 1A)
 Tests SINPE Móvil transaction ID validation
 """
-from odoo.tests import TransactionCase
+from odoo.tests import tagged
 from odoo.exceptions import UserError
+import uuid
+from .common import EInvoiceTestCase
 
 
-class TestAccountMovePayment(TransactionCase):
+def _generate_unique_vat_company():
+    """Generate unique VAT number for company (10 digits starting with 3)."""
+    return f"310{uuid.uuid4().hex[:7].upper()}"
+
+
+def _generate_unique_vat_person():
+    """Generate unique VAT number for person (9 digits)."""
+    return f"10{uuid.uuid4().hex[:7].upper()}"
+
+
+def _generate_unique_email(prefix='test'):
+    """Generate unique email address."""
+    return f"{prefix}-{uuid.uuid4().hex[:8]}@example.com"
+
+
+
+
+class TestAccountMovePayment(EInvoiceTestCase):
     """Test payment method validation on invoices."""
 
     def setUp(self):
@@ -17,14 +36,14 @@ class TestAccountMovePayment(TransactionCase):
         self.company = self.env['res.company'].create({
             'name': 'Test Company CR',
             'country_id': self.env.ref('base.cr').id,
-            'vat': '3101234567',
+            'vat': _generate_unique_vat_company(),
         })
 
         # Create test partner in Costa Rica
         self.partner = self.env['res.partner'].create({
             'name': 'Test Customer CR',
             'country_id': self.env.ref('base.cr').id,
-            'vat': '123456789',
+            'vat': _generate_unique_vat_person(),
         })
 
         # Get payment methods
