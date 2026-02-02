@@ -113,7 +113,7 @@ class XMLGenerator(models.AbstractModel):
         self._add_condicion_venta(root, source_doc)
 
         # 8. MedioPago (payment method) - Updated for Phase 1A
-
+        self._add_medio_pago(root, source_doc)
 
         # 9. DetalleServicio (line items)
         self._add_detalle_servicio(root, source_doc)
@@ -172,6 +172,7 @@ class XMLGenerator(models.AbstractModel):
 
         self._add_emisor(root, source_doc.company_id)
         self._add_condicion_venta(root, source_doc)
+        self._add_medio_pago(root, source_doc)
 
         self._add_detalle_servicio(root, source_doc)
         self._add_resumen_factura(root, source_doc)

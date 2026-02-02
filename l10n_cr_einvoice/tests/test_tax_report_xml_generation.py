@@ -630,15 +630,13 @@ class TestTaxReportXMLGeneration(TransactionCase):
     # =====================================================
 
     def test_xml_generation_without_period(self):
-        """Test error when generating XML without period."""
-        d150 = self.env['l10n_cr.d150.report'].create({
-            'company_id': self.company.id,
-        })
-
-        with self.assertRaises(UserError) as cm:
-            self.XMLGenerator.generate_d150_xml(d150)
-
-        self.assertIn('Period is required', str(cm.exception))
+        """Test error when creating report without period (database constraint)."""
+        # period_id is required=True at the model level, creating NOT NULL constraint
+        # Attempting to create without period_id should raise a database exception
+        with self.assertRaises(Exception):  # Will be psycopg2.errors.NotNullViolation
+            self.env['l10n_cr.d150.report'].create({
+                'company_id': self.company.id,
+            })
 
     def test_xml_validation(self):
         """Test XML validation helper."""
