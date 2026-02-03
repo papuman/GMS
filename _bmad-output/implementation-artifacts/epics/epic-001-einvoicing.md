@@ -56,8 +56,19 @@ Implement complete Costa Rica electronic invoicing compliance system for GMS usi
 6. **GMS Integration** (Phase 6) 🔄 NEEDS COMPLETION
    - Membership billing
    - Recurring subscriptions
-   - POS integration (basic)
-   - Gym POS store type card (NEW)
+   - POS integration (basic - needs enhancement)
+   - **🚨 CRITICAL: Optional E-Invoice in POS**
+     - Default: No e-invoice generated
+     - Toggle button in payment screen
+     - Only generate when customer requests
+   - **🚨 CRITICAL: Retroactive E-Invoice Generation**
+     - Allow e-invoice generation after payment
+     - "Recent Orders" view with generation option
+     - Common customer service scenario
+   - **Gym POS Store Type Card**
+     - Add "Gym" option to POS store selection
+     - Gym-specific configuration and products
+     - Member-focused workflow
    - Payment methods
    - Discount codes
 

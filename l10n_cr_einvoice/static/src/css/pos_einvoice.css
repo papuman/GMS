@@ -18,6 +18,42 @@
     padding-bottom: 8px;
 }
 
+/* E-Invoice Enable/Disable Toggle */
+.einvoice-enable-toggle {
+    margin-bottom: 15px;
+}
+
+.einvoice-toggle-btn {
+    min-height: 56px;
+    font-size: 16px;
+    font-weight: 600;
+    transition: all 0.3s;
+    border: 2px solid;
+}
+
+.einvoice-toggle-btn.btn-disabled {
+    background-color: #f8f9fa;
+    color: #6c757d;
+    border-color: #dee2e6;
+}
+
+.einvoice-toggle-btn.btn-disabled:hover {
+    background-color: #e9ecef;
+    border-color: #adb5bd;
+}
+
+.einvoice-toggle-btn.btn-enabled {
+    background-color: #28a745;
+    color: white;
+    border-color: #28a745;
+    box-shadow: 0 3px 6px rgba(40, 167, 69, 0.3);
+}
+
+.einvoice-toggle-btn.btn-enabled:hover {
+    background-color: #218838;
+    border-color: #1e7e34;
+}
+
 /* Button Group Styling */
 .einvoice-toggle-group {
     margin-bottom: 15px;

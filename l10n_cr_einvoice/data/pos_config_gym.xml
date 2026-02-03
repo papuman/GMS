@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="0">
+
+        <!-- Gym POS Configuration -->
+        <record id="pos_config_gym" model="pos.config">
+            <field name="name">GYM POS</field>
+            <field name="company_id" ref="base.main_company"/>
+
+            <!-- E-Invoice Settings -->
+            <field name="l10n_cr_enable_einvoice" eval="True"/>
+            <field name="l10n_cr_require_customer_id" eval="False"/>
+            <field name="l10n_cr_auto_submit" eval="True"/>
+            <field name="l10n_cr_offline_mode" eval="False"/>
+            <field name="l10n_cr_allow_anonymous" eval="True"/>
+            <field name="l10n_cr_default_email_customer" eval="True"/>
+            <field name="l10n_cr_terminal_id">001</field>
+
+            <!-- Receipt Templates -->
+            <field name="receipt_header">GMS - Gym Management System
+San José, Costa Rica
+Tel: (506) 2222-3333
+gym@gms-cr.com</field>
+            <field name="receipt_footer">¡Gracias por entrenar con nosotros!
+
+*** Este es un comprobante válido ***</field>
+
+        </record>
+
+    </data>
+</odoo>

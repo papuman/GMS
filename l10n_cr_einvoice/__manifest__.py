@@ -58,11 +58,14 @@ Requirements:
         'point_of_sale',
     ],
     'assets': {
-        'point_of_sale.assets': [
+        'point_of_sale.assets_prod': [
             'l10n_cr_einvoice/static/src/css/pos_einvoice.css',
             'l10n_cr_einvoice/static/src/js/pos_einvoice.js',
             'l10n_cr_einvoice/static/src/xml/pos_einvoice.xml',
             'l10n_cr_einvoice/static/src/xml/pos_receipt.xml',
+        ],
+        'web.assets_backend': [
+            'l10n_cr_einvoice/static/src/js/pos_kanban_gym.js',
         ],
     },
     'external_dependencies': {
@@ -87,6 +90,8 @@ Requirements:
         'data/hacienda_sequences.xml',
         'data/pos_sequences.xml',
         'data/tax_report_sequences.xml',
+        'data/gym_pos_products.xml',
+        'data/pos_config_gym.xml',
         # TODO: Fix Odoo 19 XML schema validation for email templates
         # 'data/email_templates.xml',
         # 'data/void_confirmation_email.xml',
@@ -98,6 +103,7 @@ Requirements:
         'views/res_partner_views.xml',          # Partner CIIU fields
         'views/einvoice_document_views.xml',    # E-invoice document views
         'views/res_company_views.xml',          # Company Hacienda settings
+        'views/pos_order_views.xml',            # POS Order e-invoice integration
 
         # Phase 9B: Tax Reports Views (MUST load BEFORE hacienda_menu.xml to define actions)
         'views/tax_report_period_views.xml',    # Tax report periods

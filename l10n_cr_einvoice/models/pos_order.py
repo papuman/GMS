@@ -79,25 +79,45 @@ class PosOrder(models.Model):
             else:
                 order.l10n_cr_qr_code = False
 
-    # TODO: Odoo 19 refactored POS order processing.
-    # This override used the Odoo 14-16 _process_order API which no longer exists.
-    # Needs to be reimplemented using the Odoo 19 POS order flow.
-    #
-    # @api.model
-    # def _process_order(self, order, existing_order):
-    #     """Override to generate E-Invoice after order creation."""
-    #     order_id = super(PosOrder, self)._process_order(order, existing_order)
-    #     if not order_id:
-    #         return order_id
-    #     pos_order = self.browse(order_id)
-    #     is_einvoice = order.get('l10n_cr_is_einvoice', False) or order.get('data', {}).get('l10n_cr_is_einvoice', False)
-    #     if pos_order.config_id.l10n_cr_enable_einvoice and is_einvoice:
-    #         pos_order.write({'l10n_cr_is_einvoice': True})
-    #         try:
-    #             pos_order._generate_cr_einvoice()
-    #         except Exception as e:
-    #             pos_order.message_post(body=f"Electronic Invoice generation failed: {str(e)}")
-    #     return order_id
+    # Odoo 19 POS order processing
+    @api.model
+    def _order_fields(self, ui_order):
+        """
+        Override to capture e-invoice flag from POS UI.
+        Odoo 19 uses _order_fields instead of _process_order.
+        """
+        fields = super()._order_fields(ui_order)
+
+        # Capture the e-invoice flag from UI (default: False)
+        fields['l10n_cr_is_einvoice'] = ui_order.get('l10n_cr_is_einvoice', False)
+
+        return fields
+
+    @api.model_create_multi
+    def create(self, vals_list):
+        """Override to generate e-invoice after order creation if requested."""
+        orders = super().create(vals_list)
+
+        # Generate e-invoice for orders that have the flag set
+        for order in orders:
+            if order.state == 'paid':  # Only for paid orders
+                order._generate_einvoice_if_requested()
+
+        return orders
+
+    def _generate_einvoice_if_requested(self):
+        """
+        Generate e-invoice only if explicitly requested.
+        Called after order is created and paid.
+        """
+        self.ensure_one()
+
+        # CRITICAL: Only generate if flag is True AND config enables it
+        if self.l10n_cr_is_einvoice and self.config_id.l10n_cr_enable_einvoice:
+            try:
+                self._generate_cr_einvoice()
+            except Exception as e:
+                self.message_post(body=f"Electronic Invoice generation failed: {str(e)}")
 
     def _generate_cr_einvoice(self):
         """Generate and submit the electronic invoice."""
@@ -166,3 +186,60 @@ class PosOrder(models.Model):
         self.ensure_one()
         if self.l10n_cr_einvoice_document_id:
             return self.l10n_cr_einvoice_document_id.action_submit_to_hacienda()
+
+    def action_generate_einvoice_retroactive(self, partner_id=None, partner_vat=None, partner_email=None):
+        """
+        Generate e-invoice after order completion.
+        Common scenario: Customer completes purchase, then returns asking for invoice.
+
+        Args:
+            partner_id: Optional partner ID to set
+            partner_vat: Optional VAT number if creating new partner
+            partner_email: Optional email for delivery
+
+        Returns:
+            dict: Action to reprint receipt with QR code
+
+        Raises:
+            UserError: If order is not paid or already has e-invoice
+        """
+        self.ensure_one()
+
+        # Validation: Order must be paid
+        if self.state != 'paid':
+            raise UserError(_("Can only generate e-invoice for paid orders"))
+
+        # Validation: Cannot have existing e-invoice
+        if self.l10n_cr_einvoice_document_id:
+            raise UserError(_("This order already has an e-invoice"))
+
+        # Set partner if provided
+        if partner_id:
+            self.partner_id = partner_id
+
+        # Validate partner exists for FE
+        if not self.partner_id:
+            raise UserError(_("Partner is required to generate e-invoice"))
+
+        # Enable e-invoice flag
+        self.l10n_cr_is_einvoice = True
+
+        # Generate e-invoice using existing order data
+        try:
+            self._generate_cr_einvoice()
+        except Exception as e:
+            # Reset flag on failure
+            self.l10n_cr_is_einvoice = False
+            raise UserError(_("Failed to generate e-invoice: %s") % str(e))
+
+        # Return action to reprint receipt
+        return {
+            'type': 'ir.actions.client',
+            'tag': 'display_notification',
+            'params': {
+                'title': _('E-Invoice Generated'),
+                'message': _('Electronic invoice created successfully. Receipt can be reprinted with QR code.'),
+                'type': 'success',
+                'sticky': False,
+            }
+        }
