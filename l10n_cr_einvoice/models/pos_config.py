@@ -6,7 +6,7 @@ class PosConfig(models.Model):
 
     # Main Config
     l10n_cr_enable_einvoice = fields.Boolean(string="Enable CR E-Invoicing", default=True)
-    
+
     # Behavior
     l10n_cr_require_customer_id = fields.Boolean(string="Require Customer for FE", default=True)
     l10n_cr_auto_submit = fields.Boolean(string="Auto Submit to Hacienda", default=True)
@@ -17,7 +17,7 @@ class PosConfig(models.Model):
     # Technical
     l10n_cr_terminal_id = fields.Char(string="Terminal ID (Sucursal)", default="001")
     l10n_cr_te_sequence_id = fields.Many2one('ir.sequence', string="Tiquete Sequence")
-    
+
     # Status / Monitoring fields (computed or dummy for now to satisfy view)
     l10n_cr_connection_status = fields.Selection(
         [('online', 'Online'), ('offline', 'Offline')],
@@ -29,8 +29,6 @@ class PosConfig(models.Model):
 
     # Anonymous Customer Defaults
     l10n_cr_default_partner_id = fields.Many2one('res.partner', string="Default Partner")
-    # TODO: Fix related field - l10n_cr_ident_type_id doesn't exist in res.partner
-    # l10n_cr_default_customer_id_type = fields.Selection(related='l10n_cr_default_partner_id.l10n_cr_ident_type_id.code')
     l10n_cr_default_customer_id_number = fields.Char(related='l10n_cr_default_partner_id.vat')
 
     def action_test_hacienda_connection(self):
@@ -56,3 +54,51 @@ class PosConfig(models.Model):
     def action_regenerate_sequence(self):
         # Placeholder
         pass
+
+    @api.model
+    def load_onboarding_gym_scenario(self, with_demo=False):
+        """
+        Load the Gym POS configuration scenario.
+        Called when user clicks the Gym card in the store selection screen.
+        """
+        # Check if gym config already exists
+        gym_config = self.env.ref('l10n_cr_einvoice.pos_config_gym', raise_if_not_found=False)
+
+        if gym_config:
+            # Gym config already exists, just return it
+            return {
+                'type': 'ir.actions.act_window',
+                'res_model': 'pos.config',
+                'res_id': gym_config.id,
+                'view_mode': 'form',
+                'target': 'current',
+            }
+
+        # If not exists, create it (shouldn't happen as it's in data file)
+        gym_config = self.create({
+            'name': 'GYM POS',
+            'l10n_cr_enable_einvoice': True,
+            'l10n_cr_require_customer_id': False,
+            'l10n_cr_auto_submit': True,
+            'l10n_cr_offline_mode': False,
+            'l10n_cr_allow_anonymous': True,
+            'l10n_cr_default_email_customer': True,
+            'l10n_cr_terminal_id': '001',
+            'iface_tipproduct': False,
+            'iface_tax_included': 'total',
+            'receipt_header': '''GMS - Gym Management System
+San José, Costa Rica
+Tel: (506) 2222-3333
+gym@gms-cr.com''',
+            'receipt_footer': '''¡Gracias por entrenar con nosotros!
+
+*** Este es un comprobante válido ***''',
+        })
+
+        return {
+            'type': 'ir.actions.act_window',
+            'res_model': 'pos.config',
+            'res_id': gym_config.id,
+            'view_mode': 'form',
+            'target': 'current',
+        }

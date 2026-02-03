@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+
+        <!-- Gym Product Category -->
+        <record id="product_category_gym_memberships" model="product.category">
+            <field name="name">Gym Memberships</field>
+        </record>
+
+        <record id="product_category_gym_services" model="product.category">
+            <field name="name">Gym Services</field>
+        </record>
+
+        <!-- Gym Products with Costa Rica Tax Configuration -->
+
+        <!-- Monthly Membership -->
+        <record id="product_gym_membership_monthly" model="product.product">
+            <field name="name">Monthly Gym Membership</field>
+            <field name="list_price">25000.00</field>
+            <field name="type">service</field>
+            <field name="categ_id" ref="product_category_gym_memberships"/>
+            <field name="available_in_pos" eval="True"/>
+            <field name="description_sale">Monthly unlimited access to gym facilities (+ 13% IVA)</field>
+        </record>
+
+        <!-- Quarterly Membership -->
+        <record id="product_gym_membership_quarterly" model="product.product">
+            <field name="name">Quarterly Gym Membership (3 months)</field>
+            <field name="list_price">70000.00</field>
+            <field name="type">service</field>
+            <field name="categ_id" ref="product_category_gym_memberships"/>
+            <field name="available_in_pos" eval="True"/>
+            <field name="description_sale">3-month unlimited access to gym facilities (+ 13% IVA)</field>
+        </record>
+
+        <!-- Annual Membership -->
+        <record id="product_gym_membership_annual" model="product.product">
+            <field name="name">Annual Gym Membership (12 months)</field>
+            <field name="list_price">250000.00</field>
+            <field name="type">service</field>
+            <field name="categ_id" ref="product_category_gym_memberships"/>
+            <field name="available_in_pos" eval="True"/>
+            <field name="description_sale">12-month unlimited access to gym facilities (+ 13% IVA)</field>
+        </record>
+
+        <!-- Day Pass -->
+        <record id="product_gym_day_pass" model="product.product">
+            <field name="name">Gym Day Pass</field>
+            <field name="list_price">5000.00</field>
+            <field name="type">service</field>
+            <field name="categ_id" ref="product_category_gym_services"/>
+            <field name="available_in_pos" eval="True"/>
+            <field name="description_sale">Single day access to gym facilities (+ 13% IVA)</field>
+        </record>
+
+        <!-- Personal Training Session -->
+        <record id="product_gym_personal_training" model="product.product">
+            <field name="name">Personal Training Session (1 hour)</field>
+            <field name="list_price">15000.00</field>
+            <field name="type">service</field>
+            <field name="categ_id" ref="product_category_gym_services"/>
+            <field name="available_in_pos" eval="True"/>
+            <field name="description_sale">One-on-one personal training session (+ 13% IVA)</field>
+        </record>
+
+        <!-- Equipment Rental -->
+        <record id="product_gym_equipment_rental" model="product.product">
+            <field name="name">Equipment Rental</field>
+            <field name="list_price">3000.00</field>
+            <field name="type">service</field>
+            <field name="categ_id" ref="product_category_gym_services"/>
+            <field name="available_in_pos" eval="True"/>
+            <field name="description_sale">Locker or towel rental (+ 13% IVA)</field>
+        </record>
+
+    </data>
+</odoo>
