@@ -36,6 +36,10 @@ services:
       - ./odoo.conf:/etc/odoo/odoo.conf:ro
       # Mount custom addons for live development
       - ./l10n_cr_einvoice:/opt/odoo/custom_addons/l10n_cr_einvoice
+      - ./gms_disable_telemetry_cron:/opt/odoo/custom_addons/gms_disable_telemetry_cron
+      - ./gms_iap_disable:/opt/odoo/custom_addons/gms_iap_disable
+      - ./gms_shaar_licensing:/opt/odoo/custom_addons/gms_shaar_licensing
+      - ./gms_web_enterprise_override:/opt/odoo/custom_addons/gms_web_enterprise_override
     networks:
       - odoo-network
     restart: unless-stopped
