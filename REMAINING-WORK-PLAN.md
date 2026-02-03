@@ -76,6 +76,7 @@ l10n_cr_einvoice/
 - [ ] Clicking gym card loads gym-specific configuration
 - [ ] Gym products available in POS
 - [ ] E-invoice integration works from gym POS
+- [ ] **Retroactive e-invoice generation** - Customer can request after payment
 
 ---
 
@@ -117,6 +118,82 @@ def _generate_einvoice_if_requested(self):
     """Generate e-invoice only if explicitly requested"""
     if self.l10n_cr_is_einvoice and self.config_id.l10n_cr_enable_einvoice:
         self._create_einvoice_from_pos()
+
+def action_generate_einvoice_retroactive(self, partner_id, partner_vat, partner_email):
+    """
+    Generate e-invoice after payment completed.
+    Called when customer returns and requests invoice.
+    """
+    self.ensure_one()
+
+    # Validation
+    if self.state != 'paid':
+        raise UserError(_("Can only generate e-invoice for paid orders"))
+
+    if self.l10n_cr_einvoice_document_id:
+        raise UserError(_("This order already has an e-invoice"))
+
+    # Update customer info
+    self.write({
+        'partner_id': partner_id,
+        'l10n_cr_is_einvoice': True
+    })
+
+    # Generate e-invoice with existing order data
+    self._create_einvoice_from_pos()
+
+    return {
+        'type': 'ir.actions.client',
+        'tag': 'pos.ui',
+        'params': {
+            'order_id': self.id,
+            'reprint_receipt': True
+        }
+    }
+```
+
+---
+
+#### Task 2B: Retroactive E-Invoice Generation (IMPORTANT)
+**Priority**: HIGH
+**Effort**: 0.5 day
+
+**Real-world scenario**:
+```
+Customer pays → Gets receipt → Leaves
+5 minutes later...
+Customer returns: "I need an invoice for taxes!"
+```
+
+**Requirements**:
+- [ ] Add "Recent Orders" search in POS
+- [ ] Show last 50 orders from current session
+- [ ] Add "Generate E-Invoice" button on completed orders
+- [ ] Capture customer info when generating retroactively
+- [ ] Generate TE with same order data
+- [ ] Submit to Hacienda
+- [ ] Reprint receipt with QR code
+- [ ] Update order to mark it has e-invoice
+
+**UI additions**:
+```
+File: l10n_cr_einvoice/static/src/xml/pos_orders_screen.xml
+Add: Order history with e-invoice generation option
+```
+
+**Validations needed**:
+- Order must be in 'paid' state
+- Order cannot already have an e-invoice
+- Customer ID must be valid (9 or 10 digits)
+- Order cannot be older than X days (business rule)
+
+**Code implementation**:
+```python
+# pos_order.py
+def action_generate_einvoice_retroactive(self):
+    """Generate e-invoice after order completion"""
+    # Validation, generation, submission
+    # Return receipt for reprinting
 ```
 
 ---
