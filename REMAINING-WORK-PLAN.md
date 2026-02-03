@@ -40,6 +40,10 @@
 
 **Requirements**:
 - Add "Gym" option to POS store selection screen
+- **CRITICAL**: E-Invoice should be OPTIONAL, not automatic
+  - By default: POS orders do NOT generate e-invoices
+  - Only when cashier clicks "Generate E-Invoice" button
+  - Requires customer info (name, ID, email)
 - Follow exact same UI/design pattern as existing cards:
   - Restaurant (fork/plate icon)
   - Bar (cocktail icon)
@@ -75,7 +79,49 @@ l10n_cr_einvoice/
 
 ---
 
-#### Task 2: Gym POS Configuration
+#### Task 2: Implement Optional E-Invoice Button in POS
+**Priority**: CRITICAL
+**Effort**: 0.5 day
+
+**IMPORTANT**: E-invoices should NOT be automatic for every sale!
+
+**Requirements**:
+- [ ] Add "Generate E-Invoice" toggle button in POS payment screen
+- [ ] Button is OFF by default
+- [ ] When enabled, show customer info form:
+  - Customer name (required)
+  - ID number (required - for Hacienda)
+  - Email (optional - for sending PDF)
+- [ ] Only generate TE when button is enabled
+- [ ] Normal sales: Just POS receipt (no Hacienda submission)
+- [ ] E-Invoice sales: TE + Hacienda submission + QR code
+
+**Files to modify**:
+```
+l10n_cr_einvoice/static/src/xml/pos_payment_screen.xml  (add button)
+l10n_cr_einvoice/static/src/js/pos_payment_screen.js    (toggle logic)
+l10n_cr_einvoice/models/pos_order.py                    (Odoo 19 implementation)
+```
+
+**Code changes needed**:
+```python
+# pos_order.py - Implement for Odoo 19
+@api.model
+def _order_fields(self, ui_order):
+    """Override to capture l10n_cr_is_einvoice flag from POS"""
+    fields = super()._order_fields(ui_order)
+    fields['l10n_cr_is_einvoice'] = ui_order.get('l10n_cr_is_einvoice', False)
+    return fields
+
+def _generate_einvoice_if_requested(self):
+    """Generate e-invoice only if explicitly requested"""
+    if self.l10n_cr_is_einvoice and self.config_id.l10n_cr_enable_einvoice:
+        self._create_einvoice_from_pos()
+```
+
+---
+
+#### Task 3: Gym POS Configuration
 **Priority**: HIGH
 **Effort**: 1 day
 
