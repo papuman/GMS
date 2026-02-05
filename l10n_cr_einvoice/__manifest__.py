@@ -63,6 +63,7 @@ Requirements:
     'license': 'LGPL-3',
     'depends': [
         'base',
+        'mail',
         'account',
         'l10n_cr',
         'sale',
@@ -111,9 +112,7 @@ Requirements:
         'data/tax_report_sequences.xml',
         'data/gym_pos_products.xml',
         'data/pos_config_gym.xml',
-        # TODO: Fix Odoo 19 XML schema validation for email templates
-        # 'data/email_templates.xml',
-        # 'data/void_confirmation_email.xml',
+        'data/email_templates.xml',
         'data/hacienda_cron_jobs.xml',
         'data/report_cron_jobs.xml',
         'data/tax_report_cron_jobs.xml',
