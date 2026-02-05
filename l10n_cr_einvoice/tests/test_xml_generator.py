@@ -179,6 +179,7 @@ class TestXMLGeneratorRequiredFields(EInvoiceTestCase):
 
         einvoice = self.env['l10n_cr.einvoice.document'].create({
             'move_id': move.id,
+            'partner_id': self.partner.id,
             'document_type': 'FE',
             'company_id': self.company.id,
             'clave': '50601012025020100111111111111111111111111111111111',
@@ -201,6 +202,7 @@ class TestXMLGeneratorRequiredFields(EInvoiceTestCase):
 
         einvoice = self.env['l10n_cr.einvoice.document'].create({
             'move_id': move.id,
+            'partner_id': self.partner.id,
             'document_type': 'FE',
             'company_id': self.company.id,
             'clave': '50601012025020100111111111111111111111111111111111',
@@ -221,6 +223,7 @@ class TestXMLGeneratorRequiredFields(EInvoiceTestCase):
 
         einvoice = self.env['l10n_cr.einvoice.document'].create({
             'move_id': move.id,
+            'partner_id': self.partner.id,
             'document_type': 'FE',
             'company_id': self.company.id,
             'clave': '50601012025020100111111111111111111111111111111111',
@@ -242,6 +245,7 @@ class TestXMLGeneratorRequiredFields(EInvoiceTestCase):
 
         einvoice = self.env['l10n_cr.einvoice.document'].create({
             'move_id': move.id,
+            'partner_id': self.partner.id,
             'document_type': 'FE',
             'company_id': self.company.id,
             'clave': '50601012025020100111111111111111111111111111111111',
@@ -306,6 +310,7 @@ class TestXMLGeneratorTaxCalculations(EInvoiceTestCase):
 
         einvoice = self.env['l10n_cr.einvoice.document'].create({
             'move_id': move.id,
+            'partner_id': self.partner.id,
             'document_type': 'FE',
             'company_id': self.company.id,
             'clave': '50601012025020100111111111111111111111111111111111',
@@ -354,6 +359,7 @@ class TestXMLGeneratorTaxCalculations(EInvoiceTestCase):
 
         einvoice = self.env['l10n_cr.einvoice.document'].create({
             'move_id': move.id,
+            'partner_id': self.partner.id,
             'document_type': 'FE',
             'company_id': self.company.id,
             'clave': '50601012025020100111111111111111111111111111111111',
@@ -402,6 +408,7 @@ class TestXMLGeneratorTaxCalculations(EInvoiceTestCase):
 
         einvoice = self.env['l10n_cr.einvoice.document'].create({
             'move_id': move.id,
+            'partner_id': self.partner.id,
             'document_type': 'FE',
             'company_id': self.company.id,
             'clave': '50601012025020100111111111111111111111111111111111',
@@ -428,6 +435,7 @@ class TestXMLGeneratorTaxCalculations(EInvoiceTestCase):
 
         einvoice = self.env['l10n_cr.einvoice.document'].create({
             'move_id': move.id,
+            'partner_id': self.partner.id,
             'document_type': 'FE',
             'company_id': self.company.id,
             'clave': '50601012025020100111111111111111111111111111111111',
@@ -473,6 +481,7 @@ class TestXMLGeneratorEdgeCases(EInvoiceTestCase):
 
         einvoice = self.env['l10n_cr.einvoice.document'].create({
             'move_id': move.id,
+            'partner_id': self.partner.id,
             'document_type': 'FE',
             'company_id': self.company.id,
             'clave': '50601012025020100111111111111111111111111111111111',
@@ -507,6 +516,7 @@ class TestXMLGeneratorEdgeCases(EInvoiceTestCase):
 
         einvoice = self.env['l10n_cr.einvoice.document'].create({
             'move_id': move.id,
+            'partner_id': self.partner.id,
             'document_type': 'FE',
             'company_id': self.company.id,
             'clave': '50601012025020100111111111111111111111111111111111',
@@ -550,6 +560,7 @@ class TestXMLGeneratorEdgeCases(EInvoiceTestCase):
 
         einvoice = self.env['l10n_cr.einvoice.document'].create({
             'move_id': move.id,
+            'partner_id': self.partner.id,
             'document_type': 'FE',
             'company_id': self.company.id,
             'clave': '50601012025020100111111111111111111111111111111111',
@@ -595,6 +606,7 @@ class TestXMLGeneratorEdgeCases(EInvoiceTestCase):
 
         einvoice = self.env['l10n_cr.einvoice.document'].create({
             'move_id': move.id,
+            'partner_id': self.partner.id,
             'document_type': 'FE',
             'company_id': self.company.id,
             'clave': '50601012025020100111111111111111111111111111111111',
@@ -635,6 +647,7 @@ class TestXMLGeneratorReferenceDocuments(EInvoiceTestCase):
 
         einvoice = self.env['l10n_cr.einvoice.document'].create({
             'move_id': credit_note.id,
+            'partner_id': self.partner.id,
             'document_type': 'NC',
             'company_id': self.company.id,
             'clave': '50604012025020200111111111111111111111111111111111',
@@ -669,6 +682,7 @@ class TestXMLGeneratorReferenceDocuments(EInvoiceTestCase):
 
         einvoice = self.env['l10n_cr.einvoice.document'].create({
             'move_id': debit_note.id,
+            'partner_id': self.partner.id,
             'document_type': 'ND',
             'company_id': self.company.id,
             'clave': '50603012025020200111111111111111111111111111111111',
@@ -712,6 +726,7 @@ class TestXMLGeneratorPerformance(EInvoiceTestCase):
 
         einvoice = self.env['l10n_cr.einvoice.document'].create({
             'move_id': move.id,
+            'partner_id': self.partner.id,
             'document_type': 'FE',
             'company_id': self.company.id,
             'clave': '50601012025020100111111111111111111111111111111111',
@@ -743,6 +758,7 @@ class TestXMLGeneratorPerformance(EInvoiceTestCase):
 
         einvoice = self.env['l10n_cr.einvoice.document'].create({
             'move_id': move.id,
+            'partner_id': self.partner.id,
             'document_type': 'FE',
             'company_id': self.company.id,
             'clave': '50601012025020100111111111111111111111111111111111',

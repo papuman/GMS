@@ -45,10 +45,13 @@
                     <button name="action_submit_to_hacienda" string="Submit to Hacienda" type="object" class="oe_highlight" invisible="state != 'signed'" />
                     <button name="action_check_status" string="Check Status" type="object" invisible="state != 'submitted'" />
 
-                    
+
                     <button name="action_retry" type="object" string="Retry" class="btn-warning" invisible="not retry_button_visible" confirm="Retry the failed operation? This will attempt to continue the e-invoice process from the point of failure." />
 
-                    
+
+                    <button name="action_override_validation" type="object" string="Override Validation" class="btn-danger" invisible="state not in ['draft', 'generation_error'] or validation_override" groups="account.group_account_manager,point_of_sale.group_pos_manager" confirm="Warning: You are about to override validation errors. This action requires proper justification and will be audited. Continue?" />
+
+
                     <button name="action_generate_pdf" string="Generate PDF" type="object" class="oe_highlight" invisible="not xml_content or pdf_attachment_id" />
                     <button name="action_send_email" string="Send Email" type="object" invisible="state != 'accepted' or email_sent" />
 
@@ -104,10 +107,23 @@
                         </group>
                     </group>
 
-                    
+
                     <div class="alert alert-danger" role="alert" invisible="not error_message">
                         <strong>Error Details:</strong>
                         <field name="error_message" readonly="1" nolabel="1" />
+                    </div>
+
+
+                    <div class="alert alert-warning" role="alert" invisible="not validation_override">
+                        <h4><i class="fa fa-exclamation-triangle" title="Warning"/> Validation Override Active</h4>
+                        <p><strong>Warning:</strong> This document has validation errors that have been overridden.</p>
+                        <group>
+                            <field name="validation_override" invisible="1" />
+                            <field name="validation_override_user_id" readonly="1" string="Approved By" />
+                            <field name="validation_override_date" readonly="1" string="Override Date" />
+                        </group>
+                        <p><strong>Reason:</strong></p>
+                        <field name="validation_override_reason" readonly="1" nolabel="1" />
                     </div>
 
                     <notebook>
@@ -140,11 +156,31 @@
                             </group>
                         </page>
 
-                        
+
                         <page string="Email" name="email">
                             <group>
                                 <field name="email_sent" widget="boolean_toggle" />
                                 <field name="email_sent_date" readonly="1" invisible="not email_sent" />
+                            </group>
+                        </page>
+
+
+                        <page string="Validation Override" name="validation_override" invisible="not validation_override">
+                            <group>
+                                <div class="alert alert-warning" role="alert">
+                                    <h4><i class="fa fa-shield"/> Validation Override Details</h4>
+                                    <p>This document has been approved with validation errors overridden.</p>
+                                </div>
+                            </group>
+                            <group string="Override Information">
+                                <field name="validation_override_user_id" readonly="1" />
+                                <field name="validation_override_date" readonly="1" />
+                            </group>
+                            <group string="Override Justification">
+                                <field name="validation_override_reason" readonly="1" nolabel="1" widget="text" />
+                            </group>
+                            <group string="Errors Overridden">
+                                <field name="validation_errors" readonly="1" nolabel="1" widget="text" />
                             </group>
                         </page>
                     </notebook>

@@ -88,6 +88,7 @@ class TestGymVoidWizardUnit(TransactionCase):
             'move_id': self.invoice.id,
             'document_type': 'FE',
             'company_id': self.company.id,
+            'partner_id': self.customer.id,
             'state': 'accepted',
             'clave': '50601012025010100012340000100001000000001234567890',
         })

@@ -1,24 +1,13 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <templates xml:space="preserve">
 
-<!-- Override the DatabaseExpirationPanel template to remove Odoo.com links -->
-<t t-name="DatabaseExpirationPanel" t-inherit="web_enterprise.DatabaseExpirationPanel" t-inherit-mode="extension">
-
-    <!-- Remove the "buy a subscription" link -->
-    <xpath expr="//a[@class='oe_instance_buy alert-link text-decoration-underline']" position="replace">
-        <span class="alert-link">contact your system administrator</span>
-    </xpath>
-
-    <!-- Replace Odoo Support link with generic support text -->
-    <xpath expr="//a[@href='https://www.odoo.com/help']" position="replace">
-        <span class="alert-link">contact support</span>
-    </xpath>
-
-    <!-- Hide the "buy a subscription" link in the already linked section -->
-    <xpath expr="//a[@class='oe_instance_buy'][@href='#']" position="replace">
-        <span class="alert-link">contact your system administrator</span>
-    </xpath>
-
+<!--
+    SHAAR License Override: Replace the Odoo Enterprise expiration panel entirely.
+    This removes all Odoo.com links and displays SHAAR-specific licensing messages.
+-->
+<t t-name="DatabaseExpirationPanel">
+    <!-- Empty panel - SHAAR licensing handles this via its own system -->
+    <!-- The banner is hidden because SHAAR licensing validates locally -->
 </t>
 
 </templates>

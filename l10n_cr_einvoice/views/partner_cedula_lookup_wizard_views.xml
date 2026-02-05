@@ -1,0 +1,224 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Partner Cédula Lookup Wizard Form View -->
+    <record id="view_partner_cedula_lookup_wizard_form" model="ir.ui.view">
+        <field name="name">l10n_cr.partner.cedula.lookup.wizard.form</field>
+        <field name="model">l10n_cr.partner.cedula.lookup.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Lookup Cédula from Hacienda">
+                <header>
+                    <!-- Input State -->
+                    <button name="action_lookup_cedula"
+                            string="Lookup"
+                            type="object"
+                            class="btn-primary"
+                            invisible="state != 'input'"/>
+
+                    <!-- Review State -->
+                    <button name="action_create_partner"
+                            string="Create Partner"
+                            type="object"
+                            class="btn-primary"
+                            invisible="state != 'review' or partner_id"/>
+                    <button name="action_update_partner"
+                            string="Update Partner"
+                            type="object"
+                            class="btn-primary"
+                            invisible="state != 'review' or not partner_id"/>
+                    <button name="action_force_refresh"
+                            string="Force Refresh from API"
+                            type="object"
+                            class="btn-secondary"
+                            invisible="state != 'review'"/>
+
+                    <!-- Conflict State -->
+                    <button name="action_update_partner"
+                            string="Update Existing"
+                            type="object"
+                            class="btn-primary"
+                            invisible="state != 'conflict' or conflict_resolution != 'update_existing'"/>
+                    <button name="action_create_partner"
+                            string="Create New Anyway"
+                            type="object"
+                            class="btn-warning"
+                            invisible="state != 'conflict' or conflict_resolution != 'create_new'"/>
+
+                    <!-- Cancel Button (all states) -->
+                    <button name="action_cancel"
+                            string="Cancel"
+                            type="object"
+                            class="btn-secondary"/>
+
+                    <field name="state" widget="statusbar"
+                           statusbar_visible="input,review"/>
+                </header>
+
+                <sheet>
+                    <!-- INPUT STATE -->
+                    <div invisible="state != 'input'">
+                        <group>
+                            <group>
+                                <field name="cedula" placeholder="e.g., 3-101-234567 or 3101234567"/>
+                                <field name="partner_id" invisible="1"/>
+                            </group>
+                        </group>
+                        <group>
+                            <div class="alert alert-info" role="alert">
+                                <p>
+                                    <strong>Hacienda API Lookup</strong>
+                                </p>
+                                <p>
+                                    Enter a Costa Rica cédula (tax ID) to automatically fetch company
+                                    information from the official Hacienda registry.
+                                </p>
+                                <ul>
+                                    <li>Cédula Física: 9 digits (e.g., 1-0234-0567)</li>
+                                    <li>Cédula Jurídica: 10 digits (e.g., 3-101-234567)</li>
+                                    <li>DIMEX: 11-12 digits</li>
+                                </ul>
+                            </div>
+                        </group>
+                    </div>
+
+                    <!-- LOOKUP STATE (Loading) -->
+                    <div invisible="state != 'lookup'">
+                        <group>
+                            <div class="text-center">
+                                <i class="fa fa-spinner fa-spin fa-3x fa-fw" title="Loading"/>
+                                <p class="text-muted">Looking up cédula...</p>
+                            </div>
+                        </group>
+                    </div>
+
+                    <!-- REVIEW STATE -->
+                    <div invisible="state != 'review'">
+                        <!-- Cache Status Banner -->
+                        <div class="alert alert-info" role="alert"
+                             invisible="cache_status != 'fresh'">
+                            <p>
+                                <i class="fa fa-check-circle" title="Verified"/> Data from fresh cache (verified within last 7 days)
+                                - Age: <field name="cache_age_days" readonly="1"/> days
+                            </p>
+                        </div>
+                        <div class="alert alert-warning" role="alert"
+                             invisible="cache_status != 'stale'">
+                            <p>
+                                <i class="fa fa-exclamation-triangle" title="Warning"/> Using stale cache data
+                                (age: <field name="cache_age_days" readonly="1"/> days)
+                                - Click "Force Refresh" to update from API
+                            </p>
+                        </div>
+                        <div class="alert alert-success" role="alert"
+                             invisible="cache_status != 'new'">
+                            <p>
+                                <i class="fa fa-download" title="Downloaded"/> Newly fetched from Hacienda API
+                                (response time: <field name="response_time" readonly="1"/>s)
+                            </p>
+                        </div>
+
+                        <!-- Company Data -->
+                        <group>
+                            <group name="company_info" string="Company Information">
+                                <field name="name" required="1"/>
+                                <field name="tax_regime" readonly="1"/>
+                                <field name="tax_status" readonly="1" widget="badge"
+                                       decoration-success="tax_status == 'inscrito'"
+                                       decoration-danger="tax_status == 'inactivo'"/>
+                            </group>
+                            <group name="contact_info" string="Contact Information">
+                                <field name="email" placeholder="email@example.com"/>
+                                <field name="phone" placeholder="+506 1234-5678"/>
+                                <field name="mobile" placeholder="+506 8765-4321"/>
+                            </group>
+                        </group>
+
+                        <!-- Economic Activities -->
+                        <group name="economic_activities" string="Economic Activities (CIIU Codes)">
+                            <field name="economic_activities" readonly="1" nolabel="1"
+                                   widget="text" placeholder="No activities found"/>
+                        </group>
+
+                        <!-- CIIU Code Selection -->
+                        <group>
+                            <group name="ciiu_selection" string="Assign CIIU Code">
+                                <field name="suggested_ciiu_id" readonly="1"
+                                       invisible="not suggested_ciiu_id"/>
+                                <field name="ciiu_code_id"
+                                       options="{'no_create': True}"
+                                       placeholder="Select economic activity code"/>
+                            </group>
+                        </group>
+
+                        <!-- Debug Info (collapsed) -->
+                        <notebook>
+                            <page name="debug" string="Debug Info">
+                                <group>
+                                    <field name="raw_response" readonly="1" widget="text"/>
+                                </group>
+                            </page>
+                        </notebook>
+                    </div>
+
+                    <!-- CONFLICT STATE -->
+                    <div invisible="state != 'conflict'">
+                        <div class="alert alert-warning" role="alert">
+                            <p>
+                                <i class="fa fa-exclamation-triangle" title="Warning"/> <strong>Duplicate VAT Detected</strong>
+                            </p>
+                            <p>
+                                A partner with this cédula already exists:
+                                <strong><field name="conflict_partner_id" readonly="1"/></strong>
+                            </p>
+                            <p>
+                                How would you like to proceed?
+                            </p>
+                        </div>
+
+                        <group>
+                            <field name="conflict_resolution" widget="radio" required="1"/>
+                        </group>
+
+                        <!-- Show fetched data for reference -->
+                        <group string="Fetched Data (for reference)">
+                            <field name="name" readonly="1"/>
+                            <field name="tax_regime" readonly="1"/>
+                            <field name="economic_activities" readonly="1" widget="text"/>
+                        </group>
+                    </div>
+
+                    <!-- ERROR STATE -->
+                    <div invisible="state != 'error'">
+                        <div class="alert alert-danger" role="alert">
+                            <p>
+                                <i class="fa fa-times-circle" title="Error"/> <strong>Lookup Failed</strong>
+                            </p>
+                            <field name="lookup_error" readonly="1" nolabel="1" widget="text"/>
+                        </div>
+
+                        <group>
+                            <div class="alert alert-info" role="alert">
+                                <p>
+                                    <strong>What to do:</strong>
+                                </p>
+                                <ul>
+                                    <li>Verify the cédula number is correct</li>
+                                    <li>Check your internet connection</li>
+                                    <li>Try again in a few seconds</li>
+                                    <li>Or close this wizard and enter partner data manually</li>
+                                </ul>
+                            </div>
+                        </group>
+                    </div>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- Wizard Action -->
+    <record id="action_partner_cedula_lookup_wizard" model="ir.actions.act_window">
+        <field name="name">Lookup Cédula from Hacienda</field>
+        <field name="res_model">l10n_cr.partner.cedula.lookup.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+</odoo>

@@ -1,87 +1,41 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <templates id="template" xml:space="preserve">
 
-    <!-- 1. Extend PaymentScreenButtons (separate template) to add E-Invoice Toggle -->
+    <!-- Clean E-Invoice UI - Odoo style (Validate button grays out automatically) -->
     <t t-inherit="point_of_sale.PaymentScreenButtons" t-inherit-mode="extension">
-        <xpath expr="//div[hasclass('payment-buttons')]" position="inside">
-            <div class="einvoice-payment-container">
-                <div class="einvoice-header">
-                    <i class="fa fa-file-text-o me-2"/> Comprobante Electrónico (Hacienda)
-                </div>
-
-                <!-- Primary Toggle: Enable/Disable E-Invoice -->
-                <div class="einvoice-enable-toggle mb-3">
-                    <div class="keyboard-hint-container text-center mb-2">
-                        <small class="text-muted keyboard-hint"><i class="fa fa-keyboard-o"/> Presione F2 para activar</small>
-                    </div>
+        <xpath expr="//div[hasclass('payment-buttons')]" position="before">
+            <t t-if="currentOrder">
+                <!-- E-Invoice Toggle -->
+                <div class="einvoice-section mb-3">
                     <button type="button"
-                            t-attf-class="btn btn-lg w-100 einvoice-toggle-btn {{currentOrder.l10n_cr_is_einvoice ? 'btn-enabled' : 'btn-disabled'}}"
-                            t-on-click="() => this.toggleEinvoiceEnabled()">
+                            t-attf-class="btn btn-lg w-100 {{currentOrder.l10n_cr_is_einvoice ? 'btn-success' : 'btn-light border'}}"
+                            t-on-click="toggleEinvoiceEnabled">
                         <i t-attf-class="fa {{currentOrder.l10n_cr_is_einvoice ? 'fa-check-circle' : 'fa-circle-o'}} me-2"/>
                         <t t-if="currentOrder.l10n_cr_is_einvoice">
-                            Comprobante Electrónico ACTIVADO
+                            <strong>Factura Electrónica</strong> (Activada)
                         </t>
                         <t t-else="">
-                            Sin Comprobante Electrónico (Click para activar)
+                            Factura Electrónica
                         </t>
                     </button>
-                </div>
 
-                <!-- Show Document Type + Partner Selection ONLY if Enabled -->
-                <t t-if="currentOrder.l10n_cr_is_einvoice">
-                    <!-- Document Type Selection (TE vs FE) -->
-                    <div class="einvoice-toggle-group">
-                        <label class="text-muted mb-1"><small>Tipo de Documento:</small></label>
-                        <div class="btn-group w-100" role="group" aria-label="Tipo de Comprobante">
+                    <!-- Document type selector - only when enabled -->
+                    <t t-if="currentOrder.l10n_cr_is_einvoice">
+                        <div class="d-flex gap-2 mt-2">
                             <button type="button"
-                                    data-type="TE"
-                                    t-attf-class="btn btn-lg einvoice-btn {{currentOrder.einvoice_type === 'TE' ? 'btn-selected' : 'btn-default'}}"
-                                    t-on-click="() => this.setEinvoiceType('TE')">
-                                <i class="fa fa-ticket me-2"/> Tiquete
+                                    t-attf-class="btn flex-fill {{currentOrder.einvoice_type === 'TE' ? 'btn-primary' : 'btn-outline-secondary'}}"
+                                    t-on-click="selectTiquete">
+                                <i class="fa fa-ticket me-1"/> Tiquete
                             </button>
                             <button type="button"
-                                    data-type="FE"
-                                    t-attf-class="btn btn-lg einvoice-btn {{currentOrder.einvoice_type === 'FE' ? 'btn-selected' : 'btn-default'}}"
-                                    t-on-click="() => this.setEinvoiceType('FE')">
-                                <i class="fa fa-building me-2"/> Factura
+                                    t-attf-class="btn flex-fill {{currentOrder.einvoice_type === 'FE' ? 'btn-primary' : 'btn-outline-secondary'}}"
+                                    t-on-click="selectFactura">
+                                <i class="fa fa-building me-1"/> Factura
                             </button>
                         </div>
-                    </div>
-
-                    <!-- Partner Selection Area -->
-                    <div class="einvoice-partner-section mt-2">
-                        <t t-if="currentOrder.einvoice_type === 'FE'">
-                            <div class="partner-row" t-on-click="selectPartner">
-                                <div class="partner-icon">
-                                    <i class="fa" t-att-class="currentOrder.get_partner() ? 'fa-check-circle text-success' : 'fa-exclamation-circle text-danger'"/>
-                                </div>
-                                <div class="partner-info">
-                                    <t t-if="currentOrder.get_partner()">
-                                        <div class="partner-name"><t t-esc="currentOrder.get_partner().name"/></div>
-                                        <div class="partner-vat"><t t-esc="currentOrder.get_partner().vat || 'Sin Cédula'"/></div>
-                                    </t>
-                                    <t t-else="">
-                                        <div class="partner-placeholder text-danger">Seleccionar Cliente (F4)</div>
-                                        <div class="partner-subtext">Requerido para Factura Electrónica</div>
-                                    </t>
-                                </div>
-                                <div class="partner-action">
-                                    <i class="fa fa-chevron-right"/>
-                                </div>
-                            </div>
-                        </t>
-                        <t t-else="">
-                            <div class="partner-row te-mode">
-                                <div class="partner-icon"><i class="fa fa-user-secret text-muted"/></div>
-                                <div class="partner-info">
-                                    <div class="partner-name text-muted">Tiquete Anónimo</div>
-                                    <div class="partner-vat" style="background: transparent; padding: 0;">No requiere datos del cliente</div>
-                                </div>
-                            </div>
-                        </t>
-                    </div>
-                </t>
-            </div>
+                    </t>
+                </div>
+            </t>
         </xpath>
     </t>
 

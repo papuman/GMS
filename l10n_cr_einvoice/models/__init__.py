@@ -3,9 +3,14 @@
 from . import ciiu_code
 from . import payment_method
 from . import discount_code
+from . import validation_rule
 
 # Partner extensions
 from . import res_partner
+from . import res_partner_autocomplete
+from . import cedula_cache
+from . import cedula_lookup_service
+from . import cedula_dashboard
 
 # E-invoice core models
 from . import einvoice_document
@@ -28,6 +33,7 @@ from . import tax_report_xml_generator
 
 # API and generators
 from . import hacienda_api
+from . import hacienda_cedula_api
 from . import xml_generator
 from . import xsd_validator
 from . import certificate_manager
@@ -41,4 +47,5 @@ from . import res_company
 # POS extensions
 from . import pos_order
 from . import pos_config
+from . import pos_offline_queue
 

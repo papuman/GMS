@@ -1421,8 +1421,9 @@ def validate_d104_report(self):
 ### Technical Implementation
 
 **Odoo Community:**
-- Costa Rica Localization: https://github.com/odoocr/l10n_cr
-- Odoo Apps Store: https://apps.odoo.com/apps/modules/17.0/l10n_cr_invoice
+- Costa Rica Localization: https://github.com/odoocr/l10n_cr (older versions)
+- Odoo Apps Store: Third-party modules for older versions
+- **GMS:** Custom l10n_cr_einvoice module built for Odoo 19 Enterprise
 
 **Service Providers:**
 - Facturele: https://www.facturele.com

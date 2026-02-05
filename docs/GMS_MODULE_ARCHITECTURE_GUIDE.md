@@ -2885,12 +2885,7 @@ diff old_manifest.py new_manifest.py
 
 3. **Update Custom Code:**
 ```python
-# Example: Method renamed
-# OLD (Odoo 18):
-def _process_order(self, order):
-    pass
-
-# NEW (Odoo 19):
+# Example: Method signature in Odoo 19
 def _process_order(self, order, existing_order):
     pass
 

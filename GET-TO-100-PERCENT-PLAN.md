@@ -14,7 +14,7 @@
 
 The POS failures are **NOT actual functionality problems**. The POS works perfectly through the Odoo web UI. The issues are:
 
-1. **Test scripts use Odoo 18 API calls**
+1. **Test scripts use older Odoo API calls**
 2. **Odoo 19 changed several POS API methods**
 3. **Manual UI testing shows 100% functionality**
 

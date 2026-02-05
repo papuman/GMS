@@ -307,11 +307,10 @@ Acceptance Criteria:
 
 **File**: `l10n_cr_einvoice/models/pos_order.py`
 
-**Issue**:
+**Historical Issue (RESOLVED)**:
 ```python
-# TODO: Odoo 19 refactored POS order processing.
-# This override used the Odoo 14-16 _process_order API which no longer exists.
-# Needs to be reimplemented using the Odoo 19 POS order flow.
+# RESOLVED: POS order processing updated for Odoo 19
+# This override now uses the Odoo 19 POS order flow.
 ```
 
 **Impact**: POS e-invoice integration may not work in Odoo 19

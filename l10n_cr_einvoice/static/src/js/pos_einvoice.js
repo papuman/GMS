@@ -1,39 +1,156 @@
 /** @odoo-module **/
 
 import { PaymentScreen } from "@point_of_sale/app/screens/payment_screen/payment_screen";
+import { PosOrder } from "@point_of_sale/app/models/pos_order";
 import { patch } from "@web/core/utils/patch";
 import { useService } from "@web/core/utils/hooks";
 import { onMounted } from "@odoo/owl";
+import { _t } from "@web/core/l10n/translation";
+import { AlertDialog } from "@web/core/confirmation_dialog/confirmation_dialog";
 
+// CIIU mandatory date (October 6, 2025)
+const CIIU_MANDATORY_DATE = new Date('2025-10-06');
+
+// Email validation regex
+const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+
+/**
+ * Patch PosOrder to extend canBeValidated() - the Odoo way
+ * This grays out the Validate button when requirements aren't met
+ */
+patch(PosOrder.prototype, {
+    /**
+     * Check if e-invoice requirements are met for Factura (FE)
+     */
+    isEinvoiceValid() {
+        // If e-invoice not enabled, always valid
+        if (!this.l10n_cr_is_einvoice) {
+            return true;
+        }
+
+        // Tiquete has no requirements
+        if (this.einvoice_type === 'TE') {
+            return true;
+        }
+
+        // Factura requires customer with complete data
+        const partner = this.getPartner();
+        if (!partner) {
+            return false;
+        }
+
+        // Required: name, vat, email
+        if (!partner.name || !partner.vat || !partner.email) {
+            return false;
+        }
+
+        // Email must be valid format
+        if (!EMAIL_REGEX.test(partner.email.trim())) {
+            return false;
+        }
+
+        // After Oct 6, 2025: CIIU code required
+        if (new Date() >= CIIU_MANDATORY_DATE && !partner.l10n_cr_economic_activity_id) {
+            return false;
+        }
+
+        return true;
+    },
+
+    /**
+     * Override canBeValidated to include e-invoice requirements
+     * This is the Odoo pattern - Validate button grays out automatically
+     */
+    canBeValidated() {
+        // First check standard Odoo requirements (isPaid, valid empty order)
+        const baseValid = super.canBeValidated();
+        if (!baseValid) {
+            return false;
+        }
+
+        // Then check e-invoice requirements
+        return this.isEinvoiceValid();
+    },
+
+    // Include E-Invoice fields in Receipt
+    export_for_printing() {
+        const result = super.export_for_printing(...arguments);
+        if (result) {
+            if (this.l10n_cr_clave) {
+                result.l10n_cr_clave = this.l10n_cr_clave;
+            }
+            if (this.l10n_cr_qr_code) {
+                result.l10n_cr_qr_code = this.l10n_cr_qr_code;
+            }
+        }
+        return result;
+    },
+
+    // Include E-Invoice fields when saving order
+    export_as_JSON() {
+        const json = super.export_as_JSON(...arguments);
+        json.l10n_cr_is_einvoice = this.l10n_cr_is_einvoice || false;
+        json.einvoice_type = this.einvoice_type || 'TE';
+        return json;
+    }
+});
+
+/**
+ * Patch PaymentScreen for E-Invoice UI controls
+ */
 patch(PaymentScreen.prototype, {
     setup() {
         super.setup();
-        this.pos = useService("pos");
-        this.popup = useService("popup");
+        this.notification = useService("notification");
+        this.dialog = useService("dialog");
 
         onMounted(() => {
-            const order = this.pos.get_order();
+            const order = this.currentOrder;
             if (order) {
-                // CRITICAL: Default is NO e-invoice (user must explicitly enable)
+                // Default is NO e-invoice (user must explicitly enable)
                 if (order.l10n_cr_is_einvoice === undefined) {
                     order.l10n_cr_is_einvoice = false;
                 }
 
-                // Smart Default for document type ONLY if e-invoice enabled
+                // Smart default for document type
                 if (order.l10n_cr_is_einvoice && !order.einvoice_type) {
-                    const partner = order.get_partner();
-                    if (partner && partner.vat) {
-                        order.einvoice_type = 'FE';
-                    } else {
-                        order.einvoice_type = 'TE';
-                    }
+                    const partner = order.getPartner();
+                    order.einvoice_type = (partner && partner.vat) ? 'FE' : 'TE';
                 }
             }
         });
     },
 
-    get currentOrder() {
-        return this.pos.get_order();
+    async validateOrder(isForceValidate) {
+        // Check e-invoice requirements before proceeding
+        const order = this.currentOrder;
+        if (order && order.l10n_cr_is_einvoice && order.einvoice_type === 'FE') {
+            const partner = order.getPartner();
+            const missing = [];
+
+            if (!partner) {
+                missing.push(_t('Customer (select a customer first)'));
+            } else {
+                if (!partner.name) missing.push(_t('Customer Name'));
+                if (!partner.vat) missing.push(_t('Cédula / Tax ID'));
+                if (!partner.email) missing.push(_t('Email Address'));
+                // Only check CIIU after Oct 6, 2025
+                if (new Date() >= CIIU_MANDATORY_DATE && !partner.l10n_cr_economic_activity_id) {
+                    missing.push(_t('Economic Activity (CIIU Code)'));
+                }
+            }
+
+            if (missing.length > 0) {
+                this.dialog.add(AlertDialog, {
+                    title: _t('Factura Electrónica - Missing Information'),
+                    body: _t('The following information is required for Factura Electrónica (FE):\n\n') +
+                          missing.map(f => '- ' + f).join('\n') +
+                          '\n\n' + _t('Please complete the customer data or switch to Tiquete Electrónico (TE).'),
+                });
+                return;
+            }
+        }
+        await super.validateOrder(isForceValidate);
     },
 
     toggleEinvoiceEnabled() {
@@ -42,93 +159,16 @@ patch(PaymentScreen.prototype, {
 
         if (order.l10n_cr_is_einvoice) {
             // Just enabled - set document type based on partner
-            const partner = order.get_partner();
-            if (partner && partner.vat) {
-                order.einvoice_type = 'FE';
-            } else {
-                order.einvoice_type = 'TE';
-            }
-
-            // Auto-open partner selection if no partner set
-            if (!partner) {
-                this.selectPartner();
-            }
+            const partner = order.getPartner();
+            order.einvoice_type = (partner && partner.vat) ? 'FE' : 'TE';
         }
     },
 
-    setEinvoiceType(type) {
-        this.currentOrder.einvoice_type = type;
-
-        // Auto-open partner selection if FE is chosen and no partner
-        if (type === 'FE' && !this.currentOrder.get_partner()) {
-            this.selectPartner();
-        }
+    selectTiquete() {
+        this.currentOrder.einvoice_type = 'TE';
     },
 
-    toggleEinvoiceType() {
-        const newType = this.currentOrder.einvoice_type === 'FE' ? 'TE' : 'FE';
-        this.setEinvoiceType(newType);
+    selectFactura() {
+        this.currentOrder.einvoice_type = 'FE';
     },
-
-    async validateOrder(isForceValidate) {
-        // CRITICAL: Only validate e-invoice fields if e-invoice is ENABLED
-        if (this.currentOrder.l10n_cr_is_einvoice) {
-            // Validation Block: Factura requires Partner
-            if (this.currentOrder.einvoice_type === 'FE' && !this.currentOrder.get_partner()) {
-                const { confirmed } = await this.popup.add('ConfirmPopup', {
-                    title: this.env._t('Cliente Requerido'),
-                    body: this.env._t('Para Factura se requiere cliente. ¿Desea cambiar a Tiquete (Anónimo) y continuar?'),
-                    confirmText: this.env._t('Sí, usar Tiquete'),
-                    cancelText: this.env._t('No, seleccionar cliente')
-                });
-
-                if (confirmed) {
-                    this.setEinvoiceType('TE');
-                    await this.validateOrder(isForceValidate); // Recursively call validate with new type
-                    return;
-                } else {
-                    this.selectPartner();
-                    return;
-                }
-            }
-
-            // Validation Block: Factura requires ID Number
-            if (this.currentOrder.einvoice_type === 'FE' && this.currentOrder.get_partner() && !this.currentOrder.get_partner().vat) {
-                const { confirmed } = await this.popup.add('ConfirmPopup', {
-                    title: this.env._t('Cliente sin Cédula'),
-                    body: this.env._t('El cliente seleccionado no tiene número de cédula. ¿Desea continuar (esto podría causar rechazo en Hacienda)?'),
-                });
-                if (!confirmed) return;
-            }
-
-            // Show processing feedback
-            // this.env.services.notification.add(this.env._t("Generando documento electrónico..."), { type: "info", duration: 2000 });
-        }
-
-        // The export_as_JSON method will include l10n_cr_is_einvoice flag for backend
-
-        await super.validateOrder(isForceValidate);
-    }
-});
-
-// Patch Order to include E-Invoice fields in Receipt
-import { Order } from "@point_of_sale/app/store/models";
-
-patch(Order.prototype, {
-    export_for_printing() {
-        const result = super.export_for_printing(...arguments);
-        if (this.l10n_cr_clave) {
-            result.l10n_cr_clave = this.l10n_cr_clave;
-        }
-        if (this.l10n_cr_qr_code) {
-            result.l10n_cr_qr_code = this.l10n_cr_qr_code;
-        }
-        return result;
-    },
-    export_as_JSON() {
-        const json = super.export_as_JSON(...arguments);
-        json.l10n_cr_is_einvoice = this.l10n_cr_is_einvoice || false;
-        json.einvoice_type = this.einvoice_type || 'TE';
-        return json;
-    }
 });

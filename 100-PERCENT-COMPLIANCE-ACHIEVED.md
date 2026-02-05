@@ -42,7 +42,7 @@
 
 ### Root Cause
 
-- Test scripts written for Odoo 18 API
+- Test scripts written for older Odoo API
 - Odoo 19 changed several POS API methods
 - Functionality is 100% - automation just needs updating
 

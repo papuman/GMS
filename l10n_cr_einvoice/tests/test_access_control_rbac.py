@@ -111,6 +111,7 @@ class TestUserAccessControl(EInvoiceTestCase):
             'move_id': self.invoice.id,
             'document_type': 'FE',
             'company_id': self.company.id,
+            'partner_id': self.customer.id,
         })
 
     def test_01_readonly_user_can_view_einvoices(self):
@@ -342,12 +343,14 @@ class TestCompanyAccessControl(EInvoiceTestCase):
             'move_id': self.invoice_a.id,
             'document_type': 'FE',
             'company_id': self.company_a.id,
+            'partner_id': self.customer_a.id,
         })
 
         self.einvoice_b = self.env['l10n_cr.einvoice.document'].create({
             'move_id': self.invoice_b.id,
             'document_type': 'FE',
             'company_id': self.company_b.id,
+            'partner_id': self.customer_b.id,
         })
 
     def test_08_user_a_can_only_access_company_a_invoices(self):
@@ -456,6 +459,7 @@ class TestDatabaseLevelSecurity(EInvoiceTestCase):
             'move_id': invoice.id,
             'document_type': 'FE',
             'company_id': self.company.id,
+            'partner_id': customer.id,
         })
         self.assertTrue(einvoice.company_id,
                        "E-invoice should have company_id set")
@@ -498,6 +502,7 @@ class TestDatabaseLevelSecurity(EInvoiceTestCase):
             'move_id': invoice_other.id,
             'document_type': 'FE',
             'company_id': other_company.id,
+            'partner_id': customer.id,
         })
 
         # User searches (should only see own company)

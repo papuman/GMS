@@ -1,162 +1,16 @@
-/* Container Styling */
-.einvoice-payment-container {
-    background: #fff;
-    border-radius: 8px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-    margin-bottom: 20px;
-    padding: 15px;
-    border-left: 5px solid #714B67;
-    /* Odoo Purple */
-}
+/* E-Invoice POS - Clean Odoo Style */
 
-.einvoice-header {
-    font-size: 16px;
-    font-weight: bold;
-    color: #444;
-    margin-bottom: 12px;
-    border-bottom: 1px solid #eee;
-    padding-bottom: 8px;
-}
-
-/* E-Invoice Enable/Disable Toggle */
-.einvoice-enable-toggle {
-    margin-bottom: 15px;
-}
-
-.einvoice-toggle-btn {
-    min-height: 56px;
-    font-size: 16px;
-    font-weight: 600;
-    transition: all 0.3s;
-    border: 2px solid;
-}
-
-.einvoice-toggle-btn.btn-disabled {
-    background-color: #f8f9fa;
-    color: #6c757d;
-    border-color: #dee2e6;
-}
-
-.einvoice-toggle-btn.btn-disabled:hover {
-    background-color: #e9ecef;
-    border-color: #adb5bd;
-}
-
-.einvoice-toggle-btn.btn-enabled {
+.einvoice-section .btn-success {
     background-color: #28a745;
-    color: white;
     border-color: #28a745;
-    box-shadow: 0 3px 6px rgba(40, 167, 69, 0.3);
 }
 
-.einvoice-toggle-btn.btn-enabled:hover {
-    background-color: #218838;
-    border-color: #1e7e34;
-}
-
-/* Button Group Styling */
-.einvoice-toggle-group {
-    margin-bottom: 15px;
-}
-
-.einvoice-btn {
-    border: 1px solid #ddd;
-    font-weight: 600;
-    transition: all 0.2s;
-    min-height: 48px;
-    /* Touch target size */
-    font-size: 16px;
-}
-
-/* TE (Tiquete) - Blue Theme */
-.einvoice-btn[data-type="TE"].btn-selected {
-    background-color: #0d6efd;
-    color: white;
-    border-color: #0d6efd;
-    box-shadow: 0 2px 4px rgba(13, 110, 253, 0.3);
-}
-
-.einvoice-btn[data-type="TE"]:not(.btn-selected) {
-    color: #0d6efd;
-}
-
-/* FE (Factura) - Purple Theme */
-.einvoice-btn[data-type="FE"].btn-selected {
+.einvoice-section .btn-primary {
     background-color: #714B67;
-    color: white;
     border-color: #714B67;
-    box-shadow: 0 2px 4px rgba(113, 75, 103, 0.3);
 }
 
-.einvoice-btn[data-type="FE"]:not(.btn-selected) {
-    color: #714B67;
-}
-
-.einvoice-btn.btn-default {
-    background-color: #f8f9fa;
-}
-
-.einvoice-btn.btn-default:hover {
-    background-color: #e9ecef;
-}
-
-/* Partner Section Styling */
-.einvoice-partner-section {
-    background: #f8f9fa;
-    border-radius: 6px;
-    border: 1px solid #eee;
-}
-
-.partner-row {
-    display: flex;
-    align-items: center;
-    padding: 12px;
-    cursor: pointer;
-    transition: background 0.2s;
-}
-
-.partner-row:hover {
-    background: #e9ecef;
-}
-
-.partner-row.te-mode {
-    opacity: 0.7;
-    cursor: default;
-}
-
-.partner-icon {
-    font-size: 24px;
-    width: 40px;
-    text-align: center;
-}
-
-.partner-info {
-    flex: 1;
-    padding-left: 10px;
-}
-
-.partner-name {
-    font-weight: bold;
-    color: #333;
-}
-
-.partner-vat {
-    font-size: 12px;
-    color: #666;
-    background: #eee;
-    display: inline-block;
-    padding: 2px 6px;
-    border-radius: 4px;
-    margin-top: 2px;
-}
-
-.partner-action {
-    color: #ccc;
-}
-
-/* Touch Device Optimizations */
-@media (pointer: coarse) {
-    .keyboard-hint-container {
-        display: none;
-    }
+.einvoice-section .btn-primary:hover {
+    background-color: #5a3a52;
+    border-color: #5a3a52;
 }

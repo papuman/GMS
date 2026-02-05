@@ -175,19 +175,27 @@ class AccountMove(models.Model):
         """Create the electronic invoice document."""
         self.ensure_one()
 
+        # Get the billing partner (corporate parent if applicable)
+        invoice_partner = self.partner_id._get_invoice_partner()
+
         # Determine document type
         doc_type = self._get_einvoice_document_type()
 
         # Create e-invoice document
+        # The partner_id in einvoice_document will be used for Receptor in XML
         einvoice = self.env['l10n_cr.einvoice.document'].create({
             'move_id': self.id,
             'document_type': doc_type,
             'company_id': self.company_id.id,
+            'partner_id': invoice_partner.id,  # Bill to corporate parent if applicable
         })
 
         self.l10n_cr_einvoice_id = einvoice.id
 
-        _logger.info(f'Created e-invoice document {einvoice.name} for invoice {self.name}')
+        _logger.info(
+            f'Created e-invoice document {einvoice.name} for invoice {self.name}. '
+            f'Billing partner: {invoice_partner.name} (ID: {invoice_partner.id})'
+        )
 
         return einvoice
 

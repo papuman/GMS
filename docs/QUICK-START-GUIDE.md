@@ -837,7 +837,7 @@ When certificate expires in < 60 days:
    docker-compose -f docker-compose.prod.yml up -d
 
    Services started:
-   - odoo (Odoo 18)
+   - odoo (Odoo 19 Enterprise)
    - db (PostgreSQL 15)
    - redis (Redis 7)
    - nginx (Reverse proxy)

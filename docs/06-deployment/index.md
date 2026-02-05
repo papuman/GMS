@@ -201,7 +201,7 @@ ufw default allow outgoing
 ```yaml
 services:
   odoo:
-    image: odoo:18.0
+    image: odoo:19.0
     ports:
       - "8069:8069"
     volumes:

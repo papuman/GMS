@@ -70,7 +70,14 @@ class TestPosOfflineQueue(TransactionCase):
         cls.pos_session.action_pos_session_open()
 
         # Create mock einvoice document
-        cls.partner = cls.env.ref('base.public_partner')
+        # Create test partner with valid CR data
+        cls.partner = cls.env['res.partner'].create({
+            'name': 'Test Customer POS',
+            'vat': '109876543',
+            'l10n_latam_identification_type_id': cls.env.ref('l10n_latam_base.it_vat').id,
+            'email': 'testcustomer@example.com',
+            'country_id': cls.env.ref('base.cr').id,
+        })
         move = cls.env['account.move'].create({
             'move_type': 'out_invoice',
             'partner_id': cls.partner.id,
@@ -84,6 +91,7 @@ class TestPosOfflineQueue(TransactionCase):
             'move_id': move.id,
             'company_id': cls.company.id,
             'document_type': 'TE',
+            'partner_id': cls.partner.id,
             'clave': '5' * 50,
             'signed_xml': '<xml>test</xml>',
         })

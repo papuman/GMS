@@ -135,12 +135,14 @@ class TestMultiCompanyDataIsolation(EInvoiceTestCase):
             'move_id': self.invoice_a.id,
             'document_type': 'FE',
             'company_id': self.company_a.id,
+            'partner_id': self.customer_a.id,
         })
 
         self.einvoice_b = self.env['l10n_cr.einvoice.document'].with_user(self.user_b).create({
             'move_id': self.invoice_b.id,
             'document_type': 'FE',
             'company_id': self.company_b.id,
+            'partner_id': self.customer_b.id,
         })
 
     def test_01_company_a_cannot_see_company_b_invoices(self):
@@ -333,6 +335,7 @@ class TestMultiCompanyCertificateIsolation(EInvoiceTestCase):
             'move_id': invoice_a.id,
             'document_type': 'FE',
             'company_id': self.company_a.id,
+            'partner_id': customer_a.id,
         })
 
         # Generate and sign
