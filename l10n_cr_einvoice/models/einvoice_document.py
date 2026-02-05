@@ -772,20 +772,9 @@ class EInvoiceDocument(models.Model):
         if self.state != 'accepted':
             raise UserError(_('Can only send email for accepted documents.'))
 
-        # Send email using invoice method
-        if self.move_id:
-            self.move_id._send_einvoice_email()
-
-            return {
-                'type': 'ir.actions.client',
-                'tag': 'display_notification',
-                'params': {
-                    'title': _('Success'),
-                    'message': _('Email sent successfully'),
-                    'type': 'success',
-                    'sticky': False,
-                }
-            }
+        # Reset sent flag so action_send_email() works
+        self.email_sent = False
+        return self.action_send_email()
 
     def action_generate_pdf(self):
         """Generate PDF report with QR code."""

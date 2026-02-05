@@ -1,18 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
-<odoo noupdate="1">
-    <!-- Email Template for Electronic Invoice -->
-    <record id="email_template_einvoice" model="mail.template">
-        <field name="name">Costa Rica - Electronic Invoice</field>
-        <field name="model">l10n_cr.einvoice.document</field>
-        <field name="subject">Factura Electrónica ${object.name} - ${object.company_id.name}</field>
-        <field name="email_from">${object.company_id.email or ''}</field>
-        <field name="email_to">${object.partner_id.email}</field>
-        <field name="lang">${object.partner_id.lang}</field>
-        <field name="body_html" type="html">
-<![CDATA[
-<div style="font-family: Arial, sans-serif; font-size: 14px; color: #333;">
+<odoo>
+    <data noupdate="1">
+        <!-- Email Template for Electronic Invoice (FE, NC, ND) -->
+        <record id="email_template_einvoice" model="mail.template">
+            <field name="name">Costa Rica - Electronic Invoice</field>
+            <field name="model_id" ref="l10n_cr_einvoice.model_l10n_cr_einvoice_document"/>
+            <field name="subject">Factura Electrónica {{ object.name or '' }} - {{ object.company_id.name or '' }}</field>
+            <field name="email_from">{{ (object.company_id.email_formatted or user.email_formatted) }}</field>
+            <field name="use_default_to" eval="True"/>
+            <field name="lang">{{ object.partner_id.lang }}</field>
+            <field name="body_html" type="html">
+<div style="margin: 0px; padding: 0px; font-family: Arial, sans-serif; font-size: 14px; color: #333;">
     <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse: collapse;">
-    <tr>
+        <tr>
             <td style="padding: 20px; background-color: #f8f9fa;">
                 <table width="600" cellpadding="0" cellspacing="0" style="margin: 0 auto; background-color: white; border: 1px solid #dee2e6;">
                     <!-- Header -->
@@ -20,7 +20,7 @@
                         <td style="padding: 30px; background-color: #007bff; color: white; text-align: center;">
                             <h2 style="margin: 0; font-size: 24px;">Factura Electrónica</h2>
                             <p style="margin: 10px 0 0 0; font-size: 14px;">
-                                ${object.company_id.name}
+                                <t t-out="object.company_id.name or ''">My Company</t>
                             </p>
                         </td>
                     </tr>
@@ -28,7 +28,9 @@
                     <!-- Body -->
                     <tr>
                         <td style="padding: 30px;">
-                            <p style="margin: 0 0 20px 0;">Estimado/a <strong>${object.partner_id.name}</strong>,</p>
+                            <p style="margin: 0 0 20px 0;">
+                                Estimado/a <strong><t t-out="object.partner_id.name or ''">Cliente</t></strong>,
+                            </p>
 
                             <p style="margin: 0 0 20px 0;">
                                 Adjunto encontrará su factura electrónica autorizada por el Ministerio de Hacienda de Costa Rica.
@@ -46,7 +48,7 @@
                                         <strong>Número:</strong>
                                     </td>
                                     <td style="border-bottom: 1px solid #dee2e6; padding: 8px;">
-                                        ${object.name}
+                                        <t t-out="object.name or ''">FE-001</t>
                                     </td>
                                 </tr>
                                 <tr>
@@ -54,7 +56,7 @@
                                         <strong>Fecha:</strong>
                                     </td>
                                     <td style="border-bottom: 1px solid #dee2e6; padding: 8px;">
-                                        ${format_date(object.invoice_date)}
+                                        <t t-out="format_date(object.invoice_date) or ''">2026-01-01</t>
                                     </td>
                                 </tr>
                                 <tr>
@@ -63,32 +65,32 @@
                                     </td>
                                     <td style="border-bottom: 1px solid #dee2e6; padding: 8px;">
                                         <strong style="font-size: 16px; color: #007bff;">
-                                            ${format_amount(object.amount_total, object.currency_id)}
+                                            <t t-out="format_amount(object.amount_total, object.currency_id) or ''">₡ 10,000.00</t>
                                         </strong>
                                     </td>
                                 </tr>
-                                % if object.clave:
-                                <tr>
-                                    <td style="border-bottom: 1px solid #dee2e6; padding: 8px;">
-                                        <strong>Clave Numérica:</strong>
-                                    </td>
-                                    <td style="border-bottom: 1px solid #dee2e6; padding: 8px; font-family: monospace; font-size: 11px;">
-                                        ${object.clave}
-                                    </td>
-                                </tr>
-                                % endif
-                                % if object.state == 'accepted':
-                                <tr>
-                                    <td style="padding: 8px;">
-                                        <strong>Estado:</strong>
-                                    </td>
-                                    <td style="padding: 8px;">
-                                        <span style="background-color: #28a745; color: white; padding: 4px 8px; border-radius: 4px; font-size: 12px;">
-                                            Aceptado por Hacienda
-                                        </span>
-                                    </td>
-                                </tr>
-                                % endif
+                                <t t-if="object.clave">
+                                    <tr>
+                                        <td style="border-bottom: 1px solid #dee2e6; padding: 8px;">
+                                            <strong>Clave Numérica:</strong>
+                                        </td>
+                                        <td style="border-bottom: 1px solid #dee2e6; padding: 8px; font-family: monospace; font-size: 11px;">
+                                            <t t-out="object.clave">50601012600310...</t>
+                                        </td>
+                                    </tr>
+                                </t>
+                                <t t-if="object.state == 'accepted'">
+                                    <tr>
+                                        <td style="padding: 8px;">
+                                            <strong>Estado:</strong>
+                                        </td>
+                                        <td style="padding: 8px;">
+                                            <span style="background-color: #28a745; color: white; padding: 4px 8px; border-radius: 4px; font-size: 12px;">
+                                                Aceptado por Hacienda
+                                            </span>
+                                        </td>
+                                    </tr>
+                                </t>
                             </table>
 
                             <p style="margin: 0 0 20px 0;">
@@ -100,20 +102,13 @@
                                 <li>La clave numérica proporcionada arriba</li>
                             </ul>
 
-                            % if object.move_id.invoice_payment_term_id:
-                            <p style="margin: 0 0 20px 0;">
-                                <strong>Condiciones de Pago:</strong><br/>
-                                ${object.move_id.invoice_payment_term_id.name}
-                            </p>
-                            % endif
-
                             <p style="margin: 0 0 10px 0;">
                                 Gracias por su preferencia.
                             </p>
 
                             <p style="margin: 0;">
                                 Atentamente,<br/>
-                                <strong>${object.company_id.name}</strong>
+                                <strong><t t-out="object.company_id.name or ''">My Company</t></strong>
                             </p>
                         </td>
                     </tr>
@@ -125,62 +120,60 @@
                                 <strong>Documento Electrónico Autorizado</strong>
                             </p>
                             <p style="margin: 0;">
-                                ${object.company_id.name}<br/>
-                                % if object.company_id.vat:
-                                Cédula Jurídica: ${object.company_id.vat}<br/>
-                                % endif
-                                % if object.company_id.phone:
-                                Teléfono: ${object.company_id.phone}<br/>
-                                % endif
-                                % if object.company_id.email:
-                                Email: ${object.company_id.email}
-                                % endif
+                                <t t-out="object.company_id.name or ''">My Company</t><br/>
+                                <t t-if="object.company_id.vat">
+                                    Cédula Jurídica: <t t-out="object.company_id.vat">3101123456</t><br/>
+                                </t>
+                                <t t-if="object.company_id.phone">
+                                    Teléfono: <t t-out="object.company_id.phone">2222-3333</t><br/>
+                                </t>
+                                <t t-if="object.company_id.email">
+                                    Email: <t t-out="object.company_id.email">info@company.com</t>
+                                </t>
                             </p>
                         </td>
                     </tr>
                 </table>
             </td>
-    </tr>
+        </tr>
     </table>
 </div>
-]]>
             </field>
-        <field name="report_template" ref="action_report_einvoice"/>
-        <field name="auto_delete" eval="True"/>
-    </record>
+            <field name="report_template_ids" eval="[(4, ref('l10n_cr_einvoice.action_report_einvoice'))]"/>
+            <field name="auto_delete" eval="True"/>
+        </record>
 
-    <!-- Email Template for Electronic Ticket (simplified version) -->
-    <record id="email_template_eticket" model="mail.template">
-        <field name="name">Costa Rica - Electronic Ticket</field>
-        <field name="model">l10n_cr.einvoice.document</field>
-        <field name="subject">Tiquete Electrónico ${object.name} - ${object.company_id.name}</field>
-        <field name="email_from">${object.company_id.email or ''}</field>
-        <field name="email_to">${object.partner_id.email}</field>
-        <field name="lang">${object.partner_id.lang}</field>
-        <field name="body_html" type="html">
-<![CDATA[
-<div style="font-family: Arial, sans-serif; font-size: 14px; color: #333;">
-    <p>Estimado/a <strong>${object.partner_id.name}</strong>,</p>
+        <!-- Email Template for Electronic Ticket (simplified) -->
+        <record id="email_template_eticket" model="mail.template">
+            <field name="name">Costa Rica - Electronic Ticket</field>
+            <field name="model_id" ref="l10n_cr_einvoice.model_l10n_cr_einvoice_document"/>
+            <field name="subject">Tiquete Electrónico {{ object.name or '' }} - {{ object.company_id.name or '' }}</field>
+            <field name="email_from">{{ (object.company_id.email_formatted or user.email_formatted) }}</field>
+            <field name="use_default_to" eval="True"/>
+            <field name="lang">{{ object.partner_id.lang }}</field>
+            <field name="body_html" type="html">
+<div style="margin: 0px; padding: 0px; font-family: Arial, sans-serif; font-size: 14px; color: #333;">
+    <p>Estimado/a <strong><t t-out="object.partner_id.name or ''">Cliente</t></strong>,</p>
 
     <p>Adjunto encontrará su tiquete electrónico.</p>
 
     <p>
-    <strong>Número:</strong> ${object.name}<br/>
-    <strong>Fecha:</strong> ${format_date(object.invoice_date)}<br/>
-    <strong>Monto Total:</strong> ${format_amount(object.amount_total, object.currency_id)}
+        <strong>Número:</strong> <t t-out="object.name or ''">TE-001</t><br/>
+        <strong>Fecha:</strong> <t t-out="format_date(object.invoice_date) or ''">2026-01-01</t><br/>
+        <strong>Monto Total:</strong> <t t-out="format_amount(object.amount_total, object.currency_id) or ''">₡ 10,000.00</t>
     </p>
 
     <p>Gracias por su preferencia.</p>
 
     <p>
         Atentamente,<br/>
-    <strong>${object.company_id.name}</strong>
+        <strong><t t-out="object.company_id.name or ''">My Company</t></strong>
     </p>
 </div>
-]]>
             </field>
-        <field name="report_template" ref="action_report_einvoice"/>
-        <field name="auto_delete" eval="True"/>
-    </record>
+            <field name="report_template_ids" eval="[(4, ref('l10n_cr_einvoice.action_report_einvoice'))]"/>
+            <field name="auto_delete" eval="True"/>
+        </record>
 
+    </data>
 </odoo>
