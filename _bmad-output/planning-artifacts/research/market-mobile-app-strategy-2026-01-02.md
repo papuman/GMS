@@ -241,7 +241,7 @@ Costa Rica's unique digital payment landscape:
 
 - **E-commerce Integration**: Growing ecosystem
   - Shopify merchants can integrate via local payment gateways
-  - Odoo modules available (ONVO PAY - Sinpe Móvil for Odoo 15+)
+  - Odoo modules available for older versions (ONVO PAY - not compatible with Odoo 19)
   - Companies like Zimplifica provide integration services
 
 **1.4.4 Communication Preferences**

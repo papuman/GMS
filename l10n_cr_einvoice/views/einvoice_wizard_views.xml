@@ -9,7 +9,7 @@
             <form string="Batch Generate Electronic Invoices">
                 <group>
                     <div class="alert alert-info" role="alert">
-                        <i class="fa fa-info-circle"/>
+                        <i class="fa fa-info-circle" title="Information"/>
                         This wizard will process the selected invoices and:
                         <ul class="mb-0">
                             <li>Create electronic invoice documents</li>
@@ -72,7 +72,7 @@
             <form string="Batch Check Status">
                 <group>
                     <div class="alert alert-info" role="alert">
-                        <i class="fa fa-info-circle"/>
+                        <i class="fa fa-info-circle" title="Information"/>
                         Check the status of submitted invoices with Hacienda.
                     </div>
                 </group>

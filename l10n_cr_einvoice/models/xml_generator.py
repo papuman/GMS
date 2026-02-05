@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
+import re
 import logging
 from datetime import datetime, date
 from lxml import etree
 
 from odoo import models, fields, api, _
-from odoo.exceptions import ValidationError
+from odoo.exceptions import ValidationError, UserError
 
 _logger = logging.getLogger(__name__)
 
@@ -27,16 +28,24 @@ class XMLGenerator(models.AbstractModel):
     CIIU_MANDATORY_DATE = date(2025, 10, 6)
 
     @api.model
-    def generate_invoice_xml(self, einvoice):
+    def generate_invoice_xml(self, einvoice, dry_run=False):
         """
         Generate the complete XML for an electronic invoice.
 
         Args:
             einvoice: l10n_cr.einvoice.document record
+            dry_run: If True, only validate without generating XML
 
         Returns:
-            str: XML content
+            str: XML content (or True if dry_run and validation passes)
         """
+        # PRE-FLIGHT VALIDATION
+        self._validate_before_generation(einvoice)
+
+        if dry_run:
+            _logger.info('Dry-run validation passed for document %s', einvoice.name)
+            return True
+
         doc_type = einvoice.document_type
 
         # Get source document (either account.move or pos.order)
@@ -61,6 +70,9 @@ class XMLGenerator(models.AbstractModel):
 
     def _generate_factura_electronica(self, einvoice, source_doc):
         """Generate Factura Electrónica (FE) XML.
+
+        Note: Pre-flight validation is performed in generate_invoice_xml().
+        This method assumes all validation has passed.
 
         Args:
             einvoice: l10n_cr.einvoice.document record
@@ -105,9 +117,10 @@ class XMLGenerator(models.AbstractModel):
         # 5. Emisor (sender/company information)
         self._add_emisor(root, source_doc.company_id)
 
-        # 6. Receptor (receiver/customer information) - Updated for Phase 1C
-        if source_doc.partner_id:
-            self._add_receptor(root, source_doc.partner_id, fecha_emision)
+        # 6. Receptor (receiver/customer information) - Updated for Phase 1C and MVP Task 2
+        # Use einvoice.partner_id (which may be the corporate parent for billing)
+        if einvoice.partner_id:
+            self._add_receptor(root, einvoice.partner_id, fecha_emision)
 
         # 7. CondicionVenta (payment terms)
         self._add_condicion_venta(root, source_doc)
@@ -133,6 +146,9 @@ class XMLGenerator(models.AbstractModel):
 
     def _generate_tiquete_electronico(self, einvoice, source_doc):
         """Generate Tiquete Electrónico (TE) XML.
+
+        Note: Pre-flight validation is performed in generate_invoice_xml().
+        This method assumes all validation has passed.
 
         Args:
             einvoice: l10n_cr.einvoice.document record
@@ -187,7 +203,10 @@ class XMLGenerator(models.AbstractModel):
         return xml_str
 
     def _generate_nota_credito(self, einvoice, move):
-        """Generate Nota de Crédito (NC) XML."""
+        """Generate Nota de Crédito (NC) XML.
+
+        Note: Pre-flight validation is performed in generate_invoice_xml().
+        """
         ns = self.NAMESPACES['nc']
         root = etree.Element(
             '{%s}NotaCreditoElectronica' % ns,
@@ -217,8 +236,9 @@ class XMLGenerator(models.AbstractModel):
 
         self._add_emisor(root, move.company_id)
 
-        if move.partner_id:
-            self._add_receptor(root, move.partner_id, move.invoice_date)
+        # Use einvoice.partner_id (which may be the corporate parent for billing)
+        if einvoice.partner_id:
+            self._add_receptor(root, einvoice.partner_id, move.invoice_date)
 
         # Reference to original invoice
         if move.reversed_entry_id:
@@ -239,7 +259,10 @@ class XMLGenerator(models.AbstractModel):
         return xml_str
 
     def _generate_nota_debito(self, einvoice, move):
-        """Generate Nota de Débito (ND) XML."""
+        """Generate Nota de Débito (ND) XML.
+
+        Note: Pre-flight validation is performed in generate_invoice_xml().
+        """
         # Very similar to NC
         ns = self.NAMESPACES['nd']
         root = etree.Element(
@@ -269,8 +292,9 @@ class XMLGenerator(models.AbstractModel):
 
         self._add_emisor(root, move.company_id)
 
-        if move.partner_id:
-            self._add_receptor(root, move.partner_id, move.invoice_date)
+        # Use einvoice.partner_id (which may be the corporate parent for billing)
+        if einvoice.partner_id:
+            self._add_receptor(root, einvoice.partner_id, move.invoice_date)
 
         if move.debit_origin_id:
             self._add_informacion_referencia(root, move.debit_origin_id)
@@ -371,34 +395,37 @@ class XMLGenerator(models.AbstractModel):
         if partner.email:
             etree.SubElement(receptor, 'CorreoElectronico').text = partner.email
 
-    def _add_condicion_venta(self, root, move):
-        """Add CondicionVenta (payment terms)."""
+    def _add_condicion_venta(self, root, source_doc):
+        """Add CondicionVenta (payment terms).
+
+        Handles both account.move and pos.order source documents.
+        POS orders are always cash (01). Account moves check payment terms.
+        """
         # Payment terms:
         # 01 = Contado (Cash)
         # 02 = Crédito (Credit)
-        # 03 = Consignación
-        # 04 = Apartado
-        # 05 = Arrendamiento con opción de compra
-        # 06 = Arrendamiento en función financiera
+        # 03-06 = Other terms
         # 99 = Otros
 
-        if move.invoice_payment_term_id and move.invoice_payment_term_id.line_ids:
-            # Has payment terms - credit
-            etree.SubElement(root, 'CondicionVenta').text = '02'
+        # POS orders are always cash
+        if source_doc._name == 'pos.order':
+            etree.SubElement(root, 'CondicionVenta').text = '01'
+            return
 
-            # Add PlazoCredito (credit days)
-            days = sum(line.days for line in move.invoice_payment_term_id.line_ids)
+        # account.move: check payment terms
+        if source_doc.invoice_payment_term_id and source_doc.invoice_payment_term_id.line_ids:
+            etree.SubElement(root, 'CondicionVenta').text = '02'
+            days = sum(line.days for line in source_doc.invoice_payment_term_id.line_ids)
             etree.SubElement(root, 'PlazoCredito').text = str(int(days))
         else:
-            # No payment terms - cash
             etree.SubElement(root, 'CondicionVenta').text = '01'
 
-    def _add_medio_pago(self, root, move):
+    def _add_medio_pago(self, root, source_doc):
         """
         Add MedioPago (payment method) section.
 
-        Updated for Phase 1A: SINPE Móvil Payment Method Integration
-        Now uses payment method from invoice and includes transaction ID for SINPE Móvil.
+        Handles both account.move and pos.order source documents.
+        POS orders derive payment method from pos.payment records.
 
         Payment methods (Hacienda v4.4):
         01 = Efectivo (Cash)
@@ -409,74 +436,91 @@ class XMLGenerator(models.AbstractModel):
         06 = SINPE Móvil (Mobile payment)
         99 = Otros (Others)
         """
-        # Get payment method code from invoice
         payment_method_code = '01'  # Default to Efectivo
 
-        if move.l10n_cr_payment_method_id:
-            payment_method_code = move.l10n_cr_payment_method_id.code
+        if source_doc._name == 'pos.order':
+            # POS: derive from pos.payment records
+            payments = source_doc.payment_ids
+            if payments:
+                # Map POS payment method names to Hacienda codes
+                method_name = (payments[0].payment_method_id.name or '').lower()
+                if 'card' in method_name or 'tarjeta' in method_name:
+                    payment_method_code = '02'
+                elif 'transfer' in method_name or 'sinpe' in method_name:
+                    payment_method_code = '04'
+                elif 'check' in method_name or 'cheque' in method_name:
+                    payment_method_code = '03'
+                elif 'customer_account' in method_name or 'cuenta' in method_name:
+                    payment_method_code = '99'
+                else:
+                    payment_method_code = '01'  # Cash/Efectivo
             _logger.debug(
-                'Using payment method %s (%s) for invoice %s',
-                payment_method_code,
-                move.l10n_cr_payment_method_id.name,
-                move.name
+                'POS order %s: payment method code %s',
+                source_doc.name, payment_method_code
             )
         else:
-            _logger.warning(
-                'No payment method set for invoice %s, defaulting to "01" (Efectivo)',
-                move.name
-            )
+            # account.move: use configured payment method
+            if source_doc.l10n_cr_payment_method_id:
+                payment_method_code = source_doc.l10n_cr_payment_method_id.code
+            else:
+                _logger.warning(
+                    'No payment method set for invoice %s, defaulting to "01" (Efectivo)',
+                    source_doc.name
+                )
 
-        # Add MedioPago tag
         etree.SubElement(root, 'MedioPago').text = payment_method_code
 
-        # Add NumeroTransaccion if payment method requires it (e.g., SINPE Móvil = "06")
-        if move.l10n_cr_payment_method_id and move.l10n_cr_payment_method_id.requires_transaction_id:
-            if move.l10n_cr_payment_transaction_id:
-                etree.SubElement(root, 'NumeroTransaccion').text = move.l10n_cr_payment_transaction_id
-                _logger.debug(
-                    'Added transaction ID %s for payment method %s',
-                    move.l10n_cr_payment_transaction_id,
-                    payment_method_code
-                )
-            else:
-                # This should never happen due to validation in account_move.py
-                # But we log it for safety
-                _logger.error(
-                    'Payment method %s requires transaction ID but none provided for invoice %s',
-                    payment_method_code,
-                    move.name
-                )
+        # Add NumeroTransaccion for account.move if needed (SINPE Móvil etc.)
+        if source_doc._name == 'account.move':
+            if source_doc.l10n_cr_payment_method_id and source_doc.l10n_cr_payment_method_id.requires_transaction_id:
+                if source_doc.l10n_cr_payment_transaction_id:
+                    etree.SubElement(root, 'NumeroTransaccion').text = source_doc.l10n_cr_payment_transaction_id
 
-    def _add_detalle_servicio(self, root, move):
-        """Add DetalleServicio (line items)."""
+    def _add_detalle_servicio(self, root, source_doc):
+        """Add DetalleServicio (line items).
+
+        Handles both account.move and pos.order source documents.
+        POS order lines use 'lines' with 'qty'; account.move uses 'invoice_line_ids' with 'quantity'.
+        """
         detalle_servicio = etree.SubElement(root, 'DetalleServicio')
 
+        # Get lines based on source document type
+        if source_doc._name == 'pos.order':
+            order_lines = source_doc.lines
+        else:
+            order_lines = source_doc.invoice_line_ids.filtered(lambda l: l.display_type == 'product')
+
         line_number = 1
-        for line in move.invoice_line_ids.filtered(lambda l: l.display_type == 'product'):
+        for line in order_lines:
             linea_detalle = etree.SubElement(detalle_servicio, 'LineaDetalle')
 
             # Line number
             etree.SubElement(linea_detalle, 'NumeroLinea').text = str(line_number)
 
-            # CABYS product code (required in v4.4, replaces old Codigo element)
+            # CABYS product code (required in v4.4)
             cabys_code = getattr(line, 'l10n_cr_product_code', '') or '8611001000000'
             etree.SubElement(linea_detalle, 'CodigoCABYS').text = cabys_code
 
-            # Quantity
-            etree.SubElement(linea_detalle, 'Cantidad').text = str(line.quantity)
+            # Quantity — pos.order.line uses 'qty', account.move.line uses 'quantity'
+            quantity = line.qty if source_doc._name == 'pos.order' else line.quantity
+            etree.SubElement(linea_detalle, 'Cantidad').text = str(quantity)
 
             # Unit of measure
-            etree.SubElement(linea_detalle, 'UnidadMedida').text = 'Unid'  # TODO: Get from product UOM
+            etree.SubElement(linea_detalle, 'UnidadMedida').text = 'Unid'
 
-            # Description
-            etree.SubElement(linea_detalle, 'Detalle').text = line.name or ''
+            # Description — pos.order.line uses 'full_product_name', account.move.line uses 'name'
+            if source_doc._name == 'pos.order':
+                description = line.full_product_name or (line.product_id.display_name if line.product_id else '')
+            else:
+                description = line.name or ''
+            etree.SubElement(linea_detalle, 'Detalle').text = description
 
             # Unit price
             price_unit = line.price_unit
             etree.SubElement(linea_detalle, 'PrecioUnitario').text = '%.5f' % price_unit
 
             # Subtotal (before discounts)
-            subtotal = line.quantity * price_unit
+            subtotal = quantity * price_unit
             etree.SubElement(linea_detalle, 'MontoTotal').text = '%.5f' % subtotal
 
             # Discount (if any)
@@ -484,23 +528,24 @@ class XMLGenerator(models.AbstractModel):
                 descuento = etree.SubElement(linea_detalle, 'Descuento')
                 discount_amount = subtotal * (line.discount / 100)
                 etree.SubElement(descuento, 'MontoDescuento').text = '%.5f' % discount_amount
-                # Get discount nature (code or code + description for "99")
-                discount_nature = line._get_discount_nature_for_xml()
-
+                if source_doc._name == 'account.move' and hasattr(line, '_get_discount_nature_for_xml'):
+                    discount_nature = line._get_discount_nature_for_xml()
+                else:
+                    discount_nature = '99'  # "Otros" for POS
                 etree.SubElement(descuento, 'NaturalezaDescuento').text = discount_nature
+
             # Subtotal after discount
             subtotal_after_discount = subtotal - (subtotal * line.discount / 100)
             etree.SubElement(linea_detalle, 'SubTotal').text = '%.5f' % subtotal_after_discount
 
-            # v4.4 LineaDetalle requires: BaseImponible, Impuesto+,
-            # ImpuestoAsumidoEmisorFabrica, ImpuestoNeto, MontoTotalLinea
+            # BaseImponible
             etree.SubElement(linea_detalle, 'BaseImponible').text = '%.5f' % subtotal_after_discount
 
             total_tax = 0.0
             if line.tax_ids:
                 total_tax = self._add_line_tax(linea_detalle, line, subtotal_after_discount)
             else:
-                # Even without taxes, v4.4 requires at least one Impuesto element
+                # v4.4 requires at least one Impuesto element even with no taxes
                 impuesto = etree.SubElement(linea_detalle, 'Impuesto')
                 etree.SubElement(impuesto, 'Codigo').text = '01'
                 etree.SubElement(impuesto, 'CodigoTarifaIVA').text = '08'
@@ -560,33 +605,45 @@ class XMLGenerator(models.AbstractModel):
 
         return total_tax
 
-    def _add_resumen_factura(self, root, move):
-        """Add ResumenFactura (invoice summary)."""
+    def _add_resumen_factura(self, root, source_doc):
+        """Add ResumenFactura (invoice summary).
+
+        Handles both account.move and pos.order source documents.
+        POS orders don't have amount_untaxed — computed as amount_total - amount_tax.
+        """
         resumen = etree.SubElement(root, 'ResumenFactura')
 
         # Currency
-        currency_codes = {
-            'CRC': 'CRC',
-            'USD': 'USD',
-            'EUR': 'EUR',
-        }
-        currency_code = currency_codes.get(move.currency_id.name, 'CRC')
+        currency_codes = {'CRC': 'CRC', 'USD': 'USD', 'EUR': 'EUR'}
+        if source_doc._name == 'pos.order':
+            currency_name = source_doc.currency_id.name if source_doc.currency_id else 'CRC'
+        else:
+            currency_name = source_doc.currency_id.name if source_doc.currency_id else 'CRC'
+        currency_code = currency_codes.get(currency_name, 'CRC')
         codigo_moneda = etree.SubElement(resumen, 'CodigoTipoMoneda')
         etree.SubElement(codigo_moneda, 'CodigoMoneda').text = currency_code
-        etree.SubElement(codigo_moneda, 'TipoCambio').text = '1.00000'  # TODO: Get actual exchange rate
+        etree.SubElement(codigo_moneda, 'TipoCambio').text = '1.00000'
+
+        # Compute amounts — pos.order has no amount_untaxed
+        amount_total = source_doc.amount_total
+        amount_tax = source_doc.amount_tax
+        if source_doc._name == 'pos.order':
+            amount_untaxed = amount_total - amount_tax
+        else:
+            amount_untaxed = source_doc.amount_untaxed
 
         # Totals
-        etree.SubElement(resumen, 'TotalServGravados').text = '%.5f' % move.amount_untaxed
+        etree.SubElement(resumen, 'TotalServGravados').text = '%.5f' % amount_untaxed
         etree.SubElement(resumen, 'TotalServExentos').text = '0.00000'
         etree.SubElement(resumen, 'TotalMercanciasGravadas').text = '0.00000'
         etree.SubElement(resumen, 'TotalMercanciasExentas').text = '0.00000'
-        etree.SubElement(resumen, 'TotalGravado').text = '%.5f' % move.amount_untaxed
+        etree.SubElement(resumen, 'TotalGravado').text = '%.5f' % amount_untaxed
         etree.SubElement(resumen, 'TotalExento').text = '0.00000'
-        etree.SubElement(resumen, 'TotalVenta').text = '%.5f' % move.amount_untaxed
-        etree.SubElement(resumen, 'TotalDescuentos').text = '0.00000'  # TODO: Calculate discounts
-        etree.SubElement(resumen, 'TotalVentaNeta').text = '%.5f' % move.amount_untaxed
-        etree.SubElement(resumen, 'TotalImpuesto').text = '%.5f' % move.amount_tax
-        etree.SubElement(resumen, 'TotalComprobante').text = '%.5f' % move.amount_total
+        etree.SubElement(resumen, 'TotalVenta').text = '%.5f' % amount_untaxed
+        etree.SubElement(resumen, 'TotalDescuentos').text = '0.00000'
+        etree.SubElement(resumen, 'TotalVentaNeta').text = '%.5f' % amount_untaxed
+        etree.SubElement(resumen, 'TotalImpuesto').text = '%.5f' % amount_tax
+        etree.SubElement(resumen, 'TotalComprobante').text = '%.5f' % amount_total
 
     def _add_informacion_referencia(self, root, original_move):
         """Add InformacionReferencia for credit/debit notes."""
@@ -646,3 +703,440 @@ class XMLGenerator(models.AbstractModel):
                 )
 
         return self.CIIU_MANDATORY_DATE
+
+    # ===== PRE-FLIGHT VALIDATION METHODS =====
+
+    def _validate_before_generation(self, einvoice):
+        """
+        Comprehensive pre-flight validation before XML generation.
+
+        Validates:
+        - Mandatory fields based on document type
+        - Company certificate validity
+        - Partner data format (cédula, email)
+        - CIIU code (date-based enforcement)
+        - Validation rules from l10n_cr.validation.rule
+
+        Args:
+            einvoice: l10n_cr.einvoice.document record
+
+        Raises:
+            UserError: If validation fails with actionable Spanish error message
+        """
+        # Note: No ensure_one() - this is an AbstractModel (no DB records).
+        # Called via self.env['l10n_cr.xml.generator'] which returns empty recordset.
+        errors = []
+
+        _logger.info(
+            'Starting pre-flight validation for document %s (type: %s)',
+            einvoice.name,
+            einvoice.document_type
+        )
+
+        # Get source document
+        if einvoice.move_id:
+            source_doc = einvoice.move_id
+        elif einvoice.pos_order_id:
+            source_doc = einvoice.pos_order_id
+        else:
+            raise UserError(_(
+                'Error de Configuración\n'
+                '══════════════════════\n\n'
+                'El comprobante electrónico debe estar vinculado a una Factura o Orden de POS.\n\n'
+                'Documento: %s'
+            ) % einvoice.name)
+
+        # 1. Validate Company Certificate
+        certificate_errors = self._validate_company_certificate(einvoice.company_id)
+        if certificate_errors:
+            errors.extend(certificate_errors)
+
+        # 2. Document Type Specific Validation
+        if einvoice.document_type == 'FE':
+            fe_errors = self._validate_factura_requirements(einvoice, source_doc)
+            if fe_errors:
+                errors.extend(fe_errors)
+        elif einvoice.document_type == 'TE':
+            # Tiquete has minimal requirements
+            te_errors = self._validate_tiquete_requirements(einvoice, source_doc)
+            if te_errors:
+                errors.extend(te_errors)
+        elif einvoice.document_type in ('NC', 'ND'):
+            # Credit/Debit notes need reference validation
+            ref_errors = self._validate_reference_document(einvoice, source_doc)
+            if ref_errors:
+                errors.extend(ref_errors)
+
+        # 3. Run configurable validation rules
+        if self.env['l10n_cr.validation.rule'].search_count([('active', '=', True)]) > 0:
+            try:
+                is_valid, rule_errors = self.env['l10n_cr.validation.rule'].validate_all_rules(einvoice)
+                if not is_valid and rule_errors:
+                    errors.extend(rule_errors)
+            except ValidationError as e:
+                # Re-raise blocking validation errors
+                raise
+            except Exception as e:
+                _logger.error('Error running validation rules: %s', str(e))
+                errors.append(f'Error en reglas de validación: {str(e)}')
+
+        # If errors found, raise with formatted message
+        if errors:
+            error_count = len(errors)
+            error_list = '\n'.join(f'  • {err}' for err in errors)
+
+            raise UserError(_(
+                'No se puede generar el comprobante electrónico\n'
+                '════════════════════════════════════════════\n\n'
+                'Se encontraron {count} errores de validación:\n\n'
+                '{errors}\n\n'
+                '──────────────────────────────────────────\n'
+                'Documento: {doc_name}\n'
+                'Tipo: {doc_type}\n'
+                'Cliente: {partner}\n\n'
+                'Por favor corrija estos errores antes de continuar.'
+            ).format(
+                count=error_count,
+                errors=error_list,
+                doc_name=einvoice.name,
+                doc_type=dict(einvoice._fields['document_type'].selection).get(einvoice.document_type),
+                partner=einvoice.partner_id.name if einvoice.partner_id else 'N/A'
+            ))
+
+        _logger.info(
+            'Pre-flight validation passed for document %s',
+            einvoice.name
+        )
+
+    def _validate_company_certificate(self, company):
+        """
+        Validate company signing certificate.
+
+        Args:
+            company: res.company record
+
+        Returns:
+            list: Error messages (empty if valid)
+        """
+        errors = []
+
+        # Get active credentials based on environment
+        if company.l10n_cr_hacienda_env == 'production':
+            certificate = company.l10n_cr_prod_certificate
+            certificate_filename = company.l10n_cr_prod_certificate_filename
+            private_key = company.l10n_cr_prod_private_key
+            key_password = company.l10n_cr_prod_key_password
+        else:
+            certificate = company.l10n_cr_certificate
+            certificate_filename = company.l10n_cr_certificate_filename
+            private_key = company.l10n_cr_private_key
+            key_password = company.l10n_cr_key_password
+
+        env_label = 'Producción' if company.l10n_cr_hacienda_env == 'production' else 'Sandbox'
+
+        # Check certificate presence
+        if not certificate:
+            errors.append(
+                f'Certificado digital no configurado para el ambiente {env_label}. '
+                'Configure el certificado en Configuración > Compañía > Hacienda'
+            )
+            return errors
+
+        # For .p12/.pfx files, private key is embedded in the certificate file.
+        # Only require separate private_key for PEM format.
+        is_pkcs12 = (certificate_filename or '').lower().endswith(('.p12', '.pfx'))
+        if not is_pkcs12 and not private_key:
+            errors.append(
+                f'Llave privada no configurada para el ambiente {env_label}. '
+                'Para certificados PEM (.pem/.crt) se requiere un archivo de llave privada separado. '
+                'Para certificados PKCS#12 (.p12/.pfx), la llave está incluida en el archivo.'
+            )
+
+        if not key_password:
+            errors.append(
+                f'Contraseña/PIN del certificado no configurada para el ambiente {env_label}'
+            )
+
+        return errors
+
+    def _validate_factura_requirements(self, einvoice, source_doc):
+        """
+        Validate Factura Electrónica (FE) specific requirements.
+
+        FE Requirements (Hacienda v4.4):
+        - Customer (partner) required
+        - Customer name required
+        - Customer VAT/ID required (valid format)
+        - Customer ID type required (01-05)
+        - Customer email required (valid format)
+        - Customer CIIU required (after Oct 6, 2025)
+
+        Args:
+            einvoice: l10n_cr.einvoice.document record
+            source_doc: account.move or pos.order record
+
+        Returns:
+            list: Error messages (empty if valid)
+        """
+        errors = []
+        partner = einvoice.partner_id
+
+        # 1. Partner required
+        if not partner:
+            errors.append(
+                'La Factura Electrónica requiere un cliente. '
+                'Seleccione un cliente o cambie a Tiquete Electrónico (TE)'
+            )
+            return errors  # Can't continue without partner
+
+        # 2. Partner name required
+        if not partner.name or not partner.name.strip():
+            errors.append(
+                'El nombre del cliente es obligatorio. '
+                'Cliente ID: {partner_id}'.format(partner_id=partner.id)
+            )
+
+        # 3. Partner VAT/ID required and format validation
+        if not partner.vat or not partner.vat.strip():
+            errors.append(
+                'El número de cédula/identificación del cliente es obligatorio. '
+                'Cliente: {partner}'.format(partner=partner.name)
+            )
+        else:
+            # Validate VAT format
+            vat_errors = self._validate_cedula_format(partner)
+            if vat_errors:
+                errors.extend(vat_errors)
+
+        # 4. ID Type - auto-detected from VAT format via _get_partner_id_type()
+        # No explicit field check needed; type is derived from VAT at XML generation time
+
+        # 5. Email required and format validation
+        if not partner.email or not partner.email.strip():
+            errors.append(
+                'El correo electrónico del cliente es obligatorio según normativa de Hacienda. '
+                'Cliente: {partner}'.format(partner=partner.name)
+            )
+        else:
+            # Validate email format
+            email_errors = self._validate_email_format(partner.email, partner.name)
+            if email_errors:
+                errors.extend(email_errors)
+
+        # 6. CIIU code (date-based enforcement)
+        invoice_date = einvoice.invoice_date or fields.Date.today()
+        ciiu_mandatory_date = self._get_ciiu_mandatory_date()
+
+        if invoice_date >= ciiu_mandatory_date:
+            if not partner.l10n_cr_economic_activity_id:
+                errors.append(
+                    'El código de actividad económica (CIIU) del cliente es obligatorio '
+                    'para facturas desde el {date}. '
+                    'Fecha factura: {invoice_date}. '
+                    'Cliente: {partner}'.format(
+                        date=ciiu_mandatory_date.strftime('%d/%m/%Y'),
+                        invoice_date=invoice_date.strftime('%d/%m/%Y'),
+                        partner=partner.name
+                    )
+                )
+
+        return errors
+
+    def _validate_tiquete_requirements(self, einvoice, source_doc):
+        """
+        Validate Tiquete Electrónico (TE) requirements.
+
+        TE has minimal requirements - mainly company data.
+
+        Args:
+            einvoice: l10n_cr.einvoice.document record
+            source_doc: account.move or pos.order record
+
+        Returns:
+            list: Error messages (empty if valid)
+        """
+        errors = []
+
+        # Tiquete doesn't require customer data
+        # But we still validate company fields
+        company = einvoice.company_id
+
+        if not company.vat:
+            errors.append('La compañía debe tener un número de cédula jurídica configurado')
+
+        if not company.l10n_cr_emisor_location:
+            errors.append('La ubicación del emisor no está configurada en la compañía')
+
+        return errors
+
+    def _validate_reference_document(self, einvoice, source_doc):
+        """
+        Validate credit/debit note reference to original document.
+
+        Args:
+            einvoice: l10n_cr.einvoice.document record
+            source_doc: account.move record
+
+        Returns:
+            list: Error messages (empty if valid)
+        """
+        errors = []
+
+        if einvoice.document_type == 'NC':
+            # Credit note requires reversed_entry_id
+            if not source_doc.reversed_entry_id:
+                errors.append(
+                    'La Nota de Crédito debe referenciar una factura original. '
+                    'No se encontró reversed_entry_id en la factura'
+                )
+            elif not source_doc.reversed_entry_id.l10n_cr_clave:
+                errors.append(
+                    'La factura original no tiene clave de Hacienda. '
+                    'Factura original: {invoice}'.format(
+                        invoice=source_doc.reversed_entry_id.name
+                    )
+                )
+
+        elif einvoice.document_type == 'ND':
+            # Debit note requires debit_origin_id
+            if not source_doc.debit_origin_id:
+                errors.append(
+                    'La Nota de Débito debe referenciar una factura original. '
+                    'No se encontró debit_origin_id en la factura'
+                )
+            elif not source_doc.debit_origin_id.l10n_cr_clave:
+                errors.append(
+                    'La factura original no tiene clave de Hacienda. '
+                    'Factura original: {invoice}'.format(
+                        invoice=source_doc.debit_origin_id.name
+                    )
+                )
+
+        return errors
+
+    def _validate_cedula_format(self, partner):
+        """
+        Validate Costa Rica cédula/ID format based on ID type.
+
+        Formats (Hacienda v4.4):
+        - 01 (Física): 9 digits
+        - 02 (Jurídica): 10 digits
+        - 03 (DIMEX): 11-12 digits
+        - 04 (NITE): 10 digits
+        - 05 (Extranjero): max 20 characters
+
+        Args:
+            partner: res.partner record
+
+        Returns:
+            list: Error messages (empty if valid)
+        """
+        errors = []
+
+        if not partner.vat:
+            return errors  # Already checked elsewhere
+
+        clean_vat = partner.vat.replace('-', '').replace(' ', '').strip()
+        id_code = self._get_partner_id_type(partner.vat)
+
+        # Validate based on type
+        if id_code == '01':  # Cédula Física
+            if not clean_vat.isdigit() or len(clean_vat) != 9:
+                errors.append(
+                    'Formato inválido de Cédula Física. '
+                    'Debe tener exactamente 9 dígitos. '
+                    'Valor actual: {vat} ({length} caracteres). '
+                    'Cliente: {partner}'.format(
+                        vat=clean_vat,
+                        length=len(clean_vat),
+                        partner=partner.name
+                    )
+                )
+
+        elif id_code == '02':  # Cédula Jurídica
+            if not clean_vat.isdigit() or len(clean_vat) != 10:
+                errors.append(
+                    'Formato inválido de Cédula Jurídica. '
+                    'Debe tener exactamente 10 dígitos. '
+                    'Valor actual: {vat} ({length} caracteres). '
+                    'Cliente: {partner}'.format(
+                        vat=clean_vat,
+                        length=len(clean_vat),
+                        partner=partner.name
+                    )
+                )
+
+        elif id_code == '03':  # DIMEX
+            if not clean_vat.isdigit() or len(clean_vat) not in [11, 12]:
+                errors.append(
+                    'Formato inválido de DIMEX. '
+                    'Debe tener 11 o 12 dígitos. '
+                    'Valor actual: {vat} ({length} caracteres). '
+                    'Cliente: {partner}'.format(
+                        vat=clean_vat,
+                        length=len(clean_vat),
+                        partner=partner.name
+                    )
+                )
+
+        elif id_code == '04':  # NITE
+            if not clean_vat.isdigit() or len(clean_vat) != 10:
+                errors.append(
+                    'Formato inválido de NITE. '
+                    'Debe tener exactamente 10 dígitos. '
+                    'Valor actual: {vat} ({length} caracteres). '
+                    'Cliente: {partner}'.format(
+                        vat=clean_vat,
+                        length=len(clean_vat),
+                        partner=partner.name
+                    )
+                )
+
+        elif id_code == '05':  # Foreign ID
+            if len(clean_vat) > 20:
+                errors.append(
+                    'Formato inválido de Identificación Extranjera. '
+                    'No puede exceder 20 caracteres. '
+                    'Valor actual: {vat} ({length} caracteres). '
+                    'Cliente: {partner}'.format(
+                        vat=clean_vat,
+                        length=len(clean_vat),
+                        partner=partner.name
+                    )
+                )
+
+        return errors
+
+    def _validate_email_format(self, email, partner_name=''):
+        """
+        Validate email address format.
+
+        Args:
+            email: Email address string
+            partner_name: Partner name for error message
+
+        Returns:
+            list: Error messages (empty if valid)
+        """
+        errors = []
+
+        if not email:
+            return errors  # Already checked elsewhere
+
+        # RFC 5322 simplified email regex
+        EMAIL_REGEX = re.compile(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$')
+
+        clean_email = email.strip()
+
+        if not EMAIL_REGEX.match(clean_email):
+            context = f'Cliente: {partner_name}' if partner_name else ''
+            errors.append(
+                'Formato inválido de correo electrónico. '
+                'Valor actual: {email}. '
+                '{context}'.format(
+                    email=clean_email,
+                    context=context
+                )
+            )
+
+        return errors

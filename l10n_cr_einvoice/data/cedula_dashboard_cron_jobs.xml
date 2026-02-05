@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+
+        <!-- Cron Job: Hourly System Health Check and Alerts -->
+        <record id="cron_cedula_dashboard_health_check" model="ir.cron">
+            <field name="name">Cédula Lookup: System Health Check</field>
+            <field name="model_id" ref="model_l10n_cr_cedula_dashboard"/>
+            <field name="state">code</field>
+            <field name="code">model.check_and_send_alerts()</field>
+            <field name="interval_number">1</field>
+            <field name="interval_type">hours</field>
+            <field name="active" eval="True"/>
+            <field name="priority">100</field>
+        </record>
+
+        <!-- Cron Job: Weekly Cache Health Report -->
+        <record id="cron_cedula_dashboard_weekly_report" model="ir.cron">
+            <field name="name">Cédula Lookup: Weekly Cache Health Report</field>
+            <field name="model_id" ref="model_l10n_cr_cedula_dashboard"/>
+            <field name="state">code</field>
+            <field name="code">model.send_weekly_cache_health_report()</field>
+            <field name="interval_number">7</field>
+            <field name="interval_type">days</field>
+            <field name="active" eval="True"/>
+            <field name="priority">50</field>
+            <field name="nextcall" eval="(DateTime.now() + timedelta(days=(7 - DateTime.now().weekday()))).replace(hour=9, minute=0, second=0)"/>
+        </record>
+
+        <!-- Cron Job: Monthly API Usage Summary -->
+        <record id="cron_cedula_dashboard_monthly_report" model="ir.cron">
+            <field name="name">Cédula Lookup: Monthly API Usage Summary</field>
+            <field name="model_id" ref="model_l10n_cr_cedula_dashboard"/>
+            <field name="state">code</field>
+            <field name="code">model.send_monthly_api_usage_summary()</field>
+            <field name="interval_number">1</field>
+            <field name="interval_type">months</field>
+            <field name="active" eval="True"/>
+            <field name="priority">50</field>
+            <field name="nextcall" eval="(DateTime.now().replace(day=1) + timedelta(days=32)).replace(day=1, hour=9, minute=0, second=0)"/>
+        </record>
+
+    </data>
+</odoo>

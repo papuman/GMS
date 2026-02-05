@@ -1,0 +1,289 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Validation Rule Tree View -->
+    <record id="view_validation_rule_tree" model="ir.ui.view">
+        <field name="name">l10n_cr.validation.rule.tree</field>
+        <field name="model">l10n_cr.validation.rule</field>
+        <field name="arch" type="xml">
+            <list string="Validation Rules" decoration-muted="not active" decoration-info="test_mode">
+                <field name="sequence" widget="handle"/>
+                <field name="rule_name"/>
+                <field name="code"/>
+                <field name="document_type"/>
+                <field name="applies_to"/>
+                <field name="field_name"/>
+                <field name="validation_type"/>
+                <field name="enforcement_date" optional="hide"/>
+                <field name="is_currently_enforced" string="Active Now" widget="boolean"/>
+                <field name="severity"/>
+                <field name="trigger_count" optional="hide"/>
+                <field name="test_mode" widget="boolean" optional="show"/>
+                <field name="active" widget="boolean"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Validation Rule Form View -->
+    <record id="view_validation_rule_form" model="ir.ui.view">
+        <field name="name">l10n_cr.validation.rule.form</field>
+        <field name="model">l10n_cr.validation.rule</field>
+        <field name="arch" type="xml">
+            <form string="Validation Rule">
+                <header>
+                    <field name="is_currently_enforced" invisible="1"/>
+                    <field name="active" invisible="1"/>
+                </header>
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="toggle_active"
+                                type="object"
+                                class="oe_stat_button"
+                                icon="fa-archive">
+                            <field name="active" widget="boolean_button" options="{'terminology': 'archive'}"/>
+                        </button>
+                    </div>
+
+                    <widget name="web_ribbon" title="Test Mode" bg_color="bg-warning" invisible="not test_mode"/>
+                    <widget name="web_ribbon" title="Inactive" bg_color="bg-danger" invisible="active"/>
+                    <widget name="web_ribbon" title="Enforced" bg_color="bg-success" invisible="not is_currently_enforced or not active"/>
+
+                    <div class="oe_title">
+                        <label for="rule_name" class="oe_edit_only"/>
+                        <h1>
+                            <field name="rule_name" placeholder="e.g., FE Customer Email Required"/>
+                        </h1>
+                    </div>
+
+                    <group>
+                        <group name="basic_info" string="Basic Information">
+                            <field name="code" placeholder="e.g., fe_email_required"/>
+                            <field name="sequence"/>
+                            <field name="document_type"/>
+                            <field name="applies_to"/>
+                            <field name="description" placeholder="Detailed explanation of this rule..."/>
+                        </group>
+
+                        <group name="field_info" string="Field to Validate">
+                            <field name="field_name" placeholder="e.g., email"/>
+                            <field name="field_label" placeholder="e.g., Email Address"/>
+                            <field name="validation_type"/>
+                            <field name="required" widget="boolean"/>
+                        </group>
+                    </group>
+
+                    <notebook>
+                        <page string="Validation Logic" name="validation">
+                            <group>
+                                <group string="Validation Parameters">
+                                    <field name="validation_params"
+                                           widget="ace"
+                                           options="{'mode': 'python'}"
+                                           placeholder='Examples:&#10;- regex: {"pattern": "^[0-9]{9}$"}&#10;- range: {"min": 0, "max": 100}&#10;- length: {"min": 3, "max": 50}&#10;- lookup: {"model": "l10n_cr.ciiu.code", "field": "code"}&#10;- custom: {"expression": "record.vat and len(record.vat) == 9"}'/>
+                                </group>
+
+                                <group string="Error Handling">
+                                    <field name="severity"/>
+                                    <field name="blocking" widget="boolean"/>
+                                    <field name="test_mode" widget="boolean"/>
+                                </group>
+                            </group>
+
+                            <group string="Error Messages">
+                                <field name="error_message_es"
+                                       widget="text"
+                                       placeholder="Mensaje de error en español&#10;&#10;Use placeholders:&#10;{field_label} - Nombre del campo&#10;{field_value} - Valor actual&#10;{expected} - Valor esperado"/>
+                                <field name="error_message_en"
+                                       widget="text"
+                                       placeholder="Error message in English (optional)&#10;&#10;Use placeholders:&#10;{field_label} - Field name&#10;{field_value} - Current value&#10;{expected} - Expected value"/>
+                            </group>
+                        </page>
+
+                        <page string="Date-Based Enforcement" name="enforcement">
+                            <group>
+                                <group string="Enforcement Period">
+                                    <field name="enforcement_date"/>
+                                    <field name="enforcement_end_date"/>
+                                    <field name="date_field" placeholder="invoice_date"/>
+                                </group>
+
+                                <group string="Current Status">
+                                    <field name="is_currently_enforced" widget="boolean"/>
+                                    <label for="enforcement_date" string="Note" invisible="not enforcement_date"/>
+                                    <div invisible="not enforcement_date">
+                                        <p class="text-muted">
+                                            This rule will only be enforced for documents where
+                                            <code><field name="date_field" readonly="1"/></code>
+                                            is on or after
+                                            <strong><field name="enforcement_date" readonly="1"/></strong>
+                                            <span invisible="not enforcement_end_date">
+                                                and before <strong><field name="enforcement_end_date" readonly="1"/></strong>
+                                            </span>.
+                                        </p>
+                                    </div>
+                                </group>
+                            </group>
+
+                            <group>
+                                <div class="alert alert-info" role="alert" invisible="enforcement_date">
+                                    <i class="fa fa-info-circle" title="Information"/>
+                                    <strong>No enforcement date set</strong> - This rule is always active when enabled.
+                                </div>
+                                <div class="alert alert-success" role="alert" invisible="not is_currently_enforced or not active">
+                                    <i class="fa fa-check-circle" title="Active"/>
+                                    <strong>Currently Enforced</strong> - This rule is actively validating documents.
+                                </div>
+                                <div class="alert alert-warning" role="alert" invisible="is_currently_enforced or not active or not enforcement_date">
+                                    <i class="fa fa-clock-o" title="Pending"/>
+                                    <strong>Not Yet Enforced</strong> - Enforcement begins on <field name="enforcement_date" readonly="1"/>.
+                                </div>
+                            </group>
+                        </page>
+
+                        <page string="Audit Trail" name="audit">
+                            <group>
+                                <group string="Violation Statistics">
+                                    <field name="trigger_count" readonly="1"/>
+                                    <field name="last_triggered" readonly="1"/>
+                                </group>
+
+                                <group string="Testing">
+                                    <div class="alert alert-warning" role="alert" invisible="not test_mode">
+                                        <i class="fa fa-exclamation-triangle" title="Warning"/>
+                                        <strong>Test Mode Enabled</strong><br/>
+                                        Validation failures are logged but do not block document creation.
+                                        This allows testing new rules without impacting production.
+                                    </div>
+                                    <div invisible="test_mode">
+                                        <p class="text-muted">
+                                            Enable <strong>Test Mode</strong> to validate rule logic
+                                            without blocking document creation.
+                                        </p>
+                                    </div>
+                                </group>
+                            </group>
+                        </page>
+
+                        <page string="Documentation" name="docs">
+                            <group>
+                                <group string="Validation Types Reference">
+                                    <div>
+                                        <h4>Required</h4>
+                                        <p>Field must be present and non-empty.</p>
+                                        <code>No parameters needed</code>
+
+                                        <h4>Regular Expression (regex)</h4>
+                                        <p>Field must match pattern.</p>
+                                        <code>{"pattern": "^[0-9]{9}$"}</code>
+
+                                        <h4>Numeric Range</h4>
+                                        <p>Numeric value within min/max.</p>
+                                        <code>{"min": 0, "max": 100}</code>
+
+                                        <h4>String Length</h4>
+                                        <p>String length within bounds.</p>
+                                        <code>{"min": 3, "max": 50}</code>
+
+                                        <h4>Email Format</h4>
+                                        <p>Valid email address.</p>
+                                        <code>No parameters needed</code>
+
+                                        <h4>Phone Format</h4>
+                                        <p>Valid Costa Rica phone (8 digits).</p>
+                                        <code>No parameters needed</code>
+
+                                        <h4>Foreign Key Lookup</h4>
+                                        <p>Referenced record exists.</p>
+                                        <code>{"model": "res.partner", "field": "id"}</code>
+
+                                        <h4>Custom Expression</h4>
+                                        <p>Python expression (safe_eval).</p>
+                                        <code>{"expression": "len(value) == 9"}</code>
+                                    </div>
+                                </group>
+
+                                <group string="Available Variables (Custom Validation)">
+                                    <div>
+                                        <ul>
+                                            <li><code>record</code> - Target record being validated</li>
+                                            <li><code>value</code> - Current field value</li>
+                                            <li><code>env</code> - Odoo environment</li>
+                                            <li><code>date</code> - Python date module</li>
+                                            <li><code>datetime</code> - Python datetime module</li>
+                                            <li><code>relativedelta</code> - dateutil.relativedelta</li>
+                                        </ul>
+
+                                        <h5>Example Custom Expressions:</h5>
+                                        <code>record.vat and len(record.vat) == 9</code><br/>
+                                        <code>record.l10n_cr_economic_activity_id.code.startswith('93')</code><br/>
+                                        <code>date.today() - relativedelta(years=18) >= record.birth_date</code>
+                                    </div>
+                                </group>
+                            </group>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- Validation Rule Search View -->
+    <record id="view_validation_rule_search" model="ir.ui.view">
+        <field name="name">l10n_cr.validation.rule.search</field>
+        <field name="model">l10n_cr.validation.rule</field>
+        <field name="arch" type="xml">
+            <search string="Validation Rules">
+                <field name="rule_name"/>
+                <field name="code"/>
+                <field name="field_name"/>
+                <field name="document_type"/>
+
+                <filter string="Active" name="active" domain="[('active', '=', True)]"/>
+                <filter string="Inactive" name="inactive" domain="[('active', '=', False)]"/>
+
+                <separator/>
+                <filter string="Test Mode" name="test_mode" domain="[('test_mode', '=', True)]"/>
+
+                <separator/>
+                <filter string="Factura (FE)" name="fe" domain="[('document_type', '=', 'FE')]"/>
+                <filter string="Tiquete (TE)" name="te" domain="[('document_type', '=', 'TE')]"/>
+                <filter string="All Documents" name="all_docs" domain="[('document_type', '=', 'all')]"/>
+
+                <separator/>
+                <filter string="Partner Fields" name="partner" domain="[('applies_to', '=', 'partner')]"/>
+                <filter string="Document Fields" name="document" domain="[('applies_to', '=', 'document')]"/>
+                <filter string="Company Fields" name="company" domain="[('applies_to', '=', 'company')]"/>
+
+                <searchpanel>
+                    <field name="document_type" icon="fa-file-text-o"/>
+                    <field name="applies_to" icon="fa-cubes"/>
+                </searchpanel>
+            </search>
+        </field>
+    </record>
+
+    <!-- Validation Rule Action -->
+    <record id="action_validation_rule" model="ir.actions.act_window">
+        <field name="name">Validation Rules</field>
+        <field name="res_model">l10n_cr.validation.rule</field>
+        <field name="view_mode">tree,form</field>
+        <field name="context">{'search_default_active': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Create your first validation rule
+            </p>
+            <p>
+                Validation rules enforce data quality requirements for Costa Rica electronic invoices.
+                Define custom rules to ensure compliance with Hacienda regulations.
+            </p>
+        </field>
+    </record>
+
+    <!-- Menu Item (Under Hacienda Configuration) -->
+    <menuitem id="menu_validation_rules"
+              name="Validation Rules"
+              parent="menu_hacienda_root"
+              action="action_validation_rule"
+              sequence="85"
+              groups="base.group_system"/>
+
+</odoo>

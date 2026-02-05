@@ -1,6 +1,6 @@
 # TiloPay Documentation
 
-Source: https://apps.odoo.com/apps/modules/17.0/payment_tilopay
+Source: Third-party module (older Odoo versions) - GMS uses custom integration for Odoo 19
 
 
 # TILOPAY PAYMENT GATEWAY

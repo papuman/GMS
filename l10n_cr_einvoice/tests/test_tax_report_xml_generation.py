@@ -4,7 +4,7 @@ Comprehensive tests for Tax Report XML Generation (Phase 9C)
 Tests XML structure, formatting, and validation for D-150, D-101, D-151
 """
 from odoo.tests.common import TransactionCase, tagged
-from odoo.exceptions import UserError
+from odoo.exceptions import UserError, ValidationError
 import uuid
 
 
@@ -633,7 +633,8 @@ class TestTaxReportXMLGeneration(TransactionCase):
         """Test error when creating report without period (database constraint)."""
         # period_id is required=True at the model level, creating NOT NULL constraint
         # Attempting to create without period_id should raise a database exception
-        with self.assertRaises(Exception):  # Will be psycopg2.errors.NotNullViolation
+        # Will raise either ValidationError (model level) or psycopg2.errors.NotNullViolation (DB level)
+        with self.assertRaises(Exception):
             self.env['l10n_cr.d150.report'].create({
                 'company_id': self.company.id,
             })

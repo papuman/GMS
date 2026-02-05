@@ -292,7 +292,7 @@ Examples: `l10n_cr_einvoice`, `account.move`, `POST /api/v1/invoices`
 
 **External Links:**
 ```markdown
-[Odoo Documentation](https://www.odoo.com/documentation/18.0)
+[Odoo Documentation](https://www.odoo.com/documentation/19.0)
 [Hacienda API](https://www.hacienda.go.cr/factura-electronica)
 ```
 
@@ -300,7 +300,7 @@ Examples: `l10n_cr_einvoice`, `account.move`, `POST /api/v1/invoices`
 ```markdown
 See the [Odoo docs][odoo] for details.
 
-[odoo]: https://www.odoo.com/documentation/18.0
+[odoo]: https://www.odoo.com/documentation/19.0
 ```
 
 ### Emphasis

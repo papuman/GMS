@@ -1,0 +1,345 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates id="template" xml:space="preserve">
+
+    <!-- Cédula Lookup Widget for Partner Selection Screen -->
+    <t t-inherit="point_of_sale.PartnerList" t-inherit-mode="extension">
+        <xpath expr="//div[hasclass('h-100')]" position="before">
+            <!-- Cédula Lookup Section -->
+            <div class="cedula-lookup-section bg-light border rounded p-3 mb-3">
+                <h6 class="mb-2">
+                    <i class="fa fa-search me-2"/>
+                    <t t-esc="_t('Lookup by Cédula (Tax ID)')"/>
+                </h6>
+
+                <div class="row g-2 align-items-end">
+                    <!-- Cédula Input Field -->
+                    <div class="col-md-6">
+                        <label for="cedula-input" class="form-label small mb-1">
+                            Cédula/Tax ID Number
+                        </label>
+                        <div class="input-group">
+                            <span class="input-group-text">
+                                <i class="fa fa-id-card"/>
+                            </span>
+                            <input
+                                type="text"
+                                id="cedula-input"
+                                class="form-control"
+                                placeholder="3-101-234567"
+                                t-model="lookupState.cedulaInput"
+                                t-on-input="onCedulaInput"
+                                t-att-disabled="lookupState.isLookingUp"
+                            />
+                        </div>
+                        <div class="form-text small">
+                            Format: 3-101-234567 (legal entity) or 1-0234-0567 (person)
+                        </div>
+                    </div>
+
+                    <!-- Lookup Button -->
+                    <div class="col-md-3">
+                        <button
+                            type="button"
+                            class="btn btn-primary w-100"
+                            t-on-click="performCedulaLookup"
+                            t-att-disabled="lookupState.isLookingUp or !lookupState.cedulaInput">
+                            <t t-if="lookupState.isLookingUp">
+                                <i class="fa fa-spinner fa-spin me-1"/>
+                                <t t-esc="_t('Looking up...')"/>
+                            </t>
+                            <t t-else="">
+                                <i class="fa fa-cloud-download me-1"/>
+                                <t t-esc="_t('Lookup')"/>
+                            </t>
+                        </button>
+                    </div>
+
+                    <!-- Refresh Button (force API call) -->
+                    <div class="col-md-3">
+                        <button
+                            type="button"
+                            class="btn btn-outline-secondary w-100"
+                            t-on-click="refreshLookup"
+                            t-att-disabled="lookupState.isLookingUp or !lookupState.cedulaInput"
+                            title="Skip cache and force fresh API call">
+                            <i class="fa fa-refresh me-1"/>
+                            <t t-esc="_t('Refresh')"/>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Cache Status Indicator -->
+                <t t-if="lookupState.cacheStatus and lookupState.cacheStatus.in_cache">
+                    <div class="cache-status-indicator mt-2">
+                        <small t-attf-class="cache-status-badge {{getCacheStatusColor()}}">
+                            <i t-attf-class="fa {{getCacheStatusIcon()}} me-1"/>
+                            <strong>Cache Status:</strong>
+                            <t t-esc="getCacheStatusText()"/>
+                            <span t-if="lookupState.cacheStatus.last_verified" class="text-muted ms-1">
+                                (Last verified: <t t-esc="lookupState.cacheStatus.last_verified"/>)
+                            </span>
+                        </small>
+                    </div>
+                </t>
+
+                <!-- Loading Spinner Overlay -->
+                <t t-if="lookupState.isLookingUp">
+                    <div class="lookup-loading-overlay">
+                        <div class="spinner-container">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                            <p class="mt-2 text-muted">
+                                <t t-esc="_t('Querying Hacienda API...')"/>
+                            </p>
+                        </div>
+                    </div>
+                </t>
+
+                <!-- Quick Help -->
+                <div class="lookup-help mt-2">
+                    <small class="text-muted">
+                        <i class="fa fa-info-circle me-1"/>
+                        This will auto-fill customer data from Costa Rica's government registry.
+                        <strong>Email is not included</strong> and must be entered manually.
+                    </small>
+                </div>
+            </div>
+        </xpath>
+    </t>
+
+    <!-- Lookup Result Suggestion (inline) -->
+    <t t-name="pos_cedula_lookup.InlineSuggestion">
+        <div class="lookup-suggestion-inline alert alert-info d-flex align-items-center">
+            <div class="flex-grow-1">
+                <i class="fa fa-check-circle me-2"/>
+                <strong>Found in Hacienda:</strong>
+                <span class="ms-2" t-esc="data.name"/>
+                <span class="badge bg-primary ms-2" t-if="cache_info">
+                    <t t-if="source === 'cache'">
+                        Cached (<t t-esc="cache_info.age_days"/> days)
+                    </t>
+                    <t t-elif="source === 'hacienda'">
+                        Fresh from API
+                    </t>
+                    <t t-elif="source === 'stale_cache'">
+                        Stale Cache (<t t-esc="cache_info.age_days"/> days)
+                    </t>
+                </span>
+            </div>
+            <button class="btn btn-sm btn-success ms-2" t-on-click="createPartnerFromLookup">
+                <i class="fa fa-check me-1"/>
+                Auto-fill
+            </button>
+            <button class="btn btn-sm btn-outline-secondary ms-2" t-on-click="() => lookupState.showSuggestion = false">
+                <i class="fa fa-times"/>
+            </button>
+        </div>
+    </t>
+
+    <!-- Lookup Modal Content (detailed view) -->
+    <t t-name="pos_cedula_lookup.ModalContent">
+        <div class="cedula-lookup-modal-content">
+            <!-- Company Header -->
+            <div class="lookup-company-header mb-3 p-3 bg-light rounded">
+                <h4 class="mb-2">
+                    <i class="fa fa-building me-2 text-primary"/>
+                    <t t-esc="data.name"/>
+                </h4>
+
+                <!-- Source Badge -->
+                <div class="lookup-meta d-flex align-items-center gap-2">
+                    <t t-if="source === 'cache'">
+                        <span class="badge bg-success">
+                            <i class="fa fa-database me-1"/>
+                            Fresh Cache
+                        </span>
+                        <small class="text-muted">
+                            <t t-esc="cache_info.age_days"/> days old
+                        </small>
+                    </t>
+                    <t t-elif="source === 'hacienda'">
+                        <span class="badge bg-info">
+                            <i class="fa fa-cloud me-1"/>
+                            Hacienda API
+                        </span>
+                        <small class="text-muted">Just now</small>
+                    </t>
+                    <t t-elif="source === 'stale_cache'">
+                        <span class="badge bg-warning">
+                            <i class="fa fa-exclamation-triangle me-1"/>
+                            Stale Cache
+                        </span>
+                        <small class="text-muted">
+                            <t t-esc="cache_info.age_days"/> days old (API unavailable)
+                        </small>
+                    </t>
+
+                    <span class="text-muted ms-auto">
+                        <i class="fa fa-calendar me-1"/>
+                        <t t-if="cache_info and cache_info.last_verified">
+                            <t t-esc="cache_info.last_verified"/>
+                        </t>
+                        <t t-else="">
+                            Just verified
+                        </t>
+                    </span>
+                </div>
+            </div>
+
+            <!-- Company Details -->
+            <div class="lookup-details">
+                <table class="table table-sm">
+                    <tbody>
+                        <tr>
+                            <th class="text-end" style="width: 40%;">
+                                <i class="fa fa-id-card me-1"/>
+                                Tax ID (Cédula):
+                            </th>
+                            <td><strong t-esc="data.vat"/></td>
+                        </tr>
+                        <tr t-if="data.tax_regime">
+                            <th class="text-end">
+                                <i class="fa fa-balance-scale me-1"/>
+                                Tax Regime:
+                            </th>
+                            <td t-esc="data.tax_regime"/>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Economic Activities (CIIU) -->
+            <div class="lookup-ciiu-section mt-3" t-if="data.ciiu_codes and data.ciiu_codes.length">
+                <h6 class="mb-2">
+                    <i class="fa fa-briefcase me-2"/>
+                    Economic Activities (CIIU):
+                </h6>
+                <ul class="list-group">
+                    <t t-foreach="data.ciiu_codes" t-as="ciiu" t-key="ciiu.code">
+                        <li t-attf-class="list-group-item d-flex justify-content-between align-items-center {{ciiu.primary ? 'active' : ''}}">
+                            <div>
+                                <strong t-esc="ciiu.code"/>
+                                <span class="ms-2" t-esc="ciiu.description"/>
+                            </div>
+                            <span t-if="ciiu.primary" class="badge bg-primary rounded-pill">
+                                Primary
+                            </span>
+                        </li>
+                    </t>
+                </ul>
+            </div>
+
+            <!-- Warning for Stale Cache -->
+            <t t-if="warning">
+                <div class="alert alert-warning mt-3" role="alert">
+                    <i class="fa fa-exclamation-triangle me-2"/>
+                    <t t-esc="warning"/>
+                </div>
+            </t>
+
+            <!-- Email Notice -->
+            <div class="alert alert-info mt-3" role="status">
+                <i class="fa fa-envelope me-2"/>
+                <strong>Email Required:</strong>
+                Email is not provided by Hacienda API. You will be prompted to enter it in the next step.
+            </div>
+
+            <!-- Validation Checklist Preview -->
+            <div class="validation-checklist mt-3 p-3 bg-light rounded">
+                <h6 class="mb-2">
+                    <i class="fa fa-check-square-o me-2"/>
+                    Validation Status:
+                </h6>
+                <ul class="list-unstyled mb-0">
+                    <li class="text-success">
+                        <i class="fa fa-check-circle me-2"/>
+                        Customer Name: <strong t-esc="data.name"/>
+                    </li>
+                    <li class="text-success">
+                        <i class="fa fa-check-circle me-2"/>
+                        Tax ID (Cédula): <strong t-esc="data.vat"/>
+                    </li>
+                    <li class="text-warning">
+                        <i class="fa fa-clock-o me-2"/>
+                        Email: Will be entered in next step
+                    </li>
+                    <li t-attf-class="{{data.suggested_ciiu_id ? 'text-success' : 'text-warning'}}">
+                        <i t-attf-class="fa {{data.suggested_ciiu_id ? 'fa-check-circle' : 'fa-clock-o'}} me-2"/>
+                        CIIU Code: <t t-if="data.suggested_ciiu_id">Auto-assigned</t><t t-else="">Can be set later</t>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </t>
+
+    <!-- Error State Modal -->
+    <t t-name="pos_cedula_lookup.ErrorModal">
+        <div class="cedula-lookup-error-modal text-center">
+            <div class="error-icon mb-3">
+                <i class="fa fa-exclamation-triangle fa-4x text-warning"/>
+            </div>
+
+            <h5 class="mb-3" t-esc="error_title"/>
+
+            <div class="alert alert-danger" role="alert" t-if="error">
+                <t t-esc="error"/>
+            </div>
+
+            <div class="error-message mb-3" t-if="message">
+                <p class="text-muted" t-esc="message"/>
+            </div>
+
+            <!-- Error-specific actions -->
+            <div class="error-actions d-grid gap-2">
+                <t t-if="error_type === 'not_found'">
+                    <div class="alert alert-info" role="status">
+                        <i class="fa fa-info-circle me-2"/>
+                        This cédula may not be registered or may be invalid.
+                        You can still create the customer manually.
+                    </div>
+                    <button class="btn btn-primary" t-on-click="createPartnerManually">
+                        <i class="fa fa-pencil me-2"/>
+                        Enter Customer Data Manually
+                    </button>
+                </t>
+
+                <t t-elif="error_type === 'rate_limit'">
+                    <div class="alert alert-warning" role="alert">
+                        <i class="fa fa-clock-o me-2"/>
+                        Too many requests. Please wait a moment and try again.
+                    </div>
+                    <button class="btn btn-secondary" t-on-click="performCedulaLookup">
+                        <i class="fa fa-refresh me-2"/>
+                        Retry Now
+                    </button>
+                </t>
+
+                <t t-elif="error_type === 'network' or error_type === 'timeout'">
+                    <div class="alert alert-warning" role="alert">
+                        <i class="fa fa-wifi me-2"/>
+                        Cannot reach Hacienda API. Check your connection.
+                    </div>
+                    <t t-if="fallback_available">
+                        <button class="btn btn-warning" t-on-click="useStaleCache">
+                            <i class="fa fa-database me-2"/>
+                            Use Stale Cached Data
+                        </button>
+                    </t>
+                    <button class="btn btn-secondary" t-on-click="performCedulaLookup">
+                        <i class="fa fa-refresh me-2"/>
+                        Retry
+                    </button>
+                </t>
+
+                <t t-else="">
+                    <button class="btn btn-primary" t-on-click="createPartnerManually">
+                        <i class="fa fa-pencil me-2"/>
+                        Enter Manually
+                    </button>
+                </t>
+            </div>
+        </div>
+    </t>
+
+</templates>

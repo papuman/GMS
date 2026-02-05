@@ -309,8 +309,7 @@ To add custom links in template:
 | Odoo Version | Compatible | Notes |
 |--------------|-----------|-------|
 | 19.0+e | ✓ Yes | Tested and working |
-| 18.0 | ✗ No | Different JS module system |
-| 17.0 | ✗ No | Different patching mechanism |
+| Older versions | ✗ No | Not compatible with Odoo 19 architecture |
 | Future 19.x | ? Unknown | May need updates |
 
 ## Summary

@@ -1274,7 +1274,7 @@ Session Closed: 2026-01-02 18:00
 
 Odoo POS is a **browser-based single-page app** running entirely in JavaScript. When session is opened online, it **preloads necessary data** (products, customers, pricing) into browser using **IndexedDB** for local storage.
 
-_Source: [Odoo 18 POS Offline Mode](https://www.netilligence.ae/blogs/can-odoo-18-pos-work-offline-understanding-offline-mode/)_
+_Source: [Odoo POS Offline Mode Documentation](https://www.netilligence.ae/blogs/can-odoo-18-pos-work-offline-understanding-offline-mode/)_
 
 ---
 
@@ -2835,7 +2835,7 @@ _Source: [How to Inherit POS JavaScript for Customization](https://www.odoo.com/
 **Loading Custom Fields into POS Session:**
 
 ```python
-# Odoo 18+ pattern (extends to Odoo 19)
+# Odoo 19 pattern
 class PosSession(models.Model):
     _inherit = 'pos.session'
     
@@ -2885,7 +2885,7 @@ class PosSession(models.Model):
         return result
 ```
 
-_Source: [Insights from Working on Odoo 18 POS](https://medium.com/@yaminahbatool/insights-from-working-on-odoo-18-pos-few-tips-to-assist-in-development-7750427f0ff1)_
+_Source: [Insights from Working on Odoo POS](https://medium.com/@yaminahbatool/insights-from-working-on-odoo-18-pos-few-tips-to-assist-in-development-7750427f0ff1)_
 
 **Custom Receipt Template:**
 

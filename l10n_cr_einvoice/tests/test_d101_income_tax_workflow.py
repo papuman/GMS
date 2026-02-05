@@ -540,7 +540,8 @@ class TestD101IncomeTaxWorkflow(EInvoiceTestCase):
     def test_d101_calculate_without_period(self):
         """Test error when creating report without period (database constraint)."""
         # period_id is required=True, so attempting to create without it should fail
-        with self.assertRaises(Exception):  # Will be psycopg2.errors.NotNullViolation
+        # Will raise either ValidationError (model level) or psycopg2.errors.NotNullViolation (DB level)
+        with self.assertRaises(Exception):
             self.env['l10n_cr.d101.report'].create({
                 'company_id': self.company.id,
             })

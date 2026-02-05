@@ -86,7 +86,7 @@
                                     </div>
                                 </div>
                                 <div class="alert alert-info mt-3" role="alert">
-                                    <i class="fa fa-info-circle"/> The certificate must be issued by a recognized Costa Rican CA
+                                    <i class="fa fa-info-circle" title="Information"/> The certificate must be issued by a recognized Costa Rican CA
                                     and registered with Hacienda. For testing, you can use a self-signed certificate in Sandbox mode.
                                 </div>
                             </div>
@@ -181,7 +181,7 @@
                         <div class="col-12">
                             <div class="alert alert-info" role="alert">
                                 <h4 class="alert-heading">
-                                    <i class="fa fa-info-circle"/> Getting Started with Costa Rica E-Invoicing
+                                    <i class="fa fa-info-circle" title="Information"/> Getting Started with Costa Rica E-Invoicing
                                 </h4>
                                 <ol class="mb-0">
                                     <li>Register your company with Hacienda and obtain API credentials</li>

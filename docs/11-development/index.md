@@ -40,7 +40,7 @@ The Development Documentation contains everything a developer needs to get start
 - **Testing:** Unit test and integration test setup
 
 **Tech Stack:**
-- **Framework:** Odoo 18.0 (Python 3.10+)
+- **Framework:** Odoo 19 Enterprise (Python 3.10+)
 - **Database:** PostgreSQL 15
 - **Frontend:** JavaScript (Owl framework)
 - **Cache:** Redis 7

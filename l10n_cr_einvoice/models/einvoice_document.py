@@ -16,6 +16,16 @@ class EInvoiceDocument(models.Model):
     _order = 'create_date desc'
     _inherit = ['mail.thread', 'mail.activity.mixin']
 
+    # ===== SQL CONSTRAINTS (Odoo 19 format) =====
+    _clave_unique = models.UniqueIndex(
+        '(clave)',
+        'La clave de Hacienda debe ser única para cada documento.',
+    )
+    _source_document_check = models.Constraint(
+        "CHECK ((move_id IS NOT NULL OR pos_order_id IS NOT NULL) AND NOT (move_id IS NOT NULL AND pos_order_id IS NOT NULL))",
+        'El documento electrónico debe estar vinculado a una Factura O a una Orden de POS (no ambos).',
+    )
+
     # Basic Information
     name = fields.Char(
         string='Document Number',
@@ -54,8 +64,8 @@ class EInvoiceDocument(models.Model):
     partner_id = fields.Many2one(
         'res.partner',
         string='Customer',
-        compute='_compute_partner_id',
-        store=True,
+        required=False,
+        help='The partner to bill (Receptor in XML). May be different from POS order partner if using corporate billing.',
     )
 
     # Document Type
@@ -152,6 +162,41 @@ class EInvoiceDocument(models.Model):
         help='Indicates if the retry button should be visible based on error state',
     )
 
+    # Validation Override (for exceptional cases)
+    validation_override = fields.Boolean(
+        string='Validation Override',
+        default=False,
+        tracking=True,
+        help='If True, validation errors are logged but do not block document processing',
+    )
+
+    validation_override_reason = fields.Text(
+        string='Override Reason',
+        tracking=True,
+        help='Required justification for overriding validation rules (minimum 20 characters)',
+    )
+
+    validation_override_user_id = fields.Many2one(
+        'res.users',
+        string='Override Approved By',
+        readonly=True,
+        tracking=True,
+        help='User who approved the validation override',
+    )
+
+    validation_override_date = fields.Datetime(
+        string='Override Date',
+        readonly=True,
+        tracking=True,
+        help='Timestamp when validation was overridden',
+    )
+
+    validation_errors = fields.Text(
+        string='Validation Errors',
+        readonly=True,
+        help='List of validation errors that were overridden',
+    )
+
     # PDF and Email
     pdf_attachment_id = fields.Many2one(
         'ir.attachment',
@@ -188,17 +233,6 @@ class EInvoiceDocument(models.Model):
         compute='_compute_invoice_date',
         store=True,
     )
-
-    @api.depends('move_id', 'pos_order_id')
-    def _compute_partner_id(self):
-        """Compute partner from either invoice or POS order."""
-        for doc in self:
-            if doc.move_id:
-                doc.partner_id = doc.move_id.partner_id
-            elif doc.pos_order_id:
-                doc.partner_id = doc.pos_order_id.partner_id
-            else:
-                doc.partner_id = False
 
     @api.depends('move_id.amount_total', 'pos_order_id.amount_total')
     def _compute_amount_total(self):
@@ -250,6 +284,69 @@ class EInvoiceDocument(models.Model):
             if not doc.move_id and not doc.pos_order_id:
                 raise ValidationError(_('E-invoice document must be linked to either an Invoice or a POS Order.'))
 
+    @api.constrains('document_type', 'partner_id', 'invoice_date')
+    def _check_mandatory_fields(self):
+        """
+        Backend validation constraint for Factura Electrónica mandatory fields.
+
+        This is Layer 2 of the validation architecture - enforces hard constraints
+        at the database/ORM level to prevent invalid data regardless of UI bypass.
+
+        Integrates with l10n_cr.validation.rule model to fetch active validation rules
+        and enforce them during record creation/modification.
+
+        Validation bypass is supported via context flag for special cases.
+
+        Raises:
+            ValidationError: If any mandatory field validation fails for FE documents
+        """
+        # Check if validation should be bypassed (for imports, migrations, etc.)
+        if self.env.context.get('bypass_einvoice_validation', False):
+            _logger.info('E-invoice validation bypassed via context flag')
+            return
+
+        for doc in self:
+            # Check if validation override is active
+            if doc.validation_override:
+                _logger.warning(
+                    f'Validation override active for document {doc.name} '
+                    f'by user {doc.validation_override_user_id.name} '
+                    f'on {doc.validation_override_date}. '
+                    f'Reason: {doc.validation_override_reason}'
+                )
+                continue
+
+            # Skip validation for non-FE document types
+            # TE (Tiquete) has no mandatory customer fields
+            if doc.document_type != 'FE':
+                _logger.debug(f'Skipping validation for document {doc.name} - type {doc.document_type}')
+                continue
+
+            # Call validation rule engine
+            try:
+                is_valid, error_messages = self.env['l10n_cr.validation.rule'].validate_all_rules(doc)
+
+                # If validation rule engine found errors, they would have been raised
+                # This check is for non-blocking rules or custom logging
+                if not is_valid and error_messages:
+                    _logger.warning(
+                        f'Validation warnings for document {doc.name}: '
+                        f'{"; ".join(error_messages)}'
+                    )
+
+            except ValidationError:
+                # Re-raise validation errors from rule engine
+                raise
+            except Exception as e:
+                # Log unexpected errors but don't block document creation
+                _logger.error(
+                    f'Unexpected error during validation for document {doc.name}: {str(e)}'
+                )
+
+            # Fallback validation if rule engine is not available or misconfigured
+            # This ensures critical validations are always enforced
+            self._check_fe_mandatory_fields_fallback(doc)
+
     @api.model_create_multi
     def create(self, vals_list):
         """Override create to generate sequence number."""
@@ -260,7 +357,13 @@ class EInvoiceDocument(models.Model):
         return super(EInvoiceDocument, self).create(vals_list)
 
     def action_generate_xml(self):
-        """Generate the XML content for the electronic invoice."""
+        """
+        Generate the XML content for the electronic invoice.
+        
+        This method performs Layer 3 validation (pre-generation) before
+        attempting XML generation. For Factura Electrónica documents,
+        it validates all mandatory fields are present unless override is active.
+        """
         self.ensure_one()
 
         # Acquire database lock to prevent concurrent modifications
@@ -270,6 +373,49 @@ class EInvoiceDocument(models.Model):
         )
 
         if self.state not in ['draft', 'error', 'generation_error']:
+            raise UserError(_('Can only generate XML for draft or error documents.'))
+
+        # Pre-generation validation for Factura Electrónica
+        if self.document_type == 'FE' and not self.validation_override:
+            is_valid, errors, can_downgrade = self.validate_factura_requirements()
+
+            if not is_valid:
+                error_msg = _(
+                    'No se puede generar Factura Electrónica:\n'
+                    '═══════════════════════════════════════\n\n'
+                ) + '\n'.join(f'• {e}' for e in errors)
+
+                if can_downgrade:
+                    error_msg += '\n\n' + _(
+                        'SUGERENCIA: Puede generar un Tiquete Electrónico (TE) en su lugar,\n'
+                        'que no requiere datos del cliente.\n\n'
+                        'Para cambiar el tipo de documento, edite el registro y seleccione "TE".'
+                    )
+
+                # Log validation failure
+                _logger.warning(
+                    f'Pre-generation validation failed for FE document {self.name or "NEW"}: '
+                    f'{len(errors)} error(s)'
+                )
+
+                # Store validation errors
+                self.sudo().write({
+                    'state': 'generation_error',
+                    'error_message': error_msg,
+                    'validation_errors': '\n'.join(errors),
+                })
+
+                raise ValidationError(error_msg)
+
+            _logger.info(
+                f'Pre-generation validation passed for FE document {self.name or "NEW"}'
+            )
+        elif self.document_type == 'FE' and self.validation_override:
+            _logger.warning(
+                f'Pre-generation validation SKIPPED for FE document {self.name or "NEW"} '
+                f'due to validation override by {self.validation_override_user_id.name}'
+            )
+
             raise UserError(_('Can only generate XML for draft or error documents.'))
 
         try:
@@ -282,6 +428,19 @@ class EInvoiceDocument(models.Model):
 
             # Generate XML content
             xml_content = self._build_xml_content(clave)
+
+            # Add warning comment if validation override is active
+            if self.validation_override:
+                override_comment = (
+                    f'<!-- VALIDATION OVERRIDE ACTIVE -->\n'
+                    f'<!-- Approved by: {self.validation_override_user_id.name} -->\n'
+                    f'<!-- Date: {self.validation_override_date} -->\n'
+                    f'<!-- Reason: {self.validation_override_reason} -->\n'
+                )
+                # Insert comment after XML declaration
+                if '?>' in xml_content:
+                    parts = xml_content.split('?>', 1)
+                    xml_content = parts[0] + '?>\n' + override_comment + parts[1]
 
             # Validate XML against XSD
             self._validate_xml(xml_content)
@@ -540,6 +699,42 @@ class EInvoiceDocument(models.Model):
         else:
             raise UserError(_('No failed operation to retry. Current state: %s') % self.state)
 
+    def action_override_validation(self):
+        """
+        Open validation override wizard for exceptional cases.
+
+        This action opens a wizard that allows authorized users (account managers
+        or POS managers) to override validation errors with proper justification
+        and audit trail.
+
+        Returns:
+            dict: Action to open the validation override wizard
+        """
+        self.ensure_one()
+
+        # Check if there are validation errors to override
+        try:
+            is_valid, error_messages = self.env['l10n_cr.validation.rule'].validate_all_rules(self)
+            if is_valid:
+                raise UserError(_('No validation errors found. Override is not needed.'))
+        except ValidationError as e:
+            error_messages = [str(e)]
+
+        # Store validation errors for the wizard
+        self.write({'validation_errors': '\n'.join(error_messages)})
+
+        return {
+            'type': 'ir.actions.act_window',
+            'name': _('Override Validation'),
+            'res_model': 'l10n_cr.validation.override.wizard',
+            'view_mode': 'form',
+            'target': 'new',
+            'context': {
+                'default_document_id': self.id,
+                'default_validation_errors': '\n'.join(error_messages),
+            },
+        }
+
     def action_download_xml(self):
         """Download the XML attachment."""
         self.ensure_one()
@@ -772,6 +967,44 @@ class EInvoiceDocument(models.Model):
             _logger.error(f'Error generating QR code for {self.name}: {str(e)}')
             return False
 
+    def _check_fe_mandatory_fields_fallback(self, doc):
+        """
+        Fallback validation for Factura Electrónica mandatory fields.
+
+        This method provides basic validation when the validation rule engine
+        is not available or misconfigured. It ensures critical FE fields are
+        always validated.
+
+        Args:
+            doc: l10n_cr.einvoice.document record to validate
+
+        Raises:
+            ValidationError: If any critical field is missing
+        """
+        if doc.document_type != 'FE':
+            return
+
+        errors = []
+
+        # Customer validation
+        if not doc.partner_id:
+            errors.append(_('Customer is required for Factura Electrónica'))
+        else:
+            if not doc.partner_id.name:
+                errors.append(_('Customer name is required'))
+            if not doc.partner_id.vat:
+                errors.append(_('Customer Tax ID (Cédula/VAT) is required'))
+            # ID type is auto-detected from VAT format by xml_generator._get_partner_id_type()
+            if not doc.partner_id.email:
+                errors.append(_('Customer email is required'))
+
+        if errors:
+            error_message = _(
+                'Validation failed for Factura Electrónica:\n\n%s\n\n'
+                'Please update the customer information or change to Tiquete Electrónico (TE).'
+            ) % '\n'.join('• %s' % e for e in errors)
+            raise ValidationError(error_message)
+
     def _generate_clave(self):
         """
         Generate the 50-digit Hacienda key (clave).
@@ -969,3 +1202,206 @@ class EInvoiceDocument(models.Model):
             _logger.error(f'Document {self.name} unknown status: {status}')
 
         self.write(vals)
+
+    # ===== VALIDATION METHODS =====
+
+    def _check_fe_mandatory_fields_fallback(self, doc):
+        """
+        Fallback validation for FE mandatory fields.
+
+        This method provides a safety net if the validation rule engine is not
+        configured or fails. It enforces the absolute minimum requirements for
+        Factura Electrónica documents per Hacienda v4.4 specifications.
+
+        Args:
+            doc: Single einvoice.document record
+
+        Raises:
+            ValidationError: If critical mandatory fields are missing
+        """
+        from datetime import date
+
+        CIIU_MANDATORY_DATE = date(2025, 10, 6)
+
+        errors = []
+        partner = doc.partner_id
+
+        # HARD: Partner required for FE
+        if not partner:
+            errors.append(_(
+                'La Factura Electrónica requiere un cliente.\n\n'
+                'Opciones:\n'
+                '- Seleccione un cliente, o\n'
+                '- Cambie el tipo de documento a Tiquete Electrónico (TE)'
+            ))
+            # Cannot continue validation without partner
+            if errors:
+                raise ValidationError('\n\n'.join(errors))
+
+        # HARD: Customer name required
+        if not partner.name or not partner.name.strip():
+            errors.append(_(
+                'El nombre del cliente es obligatorio para Factura Electrónica.\n\n'
+                'Cliente: %s\n'
+                'Por favor actualice el registro del cliente o cambie a Tiquete (TE).'
+            ) % (partner.display_name or 'Desconocido'))
+
+        # HARD: Customer VAT/ID required
+        if not partner.vat or not partner.vat.strip():
+            errors.append(_(
+                'El número de cédula/identificación es obligatorio para Factura Electrónica.\n\n'
+                'Cliente: %s\n'
+                'Por favor actualice el registro del cliente o cambie a Tiquete (TE).'
+            ) % partner.name)
+
+        # HARD: ID Type - auto-detected from VAT format via xml_generator._get_partner_id_type()
+        # Note: l10n_latam_base is not installed, so l10n_latam_identification_type_id
+        # does not exist. The XML generator auto-detects the type from the VAT format.
+
+        # HARD: Email required and valid format
+        if not partner.email or not partner.email.strip():
+            errors.append(_(
+                'El correo electrónico del cliente es obligatorio para Factura Electrónica.\n\n'
+                'Cliente: %s\n'
+                'El email es obligatorio según normativa de Hacienda.\n'
+                'Por favor actualice el registro del cliente o cambie a Tiquete (TE).'
+            ) % partner.name)
+        else:
+            # Validate email format
+            import re
+            EMAIL_REGEX = re.compile(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$')
+            if not EMAIL_REGEX.match(partner.email.strip()):
+                errors.append(_(
+                    'Formato de correo electrónico inválido: %s\n\n'
+                    'Cliente: %s\n'
+                    'Por favor ingrese un email válido para Factura Electrónica.'
+                ) % (partner.email, partner.name))
+
+        # DATE-BASED HARD: CIIU required after Oct 6, 2025
+        invoice_date = doc.invoice_date or fields.Date.today()
+        if invoice_date >= CIIU_MANDATORY_DATE:
+            if not partner.l10n_cr_economic_activity_id:
+                errors.append(_(
+                    'La actividad económica (CIIU) es obligatoria para Factura Electrónica.\n\n'
+                    'Cliente: %s\n'
+                    'Fecha de factura: %s\n'
+                    'El CIIU es obligatorio desde el 6 de octubre de 2025 según normativa de Hacienda.\n\n'
+                    'Opciones:\n'
+                    '1. Agregue el código CIIU al registro del cliente\n'
+                    '2. Cambie a Tiquete Electrónico (TE, no requiere CIIU)'
+                ) % (partner.name, invoice_date.strftime('%Y-%m-%d')))
+
+        # If any errors found, raise ValidationError
+        if errors:
+            error_message = _(
+                'No se puede crear Factura Electrónica - Datos del cliente incompletos:\n'
+                '═══════════════════════════════════════════════════════════\n\n'
+            ) + '\n\n'.join(errors)
+
+            # Log validation failure for audit trail
+            _logger.warning(
+                f'FE validation failed for document {doc.name or "NEW"}, '
+                f'partner {partner.name} (ID: {partner.id}): '
+                f'{len(errors)} error(s) found'
+            )
+
+            raise ValidationError(error_message)
+
+        # Log successful validation
+        _logger.info(
+            f'FE mandatory field validation passed for document {doc.name or "NEW"}, '
+            f'partner {partner.name} (ID: {partner.id})'
+        )
+
+    def validate_factura_requirements(self):
+        """
+        Public method to validate all Factura Electrónica requirements.
+
+        This method can be called from UI/wizards to check if a document
+        can be generated as FE before attempting generation.
+
+        Returns:
+            tuple: (is_valid: bool, errors: list, can_downgrade_to_te: bool)
+                - is_valid: True if all FE requirements met
+                - errors: List of error messages (empty if valid)
+                - can_downgrade_to_te: True if TE is a viable alternative
+        """
+        self.ensure_one()
+
+        errors = []
+        partner = self.partner_id
+
+        # All FE validation checks
+        if not partner:
+            errors.append('No se ha seleccionado un cliente')
+            return (False, errors, True)  # Can always downgrade to TE
+
+        if not partner.name or not partner.name.strip():
+            errors.append(f'El nombre del cliente está vacío (Partner ID: {partner.id})')
+
+        if not partner.vat or not partner.vat.strip():
+            errors.append(f'La cédula/VAT del cliente está vacía: {partner.name}')
+
+        # ID type is auto-detected from VAT format by xml_generator._get_partner_id_type()
+
+        if not partner.email or not partner.email.strip():
+            errors.append(f'El correo electrónico del cliente está vacío: {partner.name}')
+        else:
+            # Validate email format
+            import re
+            EMAIL_REGEX = re.compile(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$')
+            if not EMAIL_REGEX.match(partner.email.strip()):
+                errors.append(f'Formato de email inválido: {partner.email}')
+
+        # Date-based CIIU check
+        from datetime import date
+        CIIU_MANDATORY_DATE = date(2025, 10, 6)
+        invoice_date = self.invoice_date or fields.Date.today()
+
+        if invoice_date >= CIIU_MANDATORY_DATE:
+            if not partner.l10n_cr_economic_activity_id:
+                errors.append(
+                    f'Actividad económica (CIIU) requerida para facturas después del 6 de octubre de 2025 '
+                    f'(Fecha de factura: {invoice_date.strftime("%Y-%m-%d")})'
+                )
+
+        is_valid = len(errors) == 0
+        can_downgrade = True  # FE can always downgrade to TE
+
+        return (is_valid, errors, can_downgrade)
+
+    # ===== CRON JOBS =====
+
+    @api.model
+    def _cron_poll_pending_documents(self):
+        """
+        Cron job: Poll Hacienda for status of submitted documents.
+        Called every 15 minutes by ir.cron.
+        """
+        pending_docs = self.search([
+            ('state', 'in', ['submitted']),
+        ], limit=50)
+
+        if not pending_docs:
+            _logger.info('No pending documents to poll')
+            return
+
+        _logger.info('Polling Hacienda for %d pending documents', len(pending_docs))
+
+        success = 0
+        failed = 0
+        for doc in pending_docs:
+            try:
+                doc.action_check_status()
+                success += 1
+            except Exception as e:
+                failed += 1
+                _logger.warning(
+                    'Failed to poll status for document %s: %s',
+                    doc.name, str(e)
+                )
+
+        _logger.info(
+            'Poll complete: %d success, %d failed out of %d total',
+            success, failed, len(pending_docs)
+        )

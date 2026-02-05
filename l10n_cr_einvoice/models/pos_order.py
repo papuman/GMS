@@ -122,12 +122,6 @@ class PosOrder(models.Model):
     def _generate_cr_einvoice(self):
         """Generate and submit the electronic invoice."""
         self.ensure_one()
-        
-        # Determine document type (FE or TE)
-        # If client has ID -> FE, otherwise TE
-        doc_type = 'TE'
-        if self.partner_id and self.partner_id.vat:
-             doc_type = 'FE'
 
         # Ensure we have a partner
         partner = self.partner_id or self.config_id.l10n_cr_default_partner_id
@@ -135,38 +129,40 @@ class PosOrder(models.Model):
              # Critical: cannot invoice without a partner
              raise UserError(_("Cannot generate e-invoice: No partner selected and no default configured."))
 
-        # Create the document
-        # TODO: Odoo 19 pos.order no longer has 'account_move' field.
-        # This needs to be updated to use the correct Odoo 19 relationship
-        # (e.g., account_move_id or the invoice created via pos order invoicing).
+        # Get the billing partner (corporate parent if applicable)
+        invoice_partner = partner._get_invoice_partner()
+
+        # Determine document type (FE or TE)
+        # Use the INVOICE partner's VAT to determine document type
+        doc_type = 'TE'
+        if invoice_partner.vat:
+             doc_type = 'FE'
+
+        # Create e-invoice document linked to POS order
+        # Note: account_move is created later during invoicing/reconciliation
+        # The einvoice document works from POS order data directly
         vals = {
-            'move_id': self.account_move.id if hasattr(self, 'account_move') and self.account_move else False,
-            'pos_order_id': self.id,  # Link to POS order
+            'pos_order_id': self.id,
             'document_type': doc_type,
             'company_id': self.company_id.id,
-            'partner_id': partner.id,
+            'partner_id': invoice_partner.id,
         }
-        
-        # If no move exists yet (POS often creates moves async or in batch),
-        # we might need to rely on the POS Order logic itself or create a stub.
-        # For this implementation, we assume Immediate Invoicing is preferred 
-        # or we accept that move_id might be empty until reconciliation.
-        
+
         einvoice = self.env['l10n_cr.einvoice.document'].create(vals)
-        
+
         self.l10n_cr_einvoice_document_id = einvoice.id
-        
+
         # Trigger generation flow
         try:
             einvoice.action_generate_xml()
             einvoice.action_sign_xml()
-            
+
             # Check offline mode
             if not self.config_id.l10n_cr_offline_mode:
                 einvoice.action_submit_to_hacienda()
             else:
                 self.l10n_cr_offline_queue = True
-                
+
         except Exception as e:
             # Log specific error to the document too
              einvoice.write({'error_message': str(e), 'state': 'error'})

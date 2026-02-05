@@ -93,7 +93,7 @@ The Getting Started Documentation provides fast onboarding paths for all user ty
 **Goal:** Set up dev environment, understand architecture, start coding
 
 **Your Journey:**
-1. ⏱️ **30 min** - [Development Environment Setup](../11-development/index.md#environment-setup) - Install Odoo 18
+1. ⏱️ **30 min** - [Development Environment Setup](../11-development/index.md#environment-setup) - Install Odoo 19
 2. ⏱️ **20 min** - [Architecture Overview](../04-architecture/index.md) - System design
 3. ⏱️ **30 min** - [Coding Standards](../11-development/index.md#coding-standards) - Python, XML, JS
 4. ⏱️ **20 min** - [Git Workflow](../11-development/index.md#git-workflow) - Branching, commits
@@ -107,7 +107,7 @@ The Getting Started Documentation provides fast onboarding paths for all user ty
 - [Implementation Phases](../05-implementation/index.md) - How it was built
 
 **Tech Stack:**
-- **Framework:** Odoo 18.0 (Python 3.10+)
+- **Framework:** Odoo 19 Enterprise (Python 3.10+)
 - **Database:** PostgreSQL 15
 - **Cache:** Redis 7
 - **Frontend:** Odoo Owl (Vue-like)

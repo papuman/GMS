@@ -498,9 +498,9 @@ _Source: [Vauxoo - Odoo Costa Rica](https://www.vauxoo.com/en_US/odoo-costa-rica
 
 _Source: [Odoo Apps Store - l10n_cr_invoice](https://apps.odoo.com/apps/modules/17.0/l10n_cr_invoice)_
 
-**2. odoocr/l10n_cr** - Community Project
+**2. odoocr/l10n_cr** - Community Project (Historical Reference)
 - Open source (AGPL-3.0 license)
-- **STATUS: NOT functional** - in migration from 14.0 to 15.0
+- **STATUS: NOT compatible with Odoo 19**
 - Community support via Telegram: https://t.me/OdooCR
 
 _Source: [GitHub - odoocr/l10n_cr](https://github.com/odoocr/l10n_cr)_
@@ -703,7 +703,7 @@ _Sources: [PROCOM - Best Provider](https://www.procom.cr/en/cual-es-el-mejor-pro
 - ⚠️ Limited feature documentation
 - ⚠️ Unknown pricing
 - ⚠️ Single provider support model
-- ⚠️ Limited to Odoo 17 (not Odoo 19)
+- ⚠️ Not compatible with Odoo 19
 
 **l10n_cr_einvoice (GMS Custom Module)**
 
@@ -1302,7 +1302,7 @@ This comprehensive market research for Costa Rica Electronic Invoicing and Payme
 **3. Competitive Landscape**
 - **FACTURATica clear market leader** (130K licenses, 29% market share)
 - **Fragmented competition** among remaining providers
-- **Odoo module market underserved** (only one functional v4.4 module for Odoo 17)
+- **Odoo module market underserved** (third-party modules exist for older versions; GMS built custom module for Odoo 19)
 - **Zero Odoo 19 competition** with SINPE integration
 
 **4. Critical Success Factors**

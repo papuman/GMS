@@ -47,6 +47,7 @@ class TestXMLGeneratorPayment(EInvoiceTestCase):
             'move_id': invoice.id,
             'document_type': 'FE',
             'company_id': self.company.id,
+            'partner_id': invoice.partner_id.id,
         })
         # Generate clave so XML generation doesn't fail
         einvoice.action_generate_xml()

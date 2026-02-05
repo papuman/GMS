@@ -378,7 +378,7 @@ Content-Type: application/json
 - Providers use different database schemas
 - Not offered due to data structure incompatibilities
 - Security and privacy concerns
-- Only viable for same-vendor upgrades (e.g., Odoo 15 to Odoo 18)
+- Only viable for same-vendor upgrades within compatible versions
 
 **Verdict**: Not a practical option for cross-provider migration
 
@@ -1519,5 +1519,5 @@ All sources used in this research:
 - [Abaq CSV invoice bulk upload](https://help.abaq.app/es/articles/8790189-carga-de-facturas-en-lote-con-un-archivo-csv)
 - [QuickBooks batch invoicing](https://quickbooks.intuit.com/online/advanced/expenses-transactions/)
 - [Invoice processing automation times](https://www.getyooz.com/automated-invoice-processing)
-- [Odoo CR e-invoice module](https://apps.odoo.com/apps/modules/17.0/l10n_cr_invoice)
+- [Odoo CR e-invoice module](https://apps.odoo.com/apps/modules/) (older versions)
 - [Microsoft Dynamics CR e-invoice configuration](https://learn.microsoft.com/en-us/dynamics365/finance/localizations/iberoamerica/ltm-costa-rica-ei-connec-configuration)

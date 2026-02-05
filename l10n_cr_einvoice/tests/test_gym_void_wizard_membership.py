@@ -101,6 +101,7 @@ class TestGymVoidWizardMembership(TransactionCase):
             'move_id': invoice.id,
             'document_type': 'FE',
             'company_id': self.company.id,
+            'partner_id': self.member.id,
             'state': 'accepted',
             'clave': f'50601012025{datetime.today().strftime("%m%d")}00012340000100001000000001234567890',
         })

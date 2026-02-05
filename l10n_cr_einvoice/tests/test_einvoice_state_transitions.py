@@ -89,6 +89,7 @@ class TestEInvoiceStateTransitionsHappyPath(EInvoiceTestCase):
             'move_id': self.invoice.id,
             'document_type': 'FE',
             'company_id': self.company.id,
+            'partner_id': self.partner.id,
         })
 
     def test_01_initial_state_is_draft(self):
@@ -312,6 +313,7 @@ class TestEInvoiceRejectionPath(EInvoiceTestCase):
             'move_id': self.invoice.id,
             'document_type': 'FE',
             'company_id': self.company.id,
+            'partner_id': self.partner.id,
         })
 
     @patch('odoo.addons.l10n_cr_einvoice.models.xml_generator.XMLGenerator.generate_invoice_xml')
@@ -402,6 +404,7 @@ class TestInvalidStateTransitions(EInvoiceTestCase):
             'move_id': self.invoice.id,
             'document_type': 'FE',
             'company_id': self.company.id,
+            'partner_id': self.partner.id,
         })
 
     def test_08_cannot_sign_without_generate(self):
@@ -499,6 +502,7 @@ class TestStateRollbackAndPersistence(EInvoiceTestCase):
             'move_id': self.invoice.id,
             'document_type': 'FE',
             'company_id': self.company.id,
+            'partner_id': self.partner.id,
         })
 
     @patch('odoo.addons.l10n_cr_einvoice.models.xml_generator.XMLGenerator.generate_invoice_xml')
@@ -529,8 +533,8 @@ class TestStateRollbackAndPersistence(EInvoiceTestCase):
         self.einvoice.action_generate_xml()
         self.assertEqual(self.einvoice.state, 'generated')
 
-        # Commit transaction
-        self.env.cr.commit()
+        # Flush changes to database (no commit needed in tests - relies on rollback)
+        self.env.cr.flush()
 
         # Re-read from database
         einvoice_reread = self.env['l10n_cr.einvoice.document'].browse(self.einvoice.id)

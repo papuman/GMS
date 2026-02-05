@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Validation Override Wizard Form View -->
+    <record id="view_validation_override_wizard_form" model="ir.ui.view">
+        <field name="name">l10n_cr.validation.override.wizard.form</field>
+        <field name="model">l10n_cr.validation.override.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Override Validation">
+                <header>
+                    <div class="alert alert-warning" role="alert">
+                        <strong>Warning:</strong> You are about to override validation errors.
+                        This should only be done in exceptional cases with proper justification.
+                    </div>
+                </header>
+
+                <sheet>
+                    <group>
+                        <field name="document_id" readonly="1" />
+                        <field name="user_has_permission" invisible="1" />
+                    </group>
+
+                    <group string="Validation Errors to Override">
+                        <field name="validation_errors" readonly="1" nolabel="1" widget="text" />
+                    </group>
+
+                    <group string="Override Justification">
+                        <div class="alert alert-info" role="alert">
+                            <p><strong>Required:</strong> Provide a detailed justification (minimum 20 characters)</p>
+                            <p>Examples of acceptable reasons:</p>
+                            <ul>
+                                <li>Customer operates abroad, local CIIU not applicable</li>
+                                <li>Emergency invoice during system migration</li>
+                                <li>Customer email temporarily unavailable, will be updated</li>
+                            </ul>
+                        </div>
+                        <field name="override_reason" nolabel="1" placeholder="Enter detailed justification for this override..." />
+                        <label for="reason_char_count" string="Character Count:" />
+                        <div>
+                            <field name="reason_char_count" readonly="1" class="oe_inline" />
+                            <span class="text-muted"> / 20 minimum</span>
+                            <span invisible="reason_char_count &lt; 20" class="text-danger"> (Too short)</span>
+                            <span invisible="reason_char_count &lt; 20 or reason_char_count &gt;= 20" class="text-success"> (OK)</span>
+                        </div>
+                    </group>
+
+                    <div class="alert alert-danger" role="alert" invisible="user_has_permission">
+                        <strong>Access Denied:</strong> You do not have permission to override validations.
+                        <br/>
+                        Required role: Account Manager or POS Manager
+                    </div>
+                </sheet>
+
+                <footer>
+                    <button name="action_approve_override"
+                            string="Approve Override"
+                            type="object"
+                            class="btn-danger"
+                            invisible="not user_has_permission"
+                            confirm="Are you sure you want to override these validation errors? This action will be logged and audited." />
+                    <button name="action_cancel"
+                            string="Cancel"
+                            type="object"
+                            class="btn-secondary"
+                            special="cancel" />
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <!-- Wizard Action -->
+    <record id="action_validation_override_wizard" model="ir.actions.act_window">
+        <field name="name">Override Validation</field>
+        <field name="res_model">l10n_cr.validation.override.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+        <field name="binding_model_id" ref="model_l10n_cr_einvoice_document" />
+    </record>
+</odoo>

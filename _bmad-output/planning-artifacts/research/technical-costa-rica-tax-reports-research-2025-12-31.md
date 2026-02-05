@@ -85,9 +85,10 @@ _Source:_ [Official Hacienda Annexes and Structures](https://atv.hacienda.go.cr/
 
 **Odoo Integration:**
 - **l10n_cr**: Official Costa Rica localization module supporting fiscal positions, taxes, chart of accounts
-- **l10n_cr_invoice**: Third-party module for electronic invoicing v4.4 compliance ([Odoo Apps](https://apps.odoo.com/apps/modules/17.0/l10n_cr_invoice))
+- **l10n_cr_einvoice**: GMS custom module for electronic invoicing v4.4 compliance on Odoo 19 Enterprise
+- **Third-party modules**: Available for older Odoo versions (not compatible with Odoo 19)
 
-_Sources:_ [API Documentation](https://www.comprobanteselectronicoscr.com/doc-api.html) | [Odoo Fiscal Localizations](https://www.odoo.com/documentation/18.0/applications/finance/fiscal_localizations.html)
+_Sources:_ [API Documentation](https://www.comprobanteselectronicoscr.com/doc-api.html) | [Odoo Fiscal Localizations](https://www.odoo.com/documentation/19.0/applications/finance/fiscal_localizations.html)
 
 ### Database and Storage Technologies
 
@@ -313,7 +314,7 @@ _Sources:_ [E-Invoicing Data Formats](https://www.basware.com/en/compliance-map/
 - Digital signature application before transmission
 - Validation response processing and storage
 
-_Sources:_ [Odoo Tax Integration](https://www.odoo.com/documentation/18.0/applications/finance/accounting/taxes.html) | [Odoo Electronic Invoicing](https://github.com/azapata80/Odoo-Electronic-Invoicing-Module) | [TaxCloud Integration](https://taxcloud.com/integrations/odoo/) | [OCA Account Invoicing](https://github.com/OCA/account-invoicing)
+_Sources:_ [Odoo Tax Integration](https://www.odoo.com/documentation/19.0/applications/finance/accounting/taxes.html) | [Odoo Electronic Invoicing](https://github.com/azapata80/Odoo-Electronic-Invoicing-Module) | [TaxCloud Integration](https://taxcloud.com/integrations/odoo/) | [OCA Account Invoicing](https://github.com/OCA/account-invoicing)
 
 ### Integration Security Patterns
 
@@ -1006,7 +1007,7 @@ _Sources:_ [Implementation Challenges](https://www.cudio.com/blogs/challenges-be
 ### Technology Stack Recommendations
 
 **Core Platform:**
-- **Odoo Community Edition 17.0+**: Open-source, no licensing costs, strong community
+- **Odoo 19 Enterprise**: Modern framework with full enterprise features
 - **PostgreSQL 14+**: Robust RDBMS with excellent Odoo support, temporal tables
 - **Python 3.10+**: Modern Python features, type hints, performance improvements
 

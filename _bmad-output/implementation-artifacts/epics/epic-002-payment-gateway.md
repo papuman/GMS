@@ -40,12 +40,12 @@ Integrate TiloPay payment gateway to enable automated online payment processing 
 
 ### Payment Gateway Options Analyzed
 
-| Provider | SINPE Fee | Card Fee | Odoo Module | Version | Cost | Recommendation |
-|----------|-----------|----------|-------------|---------|------|----------------|
-| **TiloPay** | 1.5% (negotiate to 1.0%) | 3.9% (negotiate to 3.5%) | ✅ Available | v18.0 | $57 USD | ✅ **RECOMMENDED** |
-| ONVO Pay | 2.0% + ₡175 | 4.25% | ✅ Available | v15.0 | $267 USD | ❌ More expensive, older |
+| Provider | SINPE Fee | Card Fee | Odoo Module | Odoo 19 Compatible | Cost | Recommendation |
+|----------|-----------|----------|-------------|-------------------|------|----------------|
+| **TiloPay** | 1.5% (negotiate to 1.0%) | 3.9% (negotiate to 3.5%) | ✅ Available | Custom build required | $57 USD | ✅ **RECOMMENDED** |
+| ONVO Pay | 2.0% + ₡175 | 4.25% | ✅ Available | Not compatible | $267 USD | ❌ More expensive, outdated |
 
-**Decision: TiloPay** - Lower fees, modern Odoo v18 module available, better documentation, active support.
+**Decision: TiloPay** - Lower fees, better documentation, active support. Custom integration built for Odoo 19.
 
 ### TiloPay Technical Overview
 
@@ -76,17 +76,12 @@ API Password: [REDACTED - use environment variable TILOPAY_API_PASSWORD]
 - Yappy (Panama - if needed for expansion)
 - Tasa Cero BAC Credomatic (installment plans)
 
-**Existing Odoo Module Reference:**
-- **Module 1:** "Tilopay Payment Connector" (bi_tilopay_payment_acquire) - v18.0, $57.39 USD
-  - 212 lines of code
-  - Depends on: sale_management, website_sale, mail, account, website
-  - OPL-1 license (proprietary)
-  - Features: Real-time auth, automated reconciliation, multi-currency
+**Third-Party Odoo Module Reference:**
+- Third-party modules exist for older Odoo versions (not compatible with Odoo 19)
+- These modules serve as reference for understanding integration patterns
+- GMS uses custom-built integration for Odoo 19 Enterprise
 
-- **Module 2:** "TILOPAY PAYMENT GATEWAY" (payment_tilopay) - v17.0
-  - Similar features, earlier version
-
-**Note:** These modules are paid/proprietary but serve as reference for understanding integration patterns. We will build our own custom module integrated with l10n_cr_einvoice.
+**Note:** Custom module built specifically for Odoo 19 Enterprise and integrated with l10n_cr_einvoice.
 
 ---
 

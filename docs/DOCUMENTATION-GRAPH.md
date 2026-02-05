@@ -555,7 +555,7 @@ Path: Architecture → Setup → Code → Test → Deploy
    └─→ Odoo framework deep dive
 
 3. Setup Environment: [11-development/index.md](11-development/index.md)
-   ├─→ Install Odoo 18, PostgreSQL, Redis
+   ├─→ Install Odoo 19, PostgreSQL, Redis
    ├─→ Clone repository
    └─→ Run locally
 

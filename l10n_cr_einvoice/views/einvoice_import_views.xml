@@ -54,7 +54,7 @@
                         </group>
 
                         <div class="alert alert-info" role="alert">
-                            <h4><i class="fa fa-info-circle"/> Requirements</h4>
+                            <h4><i class="fa fa-info-circle" title="Information"/> Requirements</h4>
                             <ul>
                                 <li>File must be a ZIP archive containing XML files</li>
                                 <li>XML files must be Costa Rica e-invoice format v4.4</li>

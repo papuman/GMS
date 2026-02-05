@@ -7,11 +7,124 @@ infrastructure required for e-invoice testing. All test classes should inherit
 from these base classes instead of directly from TransactionCase.
 
 Classes:
-    EInvoiceTestCase: Base class with full accounting setup for CR e-invoicing
+    L10nCrEInvoiceCommon: Lightweight base class with validation-compliant partner/company fixtures
+    EInvoiceTestCase: Full accounting setup base class for CR e-invoicing
 """
 
 import uuid
 from odoo.tests import TransactionCase
+
+
+class L10nCrEInvoiceCommon(TransactionCase):
+    """
+    Base test class with common fixtures for l10n_cr_einvoice tests.
+
+    Provides validation-compliant partner and company data that all tests can inherit.
+    This is a lightweight alternative to EInvoiceTestCase that focuses on partner
+    and company fixtures without full accounting infrastructure setup.
+
+    Use this class when you need standard test partners but don't need journals,
+    taxes, or full accounting setup.
+
+    Fixtures provided:
+    - costa_rica: Costa Rica country record
+    - payment_method: Standard payment method (Efectivo)
+    - partner_fisica: Valid física partner (individual)
+    - partner_juridica: Valid jurídica partner (company)
+    - partner_dimex: Valid DIMEX partner (foreign resident)
+    - product: Generic test product
+    - company: Company with Hacienda configuration
+
+    Usage:
+        class TestMyFeature(L10nCrEInvoiceCommon):
+            def test_something(self):
+                # Use inherited fixtures
+                einvoice = self.env['l10n_cr.einvoice.document'].create({
+                    'partner_id': self.partner_fisica.id,
+                    'document_type': 'FE',
+                    ...
+                })
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+
+        # Costa Rica country
+        cls.costa_rica = cls.env.ref('base.cr')
+
+        # Standard payment method (Efectivo)
+        # This assumes the payment methods data file has been loaded
+        cls.payment_method = cls.env['l10n_cr.payment.method'].search([
+            ('code', '=', '01')  # Efectivo
+        ], limit=1)
+        if not cls.payment_method:
+            # Fallback: create payment method if not found
+            cls.payment_method = cls.env['l10n_cr.payment.method'].create({
+                'code': '01',
+                'name': 'Efectivo',
+                'description': 'Pago en efectivo',
+                'active': True,
+            })
+
+        # Valid física partner (individual)
+        cls.partner_fisica = cls.env['res.partner'].create({
+            'name': 'Juan Pérez García',
+            'vat': '123456789',
+            'email': 'juan.perez@example.com',
+            'phone': '88887777',
+            'mobile': '88889999',
+            'street': 'Calle Principal 123',
+            'street2': 'Apartado 456',
+            'city': 'San José',
+            'state_id': False,
+            'zip': '10101',
+            'country_id': cls.costa_rica.id,
+        })
+
+        # Valid jurídica partner (company)
+        cls.partner_juridica = cls.env['res.partner'].create({
+            'name': 'Empresa Test S.A.',
+            'vat': '3101234567',
+            'is_company': True,
+            'email': 'info@empresatest.cr',
+            'phone': '22223333',
+            'mobile': '88886666',
+            'street': 'Avenida Central 789',
+            'city': 'San José',
+            'country_id': cls.costa_rica.id,
+        })
+
+        # Valid DIMEX partner (foreign resident)
+        cls.partner_dimex = cls.env['res.partner'].create({
+            'name': 'María González',
+            'vat': '123456789012',
+            'email': 'maria.gonzalez@example.com',
+            'phone': '88885555',
+            'street': 'Residencial Internacional',
+            'city': 'San José',
+            'country_id': cls.costa_rica.id,
+        })
+
+        # Generic product for testing
+        cls.product = cls.env['product.product'].create({
+            'name': 'Test Product',
+            'type': 'consu',
+            'list_price': 100.00,
+            'standard_price': 50.00,
+        })
+
+        # Company with Hacienda configuration
+        cls.company = cls.env.company
+        cls.company.write({
+            'vat': '3999999999',
+            'country_id': cls.costa_rica.id,
+            'l10n_cr_emisor_location': '10101',
+        })
+
+        # Set activity code on company partner (required for e-invoice)
+        if cls.company.partner_id:
+            cls.company.partner_id.l10n_cr_activity_code = '861201'
 
 
 class EInvoiceTestCase(TransactionCase):
@@ -333,10 +446,14 @@ class EInvoiceTestCase(TransactionCase):
             invoice = self._create_test_invoice()
             einvoice = self._create_einvoice_document(invoice, document_type='FE')
         """
+        # Get partner from move
+        partner = move.partner_id if move.partner_id else False
+
         return self.env['l10n_cr.einvoice.document'].create({
             'move_id': move.id,
             'document_type': document_type,
             'company_id': self.company.id,
+            'partner_id': partner.id if partner else False,
         })
 
     def _post_invoice(self, invoice):
@@ -374,3 +491,154 @@ class EInvoiceTestCase(TransactionCase):
         """
         invoice = self._create_test_invoice(**kwargs)
         return self._post_invoice(invoice)
+
+    # Cédula Cache Test Fixtures
+
+    @classmethod
+    def _create_verified_partner(cls, name='Verified Partner', vat=None):
+        """
+        Create a partner with verified Hacienda cache.
+
+        Args:
+            name (str): Partner name
+            vat (str, optional): Partner VAT. If None, generates unique VAT.
+
+        Returns:
+            res.partner: Partner with verified cache (inscrito status)
+
+        Example:
+            partner = self._create_verified_partner(name='Acme Corp', vat='3101234567')
+        """
+        from datetime import datetime, timezone
+        if vat is None:
+            vat = str(uuid.uuid4().int)[:10]
+
+        return cls.env['res.partner'].create({
+            'name': name,
+            'vat': vat,
+            'country_id': cls.env.ref('base.cr').id,
+            'company_id': cls.company.id,
+            'l10n_cr_hacienda_verified': True,
+            'l10n_cr_tax_status': 'inscrito',
+            'l10n_cr_hacienda_last_sync': fields.Datetime.to_string(datetime.now(timezone.utc)),
+        })
+
+    @classmethod
+    def _create_unverified_partner(cls, name='Unverified Partner', vat=None):
+        """
+        Create a partner without Hacienda verification.
+
+        Args:
+            name (str): Partner name
+            vat (str, optional): Partner VAT. If None, generates unique VAT.
+
+        Returns:
+            res.partner: Partner without cache verification
+
+        Example:
+            partner = self._create_unverified_partner(name='New Customer', vat='1234567890')
+        """
+        if vat is None:
+            vat = str(uuid.uuid4().int)[:10]
+
+        return cls.env['res.partner'].create({
+            'name': name,
+            'vat': vat,
+            'country_id': cls.env.ref('base.cr').id,
+            'company_id': cls.company.id,
+            'l10n_cr_hacienda_verified': False,
+        })
+
+    @classmethod
+    def _create_stale_cache_partner(cls, name='Stale Cache Partner', vat=None, days_old=30):
+        """
+        Create a partner with stale cache.
+
+        Args:
+            name (str): Partner name
+            vat (str, optional): Partner VAT. If None, generates unique VAT.
+            days_old (int): How many days old the cache should be
+
+        Returns:
+            res.partner: Partner with stale cache
+
+        Example:
+            partner = self._create_stale_cache_partner(name='Old Customer', days_old=45)
+        """
+        from datetime import datetime, timedelta, timezone
+        if vat is None:
+            vat = str(uuid.uuid4().int)[:10]
+
+        old_sync = datetime.now(timezone.utc) - timedelta(days=days_old)
+
+        return cls.env['res.partner'].create({
+            'name': name,
+            'vat': vat,
+            'country_id': cls.env.ref('base.cr').id,
+            'company_id': cls.company.id,
+            'l10n_cr_hacienda_last_sync': fields.Datetime.to_string(old_sync),
+            'l10n_cr_tax_status': 'inscrito',
+            'l10n_cr_hacienda_verified': False,
+        })
+
+    @classmethod
+    def _create_override_partner(cls, name='Override Partner', vat=None, reason='Test override'):
+        """
+        Create a partner with validation override.
+
+        Args:
+            name (str): Partner name
+            vat (str, optional): Partner VAT. If None, generates unique VAT.
+            reason (str): Override justification reason
+
+        Returns:
+            res.partner: Partner with validation override
+
+        Example:
+            partner = self._create_override_partner(
+                name='Government Entity',
+                reason='Exempt government entity'
+            )
+        """
+        if vat is None:
+            vat = str(uuid.uuid4().int)[:10]
+
+        return cls.env['res.partner'].create({
+            'name': name,
+            'vat': vat,
+            'country_id': cls.env.ref('base.cr').id,
+            'company_id': cls.company.id,
+            'l10n_cr_cedula_validation_override': True,
+            'l10n_cr_override_reason': reason,
+            'l10n_cr_override_user_id': cls.env.user.id,
+            'l10n_cr_override_date': fields.Datetime.now(),
+        })
+
+    @classmethod
+    def _create_not_found_partner(cls, name='Not Found Partner', vat=None):
+        """
+        Create a partner not found in Hacienda registry.
+
+        Args:
+            name (str): Partner name
+            vat (str, optional): Partner VAT. If None, generates unique VAT.
+
+        Returns:
+            res.partner: Partner with no_encontrado status
+
+        Example:
+            partner = self._create_not_found_partner(name='Invalid ID', vat='9999999999')
+        """
+        from datetime import datetime, timezone
+        if vat is None:
+            vat = str(uuid.uuid4().int)[:10]
+
+        return cls.env['res.partner'].create({
+            'name': name,
+            'vat': vat,
+            'country_id': cls.env.ref('base.cr').id,
+            'company_id': cls.company.id,
+            'l10n_cr_hacienda_verified': False,
+            'l10n_cr_tax_status': 'no_encontrado',
+            'l10n_cr_hacienda_last_sync': fields.Datetime.to_string(datetime.now(timezone.utc)),
+        })

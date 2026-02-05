@@ -799,16 +799,19 @@ Several Odoo apps demonstrate gym-specific customization patterns:
    - Creates gym subscribers with membership buttons
    - Supports branches per gym management system
 
-2. **[dev_gym_management](https://apps.odoo.com/apps/modules/16.0/dev_gym_management)** (Odoo 16.0):
+2. **dev_gym_management** (Older Odoo versions):
    - Implementation, customization, migration support
+   - Not compatible with Odoo 19
 
-3. **[wk_gym_management](https://apps.odoo.com/apps/modules/17.0/wk_gym_management)** (Odoo 17.0):
+3. **wk_gym_management** (Older Odoo versions):
    - Detailed records, tracks membership renewals
    - Custom workout and diet plans
+   - Not compatible with Odoo 19
 
-4. **[gym_management_system](https://apps.odoo.com/apps/modules/12.0/gym_management_system)** (Odoo 12.0):
+4. **gym_management_system** (Older Odoo versions):
    - Goal marking, exercise lists
    - Parent plan configuration for hierarchy
+   - Not compatible with Odoo 19
 
 **Odoo 19 Partner Inheritance Model:**
 
@@ -817,7 +820,7 @@ Several Odoo apps demonstrate gym-specific customization patterns:
 - **Membership Module:** Can be activated for membership/partnership features
 - **Custom Fields:** Extend `res.partner` model with gym-specific fields (cédula, DIMEX, medical history)
 
-_Source: [aspl_fitness_management - Odoo Apps](https://apps.odoo.com/apps/modules/12.0/aspl_fitness_management), [wk_gym_management - Odoo Apps](https://apps.odoo.com/apps/modules/17.0/wk_gym_management), [CRM - Odoo 19 Documentation](https://www.odoo.com/documentation/19.0/applications/sales/crm.html)_
+_Source: Third-party gym management modules (older Odoo versions), [CRM - Odoo 19 Documentation](https://www.odoo.com/documentation/19.0/applications/sales/crm.html)_
 
 **GMS Architecture:**
 
@@ -1173,7 +1176,7 @@ for member in at_risk_members:
 </record>
 ```
 
-_Source: [Odoo Automated Actions Documentation](https://www.odoo.com/documentation/16.0/applications/studio/automated_actions.html), [Setting Up Automated Actions in Odoo 18](https://sdlccorp.com/post/setting-up-automated-actions-in-odoo-18/)_
+_Source: [Odoo Automated Actions Documentation](https://www.odoo.com/documentation/19.0/applications/studio/automated_actions.html), [Setting Up Automated Actions in Odoo](https://sdlccorp.com/post/setting-up-automated-actions-in-odoo-18/)_
 
 ---
 
