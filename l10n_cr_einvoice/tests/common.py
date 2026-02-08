@@ -469,6 +469,8 @@ class EInvoiceTestCase(TransactionCase):
         # Get partner from move
         partner = move.partner_id if move.partner_id else False
 
+        # Bypass validation constraint during test document creation
+        # so tests can create documents with invalid data and test validation separately
         return self.env['l10n_cr.einvoice.document'].with_context(
             bypass_einvoice_validation=True
         ).create({

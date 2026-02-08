@@ -54,7 +54,7 @@ class TestCedulaCacheCronJobs(TransactionCase):
     def _create_cache_entry(self, cedula, age_days=0, access_count=0, company=None):
         """Helper: Create cache entry with specific age and access count."""
         company = company or self.company
-        refresh_date = fields.Datetime.now() - timedelta(days=age_days)
+        refresh_date = datetime.now() - timedelta(days=age_days)
 
         return self.cache_model.create({
             'cedula': cedula,
@@ -73,7 +73,7 @@ class TestCedulaCacheCronJobs(TransactionCase):
 
     def test_cron_refresh_stale_cache_success(self):
         """Test successful refresh of stale cache entries."""
-        # Create stale cache entries (6-8 days old, clearly past the 5-day cutoff)
+        # Create stale cache entries (6-8 days old, safely past the 5-day cutoff)
         cache1 = self._create_cache_entry('3101234567', age_days=6, access_count=20)
         cache2 = self._create_cache_entry('3101234568', age_days=7, access_count=15)
         cache3 = self._create_cache_entry('3101234569', age_days=8, access_count=10)

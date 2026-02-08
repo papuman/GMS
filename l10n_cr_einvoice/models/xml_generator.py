@@ -459,6 +459,8 @@ class XMLGenerator(models.AbstractModel):
 
         Handles both account.move and pos.order source documents.
         POS orders derive payment method from pos.payment records.
+        account.move uses l10n_cr_payment_method_id, with fallback to
+        auto-detection from linked payment transactions (e.g. TiloPay).
 
         Payment methods (Hacienda v4.4):
         01 = Efectivo (Cash)
@@ -466,7 +468,7 @@ class XMLGenerator(models.AbstractModel):
         03 = Cheque (Check)
         04 = Transferencia (Bank Transfer)
         05 = Recaudado por terceros (Collected by third parties)
-        06 = SINPE Móvil (Mobile payment)
+        06 = SINPE Movil (Mobile payment)
         99 = Otros (Others)
         """
         payment_method_code = '01'  # Default to Efectivo
@@ -478,7 +480,7 @@ class XMLGenerator(models.AbstractModel):
                 # Map POS payment method names to Hacienda codes
                 method_name = (payments[0].payment_method_id.name or '').lower()
                 if 'sinpe' in method_name:
-                    payment_method_code = '06'  # SINPE Móvil
+                    payment_method_code = '06'  # SINPE Movil
                 elif 'card' in method_name or 'tarjeta' in method_name:
                     payment_method_code = '02'
                 elif 'transfer' in method_name or 'transferencia' in method_name:
@@ -498,10 +500,24 @@ class XMLGenerator(models.AbstractModel):
             if source_doc.l10n_cr_payment_method_id:
                 payment_method_code = source_doc.l10n_cr_payment_method_id.code
             else:
-                _logger.warning(
-                    'No payment method set for invoice %s, defaulting to "01" (Efectivo)',
-                    source_doc.name
-                )
+                # Fallback: try to detect from linked payment transactions
+                # This covers cases where the payment method was not set during
+                # invoice posting (e.g., existing invoices, manual e-invoice creation)
+                detected = source_doc._detect_payment_method_from_transactions()
+                if detected:
+                    payment_method_code = detected.code
+                    # Also update the invoice field for future reference
+                    source_doc.l10n_cr_payment_method_id = detected
+                    _logger.info(
+                        'Auto-detected payment method "%s" (code %s) from transactions '
+                        'for invoice %s at XML generation time',
+                        detected.name, detected.code, source_doc.name
+                    )
+                else:
+                    _logger.warning(
+                        'No payment method set for invoice %s, defaulting to "01" (Efectivo)',
+                        source_doc.name
+                    )
 
         # v4.4: MedioPago is a complex type inside ResumenFactura
         medio_pago = etree.SubElement(root, 'MedioPago')

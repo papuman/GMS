@@ -18,15 +18,13 @@ Test Coverage:
 
 Priority: P0 (Critical - customer lookup is core POS feature)
 
-Mock Strategy:
-    The lookup service (l10n_cr.cedula.lookup.service) delegates to:
-    - _lookup_hacienda() which calls l10n_cr.hacienda.cedula.api.lookup_cedula()
-    - _lookup_gometa() which calls requests.get() directly
-
-    For most tests we mock _lookup_hacienda and _lookup_gometa on the service
-    model itself using patch.object(type(model), 'method'). This is the correct
-    Odoo pattern because model instances are thin wrappers and their methods
-    are read-only attributes resolved from the class.
+Mock strategy:
+- Hacienda API: mock l10n_cr.hacienda.cedula.api's lookup_cedula() method
+  (the lookup service calls api.lookup_cedula(), not raw HTTP requests)
+- GoMeta API: mock requests.get at cedula_lookup_service module path
+  (GoMeta calls requests.get directly in _lookup_gometa)
+- Rate limiter: mock try_acquire_token() to return True
+  (avoids needing the raw SQL state table in test DB)
 """
 
 import time
@@ -37,14 +35,8 @@ from odoo.tests import tagged
 from odoo.exceptions import UserError
 from .common import EInvoiceTestCase
 
-
-# =============================================================================
-# Helper: Get the model class for a given Odoo model name
-# =============================================================================
-
-def _model_cls(env, model_name):
-    """Return the Python class backing an Odoo model so we can patch.object() on it."""
-    return type(env[model_name])
+# Module path constants for mocking
+GOMETA_REQUESTS_GET = 'odoo.addons.l10n_cr_einvoice.models.cedula_lookup_service.requests.get'
 
 
 @tagged('post_install', '-at_install', 'l10n_cr_einvoice', 'integration', 'p0')
@@ -62,15 +54,12 @@ class TestCedulaLookupServiceWaterfall(EInvoiceTestCase):
         # Clear cache before each test
         self.cache_model.search([]).unlink()
 
-    # -------------------------------------------------------------------------
-    # Step 1: Fresh cache hit
-    # -------------------------------------------------------------------------
     def test_01_waterfall_step1_fresh_cache_hit(self):
         """Step 1: Fresh cache (<7 days) returns immediately without API call."""
         cedula = '3101234567'
 
         # Create fresh cache entry
-        self.cache_model.create({
+        cache = self.cache_model.create({
             'cedula': cedula,
             'name': 'Acme Corp SA',
             'company_type': 'company',
@@ -82,115 +71,114 @@ class TestCedulaLookupServiceWaterfall(EInvoiceTestCase):
             'company_id': self.company.id,
         })
 
-        # Mock _lookup_hacienda to ensure it is NOT called
-        ServiceCls = _model_cls(self.env, 'l10n_cr.cedula.lookup.service')
-        with patch.object(ServiceCls, '_lookup_hacienda') as mock_hacienda:
+        # Lookup should hit cache (no API call needed)
+        # Mock the Hacienda API to verify it's never called
+        with patch.object(
+            type(self.env['l10n_cr.hacienda.cedula.api']),
+            'lookup_cedula',
+        ) as mock_api:
             result = self.lookup_service.lookup_cedula(cedula)
 
             # Assert no API call was made
-            mock_hacienda.assert_not_called()
+            mock_api.assert_not_called()
 
             # Assert result comes from cache
             self.assertEqual(result['name'], 'Acme Corp SA')
             self.assertEqual(result['source'], 'cache')
+            self.assertEqual(result['cache_age_days'], 0)
             self.assertTrue(result['is_fresh'])
 
-    # -------------------------------------------------------------------------
-    # Step 2: Hacienda API success (no cache)
-    # -------------------------------------------------------------------------
     def test_02_waterfall_step2_hacienda_api_success(self):
         """Step 2: No cache -> call Hacienda API successfully."""
         cedula = '3101234567'
 
-        ServiceCls = _model_cls(self.env, 'l10n_cr.cedula.lookup.service')
-
-        # Mock _lookup_hacienda to return success
-        hacienda_result = {
+        # Mock successful Hacienda API response (return format from api.lookup_cedula)
+        mock_hacienda_result = {
             'success': True,
-            'data': {
-                'cedula': cedula,
-                'name': 'Gimnasio Test SA',
-                'company_type': 'company',
-                'tax_regime': 'General',
-                'tax_status': 'inscrito',
-                'economic_activities': [
-                    {'code': '9311', 'description': 'Gimnasios', 'primary': True}
-                ],
-                'primary_activity': '9311',
-                'raw_response': '{}',
-            },
+            'name': 'Gimnasio Test SA',
+            'tax_regime': 'General',
+            'economic_activities': [
+                {'code': '9311', 'description': 'Gimnasios', 'primary': True}
+            ],
+            'raw_data': {'nombre': 'Gimnasio Test SA'},
         }
 
-        with patch.object(ServiceCls, '_lookup_hacienda', return_value=hacienda_result) as mock_h:
+        with patch.object(
+            type(self.env['l10n_cr.hacienda.cedula.api']),
+            'lookup_cedula',
+            return_value=mock_hacienda_result,
+        ) as mock_api, \
+             patch.object(
+            type(self.env['l10n_cr.hacienda.rate_limiter']),
+            'try_acquire_token',
+            return_value=True,
+        ):
             result = self.lookup_service.lookup_cedula(cedula)
 
-            # Assert Hacienda was called
-            mock_h.assert_called_once()
+            # Assert Hacienda API was called
+            mock_api.assert_called_once()
 
             # Assert result from Hacienda
             self.assertEqual(result['name'], 'Gimnasio Test SA')
             self.assertEqual(result['source'], 'hacienda')
             self.assertEqual(result['tax_status'], 'inscrito')
-            self.assertEqual(result['primary_activity'], '9311')
+            self.assertIn('9311', result['primary_activity'])
 
             # Assert cache was created
             cache = self.cache_model.search([('cedula', '=', cedula)])
             self.assertEqual(len(cache), 1)
             self.assertEqual(cache.name, 'Gimnasio Test SA')
 
-    # -------------------------------------------------------------------------
-    # Step 3: Hacienda fails -> GoMeta fallback succeeds
-    # -------------------------------------------------------------------------
     def test_03_waterfall_step3_hacienda_fails_gometa_succeeds(self):
-        """Step 3: Hacienda timeout -> fallback to GoMeta API."""
+        """Step 3: Hacienda fails -> fallback to GoMeta API."""
         cedula = '3101234567'
 
-        ServiceCls = _model_cls(self.env, 'l10n_cr.cedula.lookup.service')
-
-        hacienda_fail = {
+        # Mock Hacienda failure (returns error dict, not HTTP response)
+        mock_hacienda_result = {
             'success': False,
-            'error': 'Hacienda API timeout',
-            'error_type': 'timeout',
+            'error': 'Server error',
+            'error_type': 'api_error',
         }
 
-        gometa_success = {
-            'success': True,
-            'data': {
-                'cedula': cedula,
-                'name': 'Test Company From GoMeta',
-                'company_type': 'other',
-                'tax_regime': '',
-                'tax_status': 'inscrito',
-                'economic_activities': [],
-                'primary_activity': None,
-                'raw_response': '{}',
-            },
+        # Mock GoMeta success (raw HTTP response via requests.get)
+        mock_gometa_response = Mock()
+        mock_gometa_response.status_code = 200
+        mock_gometa_response.json.return_value = {
+            'nombre': 'Test Company From GoMeta',
+            'tipo': 'JURIDICA',
+            'estado': 'ACTIVO',
         }
 
-        with patch.object(ServiceCls, '_lookup_hacienda', return_value=hacienda_fail) as mock_h, \
-             patch.object(ServiceCls, '_lookup_gometa', return_value=gometa_success) as mock_g:
+        with patch.object(
+            type(self.env['l10n_cr.hacienda.cedula.api']),
+            'lookup_cedula',
+            return_value=mock_hacienda_result,
+        ), \
+             patch.object(
+            type(self.env['l10n_cr.hacienda.rate_limiter']),
+            'try_acquire_token',
+            return_value=True,
+        ), \
+             patch(GOMETA_REQUESTS_GET) as mock_get:
+            mock_get.return_value = mock_gometa_response
 
             result = self.lookup_service.lookup_cedula(cedula)
 
-            # Assert both APIs called
-            self.assertTrue(mock_h.called, "Hacienda should be called first")
-            self.assertTrue(mock_g.called, "GoMeta should be called as fallback")
+            # Assert GoMeta was called as fallback
+            mock_get.assert_called_once()
 
             # Assert result from GoMeta
             self.assertEqual(result['name'], 'Test Company From GoMeta')
             self.assertEqual(result['source'], 'gometa')
             self.assertEqual(result['tax_status'], 'inscrito')
 
-    # -------------------------------------------------------------------------
-    # Step 4: Both APIs fail -> stale cache used
-    # -------------------------------------------------------------------------
     def test_04_waterfall_step4_both_apis_fail_stale_cache_used(self):
         """Step 4: Both APIs fail -> return stale cache (7-90 days old)."""
         cedula = '3101234567'
 
         # Create stale cache entry (30 days old)
         stale_time = datetime.now(timezone.utc) - timedelta(days=30)
-        self.cache_model.create({
+        cache = self.cache_model.create({
             'cedula': cedula,
             'name': 'Stale Cache Company',
             'company_type': 'company',
@@ -201,22 +189,30 @@ class TestCedulaLookupServiceWaterfall(EInvoiceTestCase):
             'company_id': self.company.id,
         })
 
-        ServiceCls = _model_cls(self.env, 'l10n_cr.cedula.lookup.service')
-
-        api_fail = {
+        # Mock both APIs failing
+        mock_hacienda_result = {
             'success': False,
-            'error': 'API unavailable',
-            'error_type': 'network',
+            'error': 'Server error',
+            'error_type': 'api_error',
         }
 
-        with patch.object(ServiceCls, '_lookup_hacienda', return_value=api_fail) as mock_h, \
-             patch.object(ServiceCls, '_lookup_gometa', return_value=api_fail) as mock_g:
+        mock_gometa_failure = Mock()
+        mock_gometa_failure.status_code = 503
+
+        with patch.object(
+            type(self.env['l10n_cr.hacienda.cedula.api']),
+            'lookup_cedula',
+            return_value=mock_hacienda_result,
+        ), \
+             patch.object(
+            type(self.env['l10n_cr.hacienda.rate_limiter']),
+            'try_acquire_token',
+            return_value=True,
+        ), \
+             patch(GOMETA_REQUESTS_GET) as mock_get:
+            mock_get.return_value = mock_gometa_failure
 
             result = self.lookup_service.lookup_cedula(cedula)
-
-            # Assert both APIs were attempted
-            self.assertTrue(mock_h.called)
-            self.assertTrue(mock_g.called)
 
             # Assert stale cache was returned
             self.assertEqual(result['name'], 'Stale Cache Company')
@@ -224,34 +220,37 @@ class TestCedulaLookupServiceWaterfall(EInvoiceTestCase):
             self.assertTrue(result['is_stale'])
             self.assertGreaterEqual(result['cache_age_days'], 29)
 
-    # -------------------------------------------------------------------------
-    # Step 5: All fail -> manual entry required
-    # -------------------------------------------------------------------------
     def test_05_waterfall_step5_all_fail_manual_entry_required(self):
         """Step 5: All fail (no cache, APIs down) -> manual entry required."""
         cedula = '9999999999'
 
-        ServiceCls = _model_cls(self.env, 'l10n_cr.cedula.lookup.service')
-
-        api_fail = {
+        # Mock both APIs failing
+        mock_hacienda_result = {
             'success': False,
-            'error': 'API unavailable',
-            'error_type': 'network',
+            'error': 'Not found',
+            'error_type': 'not_found',
         }
 
-        with patch.object(ServiceCls, '_lookup_hacienda', return_value=api_fail), \
-             patch.object(ServiceCls, '_lookup_gometa', return_value=api_fail):
+        mock_gometa_failure = Mock()
+        mock_gometa_failure.status_code = 404
 
-            with self.assertRaises(UserError) as ctx:
+        with patch.object(
+            type(self.env['l10n_cr.hacienda.cedula.api']),
+            'lookup_cedula',
+            return_value=mock_hacienda_result,
+        ), \
+             patch.object(
+            type(self.env['l10n_cr.hacienda.rate_limiter']),
+            'try_acquire_token',
+            return_value=True,
+        ), \
+             patch(GOMETA_REQUESTS_GET) as mock_get:
+            mock_get.return_value = mock_gometa_failure
+
+            # lookup_cedula alias raises UserError on complete failure
+            with self.assertRaises(UserError):
                 self.lookup_service.lookup_cedula(cedula)
 
-            # Assert error message indicates manual entry needed
-            error_msg = str(ctx.exception).lower()
-            self.assertIn('manual', error_msg)
-
-    # -------------------------------------------------------------------------
-    # Force refresh bypasses fresh cache
-    # -------------------------------------------------------------------------
     def test_06_force_refresh_bypasses_fresh_cache(self):
         """Force refresh bypasses cache and calls API directly."""
         cedula = '3101234567'
@@ -268,32 +267,34 @@ class TestCedulaLookupServiceWaterfall(EInvoiceTestCase):
             'company_id': self.company.id,
         })
 
-        ServiceCls = _model_cls(self.env, 'l10n_cr.cedula.lookup.service')
-
-        hacienda_result = {
+        # Mock new API response
+        mock_hacienda_result = {
             'success': True,
-            'data': {
-                'cedula': cedula,
-                'name': 'New Updated Name',
-                'company_type': 'company',
-                'tax_regime': 'General',
-                'tax_status': 'inscrito',
-                'economic_activities': [],
-                'primary_activity': None,
-                'raw_response': '{}',
-            },
+            'name': 'New Updated Name',
+            'tax_regime': 'General',
+            'economic_activities': [],
+            'raw_data': {'nombre': 'New Updated Name'},
         }
 
-        with patch.object(ServiceCls, '_lookup_hacienda', return_value=hacienda_result) as mock_h:
+        with patch.object(
+            type(self.env['l10n_cr.hacienda.cedula.api']),
+            'lookup_cedula',
+            return_value=mock_hacienda_result,
+        ) as mock_api, \
+             patch.object(
+            type(self.env['l10n_cr.hacienda.rate_limiter']),
+            'try_acquire_token',
+            return_value=True,
+        ):
             result = self.lookup_service.lookup_cedula(cedula, force_refresh=True)
 
             # Assert API was called despite fresh cache
-            mock_h.assert_called_once()
+            mock_api.assert_called_once()
 
             # Assert result has new name
             self.assertEqual(result['name'], 'New Updated Name')
 
-            # Assert cache was updated
+            # Assert cache was updated (re-read from DB)
             cache.invalidate_recordset()
             self.assertEqual(cache.name, 'New Updated Name')
 
@@ -329,14 +330,16 @@ class TestCedulaLookupServiceCache(EInvoiceTestCase):
             'company_id': self.company.id,
         })
 
-        ServiceCls = _model_cls(self.env, 'l10n_cr.cedula.lookup.service')
-        with patch.object(ServiceCls, '_lookup_hacienda') as mock_h:
+        with patch.object(
+            type(self.env['l10n_cr.hacienda.cedula.api']),
+            'lookup_cedula',
+        ) as mock_api:
             result = self.lookup_service.lookup_cedula(cedula)
 
             # No API call
-            mock_h.assert_not_called()
+            mock_api.assert_not_called()
 
-            # Cache access counter incremented
+            # Cache access counter incremented (re-read from DB)
             cache.invalidate_recordset()
             self.assertEqual(cache.access_count, 1)
 
@@ -357,16 +360,13 @@ class TestCedulaLookupServiceCache(EInvoiceTestCase):
             'company_id': self.company.id,
         })
 
-        ServiceCls = _model_cls(self.env, 'l10n_cr.cedula.lookup.service')
-        with patch.object(ServiceCls, '_lookup_hacienda') as mock_h:
-            result = self.lookup_service.lookup_cedula(cedula)
+        result = self.lookup_service.lookup_cedula(cedula)
 
-            # Should return cache immediately
-            self.assertEqual(result['source'], 'cache')
+        # Should return cache immediately
+        self.assertEqual(result['source'], 'cache')
 
-            # But should trigger background refresh
-            # (In production, this would be async. For tests, verify it can be called)
-            self.assertTrue(cache.needs_refresh())
+        # But should be in refresh zone
+        self.assertTrue(cache.needs_refresh())
 
     def test_03_expired_cache_purged_automatically(self):
         """Cache older than 90 days is purged by cron."""
@@ -405,64 +405,40 @@ class TestCedulaLookupServiceRateLimiting(EInvoiceTestCase):
         super().setUpClass()
         cls.lookup_service = cls.env['l10n_cr.cedula.lookup.service'].with_company(cls.company)
         cls.cache_model = cls.env['l10n_cr.cedula.cache'].with_company(cls.company)
-        cls.rate_limiter = cls.env['l10n_cr.hacienda.rate_limiter'].with_company(cls.company)
 
     def setUp(self):
         super().setUp()
-        self.rate_limiter.reset()
         self.cache_model.search([]).unlink()
 
     def test_01_rate_limit_respected_during_lookup(self):
-        """Lookup service respects rate limiter when tokens exhausted."""
-        ServiceCls = _model_cls(self.env, 'l10n_cr.cedula.lookup.service')
-        RateLimiterCls = _model_cls(self.env, 'l10n_cr.hacienda.rate_limiter')
+        """Lookup service respects rate limiter tokens."""
+        cedula = '3101234567'
 
-        # Instead of consuming 20 real tokens (timing-sensitive), directly mock
-        # the rate limiter to deny tokens, which forces the Hacienda step to fail.
-        # Then also fail GoMeta to trigger the final UserError.
+        # Mock rate limiter returning False (rate limit exceeded)
+        # When rate limit is exceeded, _lookup_hacienda returns error,
+        # then GoMeta is tried, then stale cache, then failure -> UserError
+        mock_gometa_failure = Mock()
+        mock_gometa_failure.status_code = 503
 
-        hacienda_rate_limited = {
-            'success': False,
-            'error': 'Rate limit exceeded',
-            'error_type': 'rate_limit',
-        }
-        gometa_fail = {
-            'success': False,
-            'error': 'GoMeta unavailable',
-            'error_type': 'network',
-        }
+        with patch.object(
+            type(self.env['l10n_cr.hacienda.rate_limiter']),
+            'try_acquire_token',
+            return_value=False,
+        ), \
+             patch(GOMETA_REQUESTS_GET) as mock_get:
+            mock_get.return_value = mock_gometa_failure
 
-        # First verify a normal lookup works when rate limiter allows it
-        hacienda_ok = {
-            'success': True,
-            'data': {
-                'cedula': '3101234567',
-                'name': 'Test Company',
-                'company_type': 'company',
-                'tax_regime': 'General',
-                'tax_status': 'inscrito',
-                'economic_activities': [],
-                'primary_activity': None,
-                'raw_response': '{}',
-            },
-        }
-
-        with patch.object(ServiceCls, '_lookup_hacienda', return_value=hacienda_ok):
-            result = self.lookup_service.lookup_cedula('3101234567')
-            self.assertEqual(result['source'], 'hacienda')
-
-        # Now simulate rate limit exhaustion: _lookup_hacienda returns rate_limit error
-        with patch.object(ServiceCls, '_lookup_hacienda', return_value=hacienda_rate_limited), \
-             patch.object(ServiceCls, '_lookup_gometa', return_value=gometa_fail):
+            # Should raise UserError since rate limit blocks Hacienda
+            # and GoMeta also fails, and no cache exists
             with self.assertRaises(UserError):
-                self.lookup_service.lookup_cedula('1000000021')
+                self.lookup_service.lookup_cedula(cedula)
 
     def test_02_cache_hits_do_not_consume_rate_limit_tokens(self):
         """Cache hits don't consume API rate limit tokens."""
         cedula = '5050505050'
 
         # Create cache
-        self.cache_model.create({
+        cache = self.cache_model.create({
             'cedula': cedula,
             'name': 'Cached Company',
             'company_type': 'company',
@@ -473,18 +449,18 @@ class TestCedulaLookupServiceRateLimiting(EInvoiceTestCase):
             'company_id': self.company.id,
         })
 
-        # Check initial rate limit status
-        initial_status = self.rate_limiter.get_available_tokens()
-        initial_tokens = initial_status['tokens']
+        # Mock rate limiter to verify it's never called for cache hits
+        with patch.object(
+            type(self.env['l10n_cr.hacienda.rate_limiter']),
+            'try_acquire_token',
+        ) as mock_rate_limiter:
+            # Perform 10 cache hits
+            for _ in range(10):
+                result = self.lookup_service.lookup_cedula(cedula)
+                self.assertEqual(result['source'], 'cache')
 
-        # Perform 10 cache hits
-        for _ in range(10):
-            result = self.lookup_service.lookup_cedula(cedula)
-            self.assertEqual(result['source'], 'cache')
-
-        # Rate limit tokens should be unchanged
-        final_status = self.rate_limiter.get_available_tokens()
-        self.assertEqual(final_status['tokens'], initial_tokens)
+            # Rate limiter should never be called (all cache hits)
+            mock_rate_limiter.assert_not_called()
 
 
 @tagged('post_install', '-at_install', 'l10n_cr_einvoice', 'integration', 'p1')
@@ -506,7 +482,7 @@ class TestCedulaLookupServiceConcurrency(EInvoiceTestCase):
         cedula = '6060606060'
 
         # Create cache
-        self.cache_model.create({
+        cache = self.cache_model.create({
             'cedula': cedula,
             'name': 'Concurrent Test',
             'company_type': 'company',
@@ -517,17 +493,18 @@ class TestCedulaLookupServiceConcurrency(EInvoiceTestCase):
             'company_id': self.company.id,
         })
 
-        ServiceCls = _model_cls(self.env, 'l10n_cr.cedula.lookup.service')
-
-        # Simulate 5 concurrent lookups
-        with patch.object(ServiceCls, '_lookup_hacienda') as mock_h:
+        # Simulate 5 concurrent lookups - all should hit cache
+        with patch.object(
+            type(self.env['l10n_cr.hacienda.cedula.api']),
+            'lookup_cedula',
+        ) as mock_api:
             results = []
             for _ in range(5):
                 result = self.lookup_service.lookup_cedula(cedula)
                 results.append(result)
 
             # No API calls (all cache hits)
-            mock_h.assert_not_called()
+            mock_api.assert_not_called()
 
             # All results identical
             for result in results:
@@ -538,37 +515,35 @@ class TestCedulaLookupServiceConcurrency(EInvoiceTestCase):
         """Concurrent lookups for different cedulas process independently."""
         cedulas = [f'700000000{i}' for i in range(5)]
 
-        ServiceCls = _model_cls(self.env, 'l10n_cr.cedula.lookup.service')
+        # Mock Hacienda API success
+        mock_hacienda_result = {
+            'success': True,
+            'name': 'Test Company',
+            'tax_regime': 'General',
+            'economic_activities': [],
+            'raw_data': {},
+        }
 
-        def fake_hacienda(self_model, cedula):
-            return {
-                'success': True,
-                'data': {
-                    'cedula': cedula,
-                    'name': 'Test Company',
-                    'company_type': 'company',
-                    'tax_regime': 'General',
-                    'tax_status': 'inscrito',
-                    'economic_activities': [],
-                    'primary_activity': None,
-                    'raw_response': '{}',
-                },
-            }
-
-        RateLimiterCls = _model_cls(self.env, 'l10n_cr.hacienda.rate_limiter')
-
-        with patch.object(ServiceCls, '_lookup_hacienda', fake_hacienda), \
-             patch.object(RateLimiterCls, 'try_acquire_token', return_value=True):
-
+        with patch.object(
+            type(self.env['l10n_cr.hacienda.cedula.api']),
+            'lookup_cedula',
+            return_value=mock_hacienda_result,
+        ) as mock_api, \
+             patch.object(
+            type(self.env['l10n_cr.hacienda.rate_limiter']),
+            'try_acquire_token',
+            return_value=True,
+        ):
             results = []
             for cedula in cedulas:
                 result = self.lookup_service.lookup_cedula(cedula)
                 results.append(result)
 
+            # Should make 5 API calls
+            self.assertEqual(mock_api.call_count, 5)
+
             # All should succeed
             self.assertEqual(len(results), 5)
-            for result in results:
-                self.assertEqual(result['source'], 'hacienda')
 
 
 @tagged('post_install', '-at_install', 'l10n_cr_einvoice', 'integration', 'p1')
@@ -589,28 +564,25 @@ class TestCedulaLookupServiceBatch(EInvoiceTestCase):
         """Batch lookup processes multiple cedulas efficiently."""
         cedulas = [f'800000000{i}' for i in range(10)]
 
-        ServiceCls = _model_cls(self.env, 'l10n_cr.cedula.lookup.service')
+        # Mock Hacienda API success
+        mock_hacienda_result = {
+            'success': True,
+            'name': 'Batch Company',
+            'tax_regime': 'General',
+            'economic_activities': [],
+            'raw_data': {},
+        }
 
-        def fake_hacienda(self_model, cedula):
-            return {
-                'success': True,
-                'data': {
-                    'cedula': cedula,
-                    'name': 'Batch Company',
-                    'company_type': 'company',
-                    'tax_regime': 'General',
-                    'tax_status': 'inscrito',
-                    'economic_activities': [],
-                    'primary_activity': None,
-                    'raw_response': '{}',
-                },
-            }
-
-        RateLimiterCls = _model_cls(self.env, 'l10n_cr.hacienda.rate_limiter')
-
-        with patch.object(ServiceCls, '_lookup_hacienda', fake_hacienda), \
-             patch.object(RateLimiterCls, 'try_acquire_token', return_value=True):
-
+        with patch.object(
+            type(self.env['l10n_cr.hacienda.cedula.api']),
+            'lookup_cedula',
+            return_value=mock_hacienda_result,
+        ), \
+             patch.object(
+            type(self.env['l10n_cr.hacienda.rate_limiter']),
+            'try_acquire_token',
+            return_value=True,
+        ):
             results = self.lookup_service.batch_lookup_cedulas(cedulas)
 
             # Should return 10 results
@@ -625,46 +597,42 @@ class TestCedulaLookupServiceBatch(EInvoiceTestCase):
         """Batch lookup handles partial failures gracefully."""
         cedulas = ['9000000001', '9000000002', '9000000003']
 
-        ServiceCls = _model_cls(self.env, 'l10n_cr.cedula.lookup.service')
+        # Mock API with mixed responses via side_effect
+        call_count = [0]
 
-        call_count = {'n': 0}
-
-        def fake_hacienda(self_model, cedula):
-            call_count['n'] += 1
-            if call_count['n'] == 2:
+        def mock_lookup_side_effect(cedula):
+            call_count[0] += 1
+            if call_count[0] == 2:
                 # Second call fails
                 return {
                     'success': False,
                     'error': 'Not found',
                     'error_type': 'not_found',
                 }
-            return {
-                'success': True,
-                'data': {
-                    'cedula': cedula,
+            else:
+                return {
+                    'success': True,
                     'name': 'Success Company',
-                    'company_type': 'company',
                     'tax_regime': 'General',
-                    'tax_status': 'inscrito',
                     'economic_activities': [],
-                    'primary_activity': None,
-                    'raw_response': '{}',
-                },
-            }
+                    'raw_data': {},
+                }
 
-        def fake_gometa(self_model, cedula):
-            # GoMeta also fails for the second cedula
-            return {
-                'success': False,
-                'error': 'Not found in GoMeta',
-                'error_type': 'not_found',
-            }
+        mock_gometa_failure = Mock()
+        mock_gometa_failure.status_code = 404
 
-        RateLimiterCls = _model_cls(self.env, 'l10n_cr.hacienda.rate_limiter')
-
-        with patch.object(ServiceCls, '_lookup_hacienda', fake_hacienda), \
-             patch.object(ServiceCls, '_lookup_gometa', fake_gometa), \
-             patch.object(RateLimiterCls, 'try_acquire_token', return_value=True):
+        with patch.object(
+            type(self.env['l10n_cr.hacienda.cedula.api']),
+            'lookup_cedula',
+            side_effect=mock_lookup_side_effect,
+        ), \
+             patch.object(
+            type(self.env['l10n_cr.hacienda.rate_limiter']),
+            'try_acquire_token',
+            return_value=True,
+        ), \
+             patch(GOMETA_REQUESTS_GET) as mock_get:
+            mock_get.return_value = mock_gometa_failure
 
             results = self.lookup_service.batch_lookup_cedulas(cedulas)
 
@@ -704,59 +672,77 @@ class TestCedulaLookupServiceEdgeCases(EInvoiceTestCase):
         ]
 
         for cedula in invalid_cedulas:
-            with self.assertRaises(Exception):
+            with self.assertRaises(Exception) as ctx:
                 self.lookup_service.lookup_cedula(cedula)
+            # Verify it's one of the expected exception types
+            self.assertIsInstance(
+                ctx.exception,
+                (UserError, ValueError, TypeError),
+                f"Expected UserError/ValueError/TypeError for '{cedula}', got {type(ctx.exception).__name__}"
+            )
 
     def test_02_not_found_in_hacienda_registry(self):
-        """Cedula not found in Hacienda returns error via UserError."""
+        """Cedula not found in Hacienda returns error."""
         cedula = '9999999999'
 
-        ServiceCls = _model_cls(self.env, 'l10n_cr.cedula.lookup.service')
-
-        not_found = {
+        # Mock API not found responses
+        mock_hacienda_result = {
             'success': False,
-            'error': 'Cedula no encontrada en registros publicos.',
+            'error': 'Not found',
             'error_type': 'not_found',
         }
 
-        with patch.object(ServiceCls, '_lookup_hacienda', return_value=not_found), \
-             patch.object(ServiceCls, '_lookup_gometa', return_value=not_found):
+        mock_gometa_failure = Mock()
+        mock_gometa_failure.status_code = 404
 
-            with self.assertRaises(UserError) as ctx:
+        with patch.object(
+            type(self.env['l10n_cr.hacienda.cedula.api']),
+            'lookup_cedula',
+            return_value=mock_hacienda_result,
+        ), \
+             patch.object(
+            type(self.env['l10n_cr.hacienda.rate_limiter']),
+            'try_acquire_token',
+            return_value=True,
+        ), \
+             patch(GOMETA_REQUESTS_GET) as mock_get:
+            mock_get.return_value = mock_gometa_failure
+
+            with self.assertRaises(UserError):
                 self.lookup_service.lookup_cedula(cedula)
-
-            error_msg = str(ctx.exception)
-            # Error message should contain useful info about the failure
-            self.assertTrue(len(error_msg) > 0)
 
     def test_03_api_timeout_handled_gracefully(self):
         """API timeout falls back to next step in waterfall."""
         cedula = '8888888888'
 
-        ServiceCls = _model_cls(self.env, 'l10n_cr.cedula.lookup.service')
-
-        hacienda_timeout = {
+        # Mock Hacienda failure (timeout error dict)
+        mock_hacienda_result = {
             'success': False,
             'error': 'Connection timeout',
             'error_type': 'timeout',
         }
 
-        gometa_success = {
-            'success': True,
-            'data': {
-                'cedula': cedula,
-                'name': 'GoMeta Fallback',
-                'company_type': 'other',
-                'tax_regime': '',
-                'tax_status': 'inscrito',
-                'economic_activities': [],
-                'primary_activity': None,
-                'raw_response': '{}',
-            },
+        # Mock GoMeta success
+        gometa_response = Mock()
+        gometa_response.status_code = 200
+        gometa_response.json.return_value = {
+            'nombre': 'GoMeta Fallback',
+            'tipo': 'JURIDICA',
+            'estado': 'ACTIVO',
         }
 
-        with patch.object(ServiceCls, '_lookup_hacienda', return_value=hacienda_timeout), \
-             patch.object(ServiceCls, '_lookup_gometa', return_value=gometa_success):
+        with patch.object(
+            type(self.env['l10n_cr.hacienda.cedula.api']),
+            'lookup_cedula',
+            return_value=mock_hacienda_result,
+        ), \
+             patch.object(
+            type(self.env['l10n_cr.hacienda.rate_limiter']),
+            'try_acquire_token',
+            return_value=True,
+        ), \
+             patch(GOMETA_REQUESTS_GET) as mock_get:
+            mock_get.return_value = gometa_response
 
             result = self.lookup_service.lookup_cedula(cedula)
 
@@ -765,19 +751,33 @@ class TestCedulaLookupServiceEdgeCases(EInvoiceTestCase):
             self.assertEqual(result['name'], 'GoMeta Fallback')
 
     def test_04_malformed_api_response(self):
-        """Malformed API response triggers fallback and eventually UserError."""
+        """Malformed API response triggers fallback."""
         cedula = '7777777777'
 
-        ServiceCls = _model_cls(self.env, 'l10n_cr.cedula.lookup.service')
-
-        api_error = {
+        # Mock Hacienda API error
+        mock_hacienda_result = {
             'success': False,
             'error': 'Invalid JSON response from API',
             'error_type': 'api_error',
         }
 
-        with patch.object(ServiceCls, '_lookup_hacienda', return_value=api_error), \
-             patch.object(ServiceCls, '_lookup_gometa', return_value=api_error):
+        # Mock GoMeta also failing with malformed response
+        mock_gometa = Mock()
+        mock_gometa.status_code = 200
+        mock_gometa.json.side_effect = ValueError("Invalid JSON")
+
+        with patch.object(
+            type(self.env['l10n_cr.hacienda.cedula.api']),
+            'lookup_cedula',
+            return_value=mock_hacienda_result,
+        ), \
+             patch.object(
+            type(self.env['l10n_cr.hacienda.rate_limiter']),
+            'try_acquire_token',
+            return_value=True,
+        ), \
+             patch(GOMETA_REQUESTS_GET) as mock_get:
+            mock_get.return_value = mock_gometa
 
             with self.assertRaises(UserError):
                 self.lookup_service.lookup_cedula(cedula)

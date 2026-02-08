@@ -32,6 +32,9 @@ from datetime import datetime
 class TestTaxReportAPIIntegration(EInvoiceTestCase):
     """Test API integration for tax report submission."""
 
+    # Counter to ensure unique periods across tests (avoids uniqueness constraint violations)
+    _period_counter = 0
+
     def setUp(self):
         super(TestTaxReportAPIIntegration, self).setUp()
 
@@ -57,10 +60,15 @@ class TestTaxReportAPIIntegration(EInvoiceTestCase):
 
     def _create_d150_report_with_xml(self):
         """Helper to create D-150 report with generated XML."""
+        # Use unique month per test to avoid constraint violation on period uniqueness
+        # Increment counter to ensure no duplicate (year, month, report_type, company)
+        TestTaxReportAPIIntegration._period_counter += 1
+        month = (TestTaxReportAPIIntegration._period_counter % 12) + 1
+
         period = self.env['l10n_cr.tax.report.period'].create({
             'report_type': 'd150',
             'year': 2025,
-            'month': 11,
+            'month': month,
             'company_id': self.company.id,
         })
 
@@ -399,9 +407,13 @@ class TestTaxReportAPIIntegration(EInvoiceTestCase):
 
     def _create_d101_report_with_xml(self):
         """Helper to create D-101 report with generated XML."""
+        # Use unique year per test to avoid constraint violation on period uniqueness
+        TestTaxReportAPIIntegration._period_counter += 1
+        year = 2025 + TestTaxReportAPIIntegration._period_counter
+
         period = self.env['l10n_cr.tax.report.period'].create({
             'report_type': 'd101',
-            'year': 2025,
+            'year': year,
             'company_id': self.company.id,
         })
 
@@ -458,9 +470,13 @@ class TestTaxReportAPIIntegration(EInvoiceTestCase):
 
     def _create_d151_report_with_xml(self):
         """Helper to create D-151 report with generated XML."""
+        # Use unique year per test to avoid constraint violation on period uniqueness
+        TestTaxReportAPIIntegration._period_counter += 1
+        year = 2025 + TestTaxReportAPIIntegration._period_counter
+
         period = self.env['l10n_cr.tax.report.period'].create({
             'report_type': 'd151',
-            'year': 2025,
+            'year': year,
             'company_id': self.company.id,
         })
 
