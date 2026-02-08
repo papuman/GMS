@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Redirect form: Tilopay's processPayment returns a URL that the customer
+         is redirected to. The form auto-submits as a GET to that URL. -->
+    <template id="redirect_form">
+        <form t-att-action="api_url" method="get"/>
+    </template>
+</odoo>
