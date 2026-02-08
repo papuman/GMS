@@ -29,6 +29,7 @@ from .common import EInvoiceTestCase
 
 @unittest.skip('Requires full POS infrastructure')
 @tagged('post_install', '-at_install', 'l10n_cr_einvoice', 'integration', 'p0')
+@unittest.skip('Requires full POS infrastructure (journals, payment methods)')
 class TestPOSOrderValidation(EInvoiceTestCase):
     """Test POS order validation before e-invoice submission."""
 
@@ -117,6 +118,7 @@ class TestPOSOrderValidation(EInvoiceTestCase):
 
 @unittest.skip('Requires full POS infrastructure')
 @tagged('post_install', '-at_install', 'l10n_cr_einvoice', 'integration', 'p0')
+@unittest.skip('Requires full POS infrastructure (journals, payment methods)')
 class TestPOSErrorMessageDisplay(EInvoiceTestCase):
     """Test error message display in POS interface."""
 
@@ -231,6 +233,7 @@ class TestPOSErrorMessageDisplay(EInvoiceTestCase):
 
 @unittest.skip('Requires full POS infrastructure')
 @tagged('post_install', '-at_install', 'l10n_cr_einvoice', 'integration', 'p0')
+@unittest.skip('Requires full POS infrastructure (journals, payment methods)')
 class TestPOSFallbackToTiquete(EInvoiceTestCase):
     """Test fallback to Tiquete when FE validation fails."""
 
@@ -330,6 +333,7 @@ class TestPOSFallbackToTiquete(EInvoiceTestCase):
 
 @unittest.skip('Requires full POS infrastructure')
 @tagged('post_install', '-at_install', 'l10n_cr_einvoice', 'integration', 'p0')
+@unittest.skip('Requires full POS infrastructure (journals, payment methods)')
 class TestCustomerSelectionEnforcement(EInvoiceTestCase):
     """Test customer selection enforcement for FE."""
 
@@ -428,6 +432,7 @@ class TestCustomerSelectionEnforcement(EInvoiceTestCase):
 
 @unittest.skip('Requires full POS infrastructure')
 @tagged('post_install', '-at_install', 'l10n_cr_einvoice', 'integration', 'p1')
+@unittest.skip('Requires full POS infrastructure (journals, payment methods)')
 class TestDocumentTypeSelection(EInvoiceTestCase):
     """Test automatic document type selection logic."""
 
@@ -509,6 +514,7 @@ class TestDocumentTypeSelection(EInvoiceTestCase):
 
 @unittest.skip('Requires full POS infrastructure')
 @tagged('post_install', '-at_install', 'l10n_cr_einvoice', 'integration', 'p1')
+@unittest.skip('Requires full POS infrastructure (journals, payment methods)')
 class TestPreFlightValidation(EInvoiceTestCase):
     """Test pre-flight validation checks before submission."""
 

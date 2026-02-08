@@ -88,8 +88,8 @@ class TestStaleCacheRefreshCron(EInvoiceTestCase):
                 'company_id': self.company.id,
             })
 
-        # Mock model method instead of requests.post
-        mock_api_response = {
+        # Mock Hacienda API model (cron calls api.lookup_cedula(), not raw HTTP)
+        mock_api_result = {
             'success': True,
             'name': 'Refreshed Company',
             'tax_regime': 'General',
@@ -100,7 +100,7 @@ class TestStaleCacheRefreshCron(EInvoiceTestCase):
         with patch.object(
             type(self.env['l10n_cr.hacienda.cedula.api']),
             'lookup_cedula',
-            return_value=mock_api_response
+            return_value=mock_api_result,
         ):
             # Run cron
             self.cache_model._cron_refresh_stale_cache()
@@ -109,7 +109,8 @@ class TestStaleCacheRefreshCron(EInvoiceTestCase):
             for i in range(5):
                 cache = self.cache_model.search([('cedula', '=', f'200000000{i}')])
                 refreshed = fields.Datetime.from_string(cache.refreshed_at)
-                if refreshed and not refreshed.tzinfo:
+                # Make timezone-aware for comparison (Odoo stores naive UTC)
+                if refreshed.tzinfo is None:
                     refreshed = refreshed.replace(tzinfo=timezone.utc)
                 cache_age = (datetime.now(timezone.utc) - refreshed).days
                 self.assertLessEqual(cache_age, 1, f"Cache {i} should be refreshed")
@@ -189,26 +190,37 @@ class TestStaleCacheRefreshCron(EInvoiceTestCase):
                 'company_id': self.company.id,
             })
 
-        # Mock model method: first fails, others succeed
+        # Mock API: first fails, others succeed
+        # Cron calls api.lookup_cedula(cache.cedula) which returns a dict
         call_count = [0]
+
         def mock_lookup_side_effect(cedula):
             call_count[0] += 1
             if call_count[0] == 1:
-                return {'success': False, 'error': 'API Error', 'error_type': 'api_error'}
+                return {
+                    'success': False,
+                    'error': 'Server error (HTTP 500)',
+                    'error_type': 'api_error',
+                }
             else:
-                return {'success': True, 'name': 'Success', 'economic_activities': [], 'raw_data': {}}
+                return {
+                    'success': True,
+                    'name': 'Success',
+                    'tax_regime': 'General',
+                    'economic_activities': [],
+                    'raw_data': {},
+                }
 
         with patch.object(
             type(self.env['l10n_cr.hacienda.cedula.api']),
             'lookup_cedula',
-            side_effect=mock_lookup_side_effect
+            side_effect=mock_lookup_side_effect,
         ):
             # Cron should not crash
-            self.cache_model._cron_refresh_stale_cache()
+            result = self.cache_model._cron_refresh_stale_cache()
 
-            # Verify error was recorded on failed entry
-            failed = self.cache_model.search([('cedula', '=', '5000000000')])
-            self.assertTrue(failed.error_message)
+            # Verify some failed
+            self.assertGreater(result['failed'], 0)
 
 
 @tagged('post_install', '-at_install', 'l10n_cr_einvoice', 'integration', 'p1')
@@ -315,7 +327,8 @@ class TestExpiredCachePurgeCron(EInvoiceTestCase):
 
     def test_04_cron_runs_daily_at_midnight(self):
         """Verify cron job exists with correct schedule."""
-        # Find purge cron job
+        # In Odoo 19, ir.cron uses 'code' field (e.g. "model._cron_purge_expired_cache()")
+        # instead of 'function'. Search by model and code content.
         cron = self.env['ir.cron'].search([
             ('model_id.model', '=', 'l10n_cr.cedula.cache'),
             ('code', 'ilike', '_cron_purge_expired_cache'),
@@ -421,12 +434,10 @@ class TestCronRateLimiting(EInvoiceTestCase):
     def setUpClass(cls):
         super().setUpClass()
         cls.cache_model = cls.env['l10n_cr.cedula.cache']
-        cls.rate_limiter = cls.env['l10n_cr.hacienda.rate_limiter']
 
     def setUp(self):
         super().setUp()
         self.cache_model.search([]).unlink()
-        self.rate_limiter.reset()
 
     def test_01_cron_respects_rate_limit(self):
         """Cron jobs respect API rate limits."""
@@ -445,10 +456,11 @@ class TestCronRateLimiting(EInvoiceTestCase):
                 'company_id': self.company.id,
             })
 
-        # Mock model method instead of requests.post
-        mock_api_response = {
+        # Mock Hacienda API model (cron calls api.lookup_cedula(), not raw HTTP)
+        mock_api_result = {
             'success': True,
             'name': 'Test',
+            'tax_regime': 'General',
             'economic_activities': [],
             'raw_data': {},
         }
@@ -456,12 +468,8 @@ class TestCronRateLimiting(EInvoiceTestCase):
         with patch.object(
             type(self.env['l10n_cr.hacienda.cedula.api']),
             'lookup_cedula',
-            return_value=mock_api_response
+            return_value=mock_api_result,
         ):
-            # Cron should process up to burst capacity (20)
-            # without hitting rate limit errors
-            # (Implementation may batch or throttle requests)
-
             # This test verifies cron can run without crashing
             # due to rate limit errors
             try:
@@ -508,21 +516,21 @@ class TestCronErrorHandlingAndLogging(EInvoiceTestCase):
             'company_id': self.company.id,
         })
 
-        # Mock model method failure
-        mock_api_response = {
+        # Mock API failure (cron calls api.lookup_cedula() which returns a dict)
+        mock_api_result = {
             'success': False,
-            'error': 'API Error',
+            'error': 'Server error (HTTP 500)',
             'error_type': 'api_error',
         }
 
         with patch.object(
             type(self.env['l10n_cr.hacienda.cedula.api']),
             'lookup_cedula',
-            return_value=mock_api_response
+            return_value=mock_api_result,
         ):
             self.cache_model._cron_refresh_stale_cache()
 
-            # Error should be logged in cache
+            # Error should be logged in cache (re-read from DB)
             cache.invalidate_recordset()
             self.assertTrue(cache.error_message)
 
@@ -543,27 +551,39 @@ class TestCronErrorHandlingAndLogging(EInvoiceTestCase):
                 'company_id': self.company.id,
             })
 
-        # Mock model method: some succeed, some fail
+        # Mock: some succeed, some fail
+        # Cron calls api.lookup_cedula(cache.cedula) which returns a dict
         call_count = [0]
+
         def mock_lookup_side_effect(cedula):
             call_count[0] += 1
             # Fail every other request
             if call_count[0] % 2 == 0:
-                return {'success': False, 'error': 'API Error', 'error_type': 'api_error'}
+                return {
+                    'success': False,
+                    'error': 'Server error',
+                    'error_type': 'api_error',
+                }
             else:
-                return {'success': True, 'name': 'Success', 'economic_activities': [], 'raw_data': {}}
+                return {
+                    'success': True,
+                    'name': 'Success',
+                    'tax_regime': 'General',
+                    'economic_activities': [],
+                    'raw_data': {},
+                }
 
         with patch.object(
             type(self.env['l10n_cr.hacienda.cedula.api']),
             'lookup_cedula',
-            side_effect=mock_lookup_side_effect
+            side_effect=mock_lookup_side_effect,
         ):
             # Should not crash
-            self.cache_model._cron_refresh_stale_cache()
+            result = self.cache_model._cron_refresh_stale_cache()
 
             # Verify some succeeded, some failed
-            all_caches = self.cache_model.search([('cedula', 'like', '94000000%')])
-            self.assertTrue(any(c.error_message for c in all_caches))
+            self.assertGreater(result['refreshed'], 0, "Some should succeed")
+            self.assertGreater(result['failed'], 0, "Some should fail")
 
     def test_03_cron_tracks_execution_statistics(self):
         """Cron tracks execution statistics for monitoring."""

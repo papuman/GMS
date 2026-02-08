@@ -32,6 +32,7 @@ from odoo import fields
 
 @unittest.skip('Requires full POS infrastructure')
 @tagged('post_install', '-at_install', 'l10n_cr_einvoice', 'pos_offline')
+@unittest.skip('Requires full POS infrastructure (journals, payment methods)')
 class TestPosOfflineQueue(TransactionCase):
     """Test POS offline queue functionality"""
 

@@ -2,6 +2,7 @@
 from . import test_payment_method
 from . import test_account_move_payment
 from . import test_xml_generator_payment
+from . import test_tilopay_payment_mapping
 from . import test_xml_generator
 
 # Phase 3: Retry Queue Tests

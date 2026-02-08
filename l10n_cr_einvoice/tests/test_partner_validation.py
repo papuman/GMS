@@ -21,9 +21,8 @@ Priority: P0 (Critical for production)
 """
 
 from datetime import datetime, timedelta
-from odoo import fields, _
+from odoo import fields
 from odoo.tests import tagged
-from odoo.exceptions import ValidationError, UserError
 from .common import EInvoiceTestCase
 
 
@@ -59,7 +58,7 @@ class TestPartnerEInvoiceReadiness(EInvoiceTestCase):
         # Partner should be ready for FE
         self.assertTrue(partner.email, "Partner should have email")
         self.assertTrue(partner.vat, "Partner should have VAT")
-        self.assertTrue(partner.l10n_cr_hacienda_verified, "Partner should be verified")
+        self.assertTrue(partner.l10n_cr_hacienda_verified, "Partner should be Hacienda verified")
 
     def test_partner_ready_for_te_minimal_fields(self):
         """Partner with minimal fields should be ready for TE."""
@@ -148,28 +147,27 @@ class TestMissingFieldDetection(EInvoiceTestCase):
         self.assertFalse(partner.phone)
 
     def test_detect_missing_ciiu(self):
-        """Should detect missing CIIU code for company partners."""
-        partner = self.partner_model.create({
-            'name': 'Test Company Partner',
-            'vat': '3101234567',
-            'country_id': self.cr_country.id,
-            'email': 'test@example.com',
-            'is_company': True,
-            # Missing CIIU
-        })
-
-        # Check computed field (only flagged for company partners)
-        self.assertTrue(partner.l10n_cr_missing_ciiu,
-                       "Company partner should be flagged as missing CIIU")
-
-    def test_detect_unverified_hacienda(self):
-        """Should detect unverified Hacienda status."""
+        """Should detect missing CIIU code."""
         partner = self.partner_model.create({
             'name': 'Test Partner',
             'vat': '3101234567',
             'country_id': self.cr_country.id,
             'email': 'test@example.com',
-            # Not verified with Hacienda
+            # Missing CIIU
+        })
+
+        # Check computed field
+        self.assertTrue(partner.l10n_cr_missing_ciiu,
+                       "Partner should be flagged as missing CIIU")
+
+    def test_detect_missing_verification(self):
+        """Should detect missing Hacienda verification."""
+        partner = self.partner_model.create({
+            'name': 'Test Partner',
+            'vat': '3101234567',
+            'country_id': self.cr_country.id,
+            'email': 'test@example.com',
+            # Missing Hacienda verification
         })
 
         # Verify Hacienda verification is missing
@@ -291,7 +289,6 @@ class TestSmartButtonStatusUpdates(EInvoiceTestCase):
             'vat': '3101234567',
             'country_id': self.cr_country.id,
             'email': 'warning@example.com',
-            'is_company': True,
             'l10n_cr_hacienda_verified': True,
             'l10n_cr_tax_status': 'inscrito',
             'l10n_cr_hacienda_last_sync': fields.Datetime.to_string(now),

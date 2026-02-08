@@ -299,9 +299,11 @@ class ResPartner(models.Model):
         costa_rica = self.env.ref('base.cr', raise_if_not_found=False)
 
         for partner in self:
+            # Flag all Costa Rica partners missing CIIU
+            is_cr_partner = (partner.country_id == costa_rica)
             partner.l10n_cr_missing_ciiu = (
-                partner.country_id == costa_rica
-                and not partner.l10n_cr_economic_activity_id
+                is_cr_partner and
+                not partner.l10n_cr_economic_activity_id
             )
 
     @api.model
@@ -318,7 +320,6 @@ class ResPartner(models.Model):
             return [
                 ('country_id', '=', costa_rica.id),
                 ('l10n_cr_economic_activity_id', '=', False),
-                ('is_company', '!=', False),  # Exclude explicit individuals
             ]
         elif operator == '=' and not value:
             # Find CR partners WITH CIIU or non-CR partners

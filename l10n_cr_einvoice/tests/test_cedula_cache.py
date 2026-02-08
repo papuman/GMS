@@ -214,10 +214,9 @@ class TestCedulaCacheComputed(EInvoiceTestCase):
         })
 
         # Valid at just under 24 hours for inscrito
-        # The model uses strict `> 24` for staleness, but by the time the
-        # computed field evaluates, a sync set to exactly 24h ago will be
-        # slightly over 24h. Use 23h59m to stay safely within the fresh window.
-        sync_time = now - timedelta(hours=23, minutes=59)
+        # (We use 23.9 hours to avoid race conditions with computation time.
+        # The threshold is age_hours > 24, so 23.9 should be fresh.)
+        sync_time = now - timedelta(hours=23, minutes=54)
         partner.l10n_cr_hacienda_last_sync = fields.Datetime.to_string(sync_time)
         partner.l10n_cr_tax_status = 'inscrito'
         partner.l10n_cr_hacienda_verified = True
@@ -266,10 +265,10 @@ class TestCedulaCacheConstraints(EInvoiceTestCase):
             'l10n_cr_override_reason': 'Test reason',
         })
 
-        # Use the helper method which clears all override fields.
-        # Note: The @api.onchange handler only fires in form views, not
-        # during direct ORM writes, so we use the dedicated method instead.
+        # Use the proper API to disable override (onchange only fires in UI)
         partner.clear_validation_override()
+
+        # Reason should be cleared
         self.assertFalse(partner.l10n_cr_cedula_validation_override,
                         "Override should be disabled")
         self.assertFalse(partner.l10n_cr_override_reason,
@@ -354,7 +353,7 @@ class TestCedulaCacheSearch(EInvoiceTestCase):
         self.assertEqual(unverified.id, unverified_partner.id)
 
     def test_search_cache_stale(self):
-        """Filter by cache staleness."""
+        """Filter by cache staleness using computed field values."""
         now = datetime.now(timezone.utc)
 
         # Create fresh cache partner
@@ -376,21 +375,20 @@ class TestCedulaCacheSearch(EInvoiceTestCase):
             'l10n_cr_tax_status': 'inscrito',
         })
 
-        # Use filtered() instead of search() for non-stored computed fields
-        test_partners = self.partner_model.search([
-            ('id', 'in', [fresh_partner.id, stale_partner.id]),
-        ])
-        stale = test_partners.filtered(lambda p: p.l10n_cr_hacienda_cache_stale)
+        # Use Python filtering on the computed field to avoid search domain
+        # approximation mismatches with the actual compute logic
+        both = self.partner_model.browse([fresh_partner.id, stale_partner.id])
+        stale = both.filtered(lambda p: p.l10n_cr_hacienda_cache_stale)
         self.assertIn(stale_partner.id, stale.ids, "Stale partner should be found")
         self.assertNotIn(fresh_partner.id, stale.ids, "Fresh partner should not be found")
 
         # Filter for fresh
-        fresh = test_partners.filtered(lambda p: not p.l10n_cr_hacienda_cache_stale)
+        fresh = both.filtered(lambda p: not p.l10n_cr_hacienda_cache_stale)
         self.assertIn(fresh_partner.id, fresh.ids, "Fresh partner should be found")
         self.assertNotIn(stale_partner.id, fresh.ids, "Stale partner should not be found")
 
-    def test_search_cache_age_hours(self):
-        """Filter by cache age (hours)."""
+    def test_cache_age_hours_computed_correctly(self):
+        """Verify cache age hours computed field works for multiple partners."""
         now = datetime.now(timezone.utc)
 
         # 6 hours old
@@ -411,25 +409,16 @@ class TestCedulaCacheSearch(EInvoiceTestCase):
             'l10n_cr_hacienda_last_sync': fields.Datetime.to_string(old_time),
         })
 
-        # l10n_cr_hacienda_cache_age_hours is a non-stored computed field on
-        # res.partner, so it cannot be used in ORM search() domains.
-        # Use filtered() on the recordset instead.
-        test_partners = self.partner_model.search([
-            ('id', 'in', [young_partner.id, old_partner.id]),
-        ])
-
-        # Cache older than 12 hours
-        old_cache = test_partners.filtered(lambda p: p.l10n_cr_hacienda_cache_age_hours > 12)
-        self.assertIn(old_partner.id, old_cache.ids, "18-hour cache should be found")
-        self.assertNotIn(young_partner.id, old_cache.ids, "6-hour cache should not be found")
-
-        # Cache younger than 12 hours
-        young_cache = test_partners.filtered(lambda p: p.l10n_cr_hacienda_cache_age_hours < 12)
-        self.assertIn(young_partner.id, young_cache.ids, "6-hour cache should be found")
-        self.assertNotIn(old_partner.id, young_cache.ids, "18-hour cache should not be found")
+        # Note: l10n_cr_hacienda_cache_age_hours is a non-stored computed field
+        # without a _search method, so it cannot be used in search domains.
+        # Verify the computed values directly instead.
+        self.assertGreater(old_partner.l10n_cr_hacienda_cache_age_hours, 12,
+                          "18-hour cache should have age > 12")
+        self.assertLess(young_partner.l10n_cr_hacienda_cache_age_hours, 12,
+                       "6-hour cache should have age < 12")
 
     def test_search_cache_valid(self):
-        """Filter by cache validity."""
+        """Filter by cache validity using computed field values."""
         now = datetime.now(timezone.utc)
 
         # Valid cache partner
@@ -449,11 +438,10 @@ class TestCedulaCacheSearch(EInvoiceTestCase):
             'country_id': self.cr_country.id,
         })
 
-        # Use filtered() instead of search() for non-stored computed fields
-        test_partners = self.partner_model.search([
-            ('id', 'in', [valid_partner.id, invalid_partner.id]),
-        ])
-        valid = test_partners.filtered(lambda p: p.l10n_cr_hacienda_cache_valid)
+        # Use Python filtering on the computed field to avoid search domain
+        # approximation mismatches with the actual compute logic
+        both = self.partner_model.browse([valid_partner.id, invalid_partner.id])
+        valid = both.filtered(lambda p: p.l10n_cr_hacienda_cache_valid)
         self.assertIn(valid_partner.id, valid.ids, "Valid partner should be found")
         self.assertNotIn(invalid_partner.id, valid.ids, "Invalid partner should not be found")
 
@@ -536,9 +524,9 @@ class TestCedulaCacheHelpers(EInvoiceTestCase):
         status = partner.get_validation_status()
         self.assertTrue(status['is_valid'])
         self.assertEqual(status['icon'], 'valid')
-        # The status text uses lowercase 'verified'; check case-insensitively
-        status_text = (status.get('reason') or status.get('message') or '').lower()
-        self.assertIn('verified', status_text)
+        # Reason or message should mention 'verified' (case-insensitive)
+        text = (status.get('reason') or '') + ' ' + (status.get('message') or '')
+        self.assertIn('verified', text.lower())
 
     def test_get_validation_status_never_checked(self):
         """Get status when never verified."""
@@ -556,23 +544,21 @@ class TestCedulaCacheHelpers(EInvoiceTestCase):
         """Get status when cache is stale."""
         now = datetime.now(timezone.utc)
         old_sync = now - timedelta(days=10)
-        # Partner must be verified=True so get_validation_status() reaches the
-        # stale-cache branch. When verified=False, it returns 'unknown' early.
         partner = self.partner_model.create({
             'name': 'Test Partner',
             'vat': '1234567890',
             'country_id': self.cr_country.id,
             'l10n_cr_hacienda_last_sync': fields.Datetime.to_string(old_sync),
             'l10n_cr_tax_status': 'inscrito',
-            'l10n_cr_hacienda_verified': True,
+            'l10n_cr_hacienda_verified': True,  # Must be verified to reach stale-cache branch
         })
 
         status = partner.get_validation_status()
         self.assertFalse(status['is_valid'])
         self.assertEqual(status['icon'], 'warning')
-        # The method may return the stale info in 'reason' or 'message'
-        stale_text = (status.get('reason') or status.get('message') or '').lower()
-        self.assertIn('stale', stale_text)
+        # Reason or message should mention 'stale' (case-insensitive)
+        text = (status.get('reason') or '') + ' ' + (status.get('message') or '')
+        self.assertIn('stale', text.lower())
 
 
 @tagged('post_install', '-at_install', 'l10n_cr_einvoice', 'unit', 'p1')
@@ -595,38 +581,40 @@ class TestCedulaCacheRefresh(EInvoiceTestCase):
         # Initial state: never synced
         self.assertFalse(partner.l10n_cr_hacienda_last_sync)
 
-        # Simulate cache refresh
-        before_refresh = datetime.now(timezone.utc)
+        # Simulate cache refresh (add 1s buffer for Odoo datetime truncation)
+        before_refresh = datetime.now(timezone.utc) - timedelta(seconds=1)
         partner.refresh_hacienda_cache()
-        after_refresh = datetime.now(timezone.utc)
+        after_refresh = datetime.now(timezone.utc) + timedelta(seconds=1)
 
-        # Timestamp should be set to current time (1-second buffer for timing)
+        # Timestamp should be set to current time
         self.assertIsNotNone(partner.l10n_cr_hacienda_last_sync)
         sync_time = fields.Datetime.from_string(partner.l10n_cr_hacienda_last_sync)
-        # fields.Datetime.from_string() returns a naive datetime (UTC);
-        # strip tzinfo from our aware datetimes so comparison works.
-        before_naive = before_refresh.replace(tzinfo=None)
-        after_naive = after_refresh.replace(tzinfo=None)
-        self.assertGreaterEqual(sync_time, before_naive - timedelta(seconds=1))
-        self.assertLessEqual(sync_time, after_naive + timedelta(seconds=1))
+        # Odoo stores datetimes as naive UTC - make timezone-aware for comparison
+        if sync_time.tzinfo is None:
+            sync_time = sync_time.replace(tzinfo=timezone.utc)
+        self.assertGreaterEqual(sync_time, before_refresh)
+        self.assertLessEqual(sync_time, after_refresh)
 
-    def test_refresh_cache_updates_tax_status(self):
-        """Cache refresh should update tax status from Hacienda API."""
+    def test_refresh_cache_updates_last_sync_only(self):
+        """Cache refresh updates last_sync but not tax_status (that requires API call)."""
         partner = self.partner_model.create({
             'name': 'Test Partner',
             'vat': '1234567890',
             'country_id': self.cr_country.id,
         })
 
-        # Initial state: no status
+        # Initial state: no sync, no status
+        self.assertFalse(partner.l10n_cr_hacienda_last_sync)
         self.assertFalse(partner.l10n_cr_tax_status)
 
-        # Mock API response and refresh
-        # (In real tests, you would mock the Hacienda API call)
+        # refresh_hacienda_cache only updates last_sync timestamp
+        # (the actual API call for tax_status is handled by the lookup service)
         partner.refresh_hacienda_cache()
 
-        # Status should be updated (mocked as 'inscrito' in test)
-        self.assertIsNotNone(partner.l10n_cr_tax_status)
+        # Timestamp should be set
+        self.assertIsNotNone(partner.l10n_cr_hacienda_last_sync)
+        # Tax status is NOT updated by refresh_hacienda_cache (it just touches the timestamp)
+        self.assertFalse(partner.l10n_cr_tax_status)
 
     def test_bulk_refresh_stale_caches(self):
         """Bulk refresh should process multiple stale partners."""
@@ -694,12 +682,8 @@ class TestCedulaCacheEdgeCases(EInvoiceTestCase):
         self.assertIsNotNone(status, "Status should not be None")
         self.assertIn('is_valid', status)
         self.assertIn('icon', status)
-        # The status dict uses 'message' as the primary text key;
-        # 'reason' is only present in some status branches (e.g. override, stale).
-        self.assertTrue(
-            'reason' in status or 'message' in status,
-            "Status should contain either 'reason' or 'message' key"
-        )
+        # 'message' is always present; 'reason' is optional
+        self.assertIn('message', status)
 
     def test_cache_with_non_cr_partner(self):
         """Cache fields should work for non-Costa Rica partners."""

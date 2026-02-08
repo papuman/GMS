@@ -911,18 +911,19 @@ class CedulaLookupService(models.AbstractModel):
         batch_result = self.batch_lookup(cedulas, max_concurrent=max_concurrent)
 
         # Convert to test-compatible format
+        # batch_lookup returns {'results': {cedula: result, ...}, 'summary': {...}, ...}
         output = {}
         for cedula, result in batch_result.get('results', {}).items():
-            if result['success']:
-                data = result['data']
+            if result.get('success'):
+                data = result.get('data', {})
                 output[cedula] = {
                     'name': data.get('name', ''),
                     'tax_status': data.get('tax_status', ''),
-                    'source': result['source'],
+                    'source': result.get('source', ''),
                 }
             else:
                 output[cedula] = {
-                    'error': result.get('error', result.get('user_message', 'Lookup failed')),
+                    'error': result.get('error', result.get('error_message', 'Lookup failed')),
                 }
 
         return output
