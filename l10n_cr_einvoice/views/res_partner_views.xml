@@ -6,16 +6,57 @@
         <field name="model">res.partner</field>
         <field name="inherit_id" ref="base.view_partner_form"/>
         <field name="arch" type="xml">
+            <!-- Add E-Invoice Status Smart Button -->
+            <xpath expr="//div[@name='button_box']" position="inside">
+                <button name="action_validate_einvoice_readiness"
+                        type="object"
+                        class="oe_stat_button"
+                        icon="fa-check-circle"
+                        invisible="country_code != 'CR'">
+                    <field name="l10n_cr_einvoice_status" widget="badge"
+                           decoration-success="l10n_cr_einvoice_status == 'ready'"
+                           decoration-warning="l10n_cr_einvoice_status == 'needs_ciiu'"
+                           decoration-danger="l10n_cr_einvoice_status == 'incomplete'"/>
+                    <span>E-Invoice</span>
+                </button>
+
+                <!-- Cédula Lookup Smart Button -->
+                <button name="action_lookup_cedula"
+                        type="object"
+                        class="oe_stat_button"
+                        icon="fa-search"
+                        invisible="country_code != 'CR' or not vat">
+                    <span>Lookup Cédula</span>
+                </button>
+
+                <!-- Refresh from Hacienda Smart Button -->
+                <button name="action_refresh_from_hacienda"
+                        type="object"
+                        class="oe_stat_button"
+                        icon="fa-refresh"
+                        invisible="country_code != 'CR' or not vat or l10n_cr_cache_status == 'none'">
+                    <div class="o_stat_info">
+                        <field name="l10n_cr_cache_status" widget="badge"
+                               decoration-success="l10n_cr_cache_status == 'fresh'"
+                               decoration-warning="l10n_cr_cache_status == 'stale'"
+                               decoration-danger="l10n_cr_cache_status == 'expired'"/>
+                        <span class="o_stat_text">
+                            <field name="l10n_cr_cache_age_days"/> days old
+                        </span>
+                    </div>
+                </button>
+            </xpath>
+
             <!-- Add economic activity field in Costa Rica section -->
             <xpath expr="//field[@name='vat']" position="after">
                 <!-- Show only for Costa Rica partners -->
                 <field name="l10n_cr_economic_activity_id"
                        options="{'no_create': True}"
-                       attrs="{'invisible': [('country_code', '!=', 'CR')]}"/>
+                       invisible="country_code != 'CR'"/>
 
                 <!-- Show suggested code if available -->
-                <div class="alert alert-info"
-                     attrs="{'invisible': ['|', ('l10n_cr_suggested_ciiu_id', '=', False), ('l10n_cr_economic_activity_id', '!=', False)]}">
+                <div class="alert alert-info" role="alert"
+                     invisible="not l10n_cr_suggested_ciiu_id or l10n_cr_economic_activity_id">
                     <p>
                         <strong>Suggested Economic Activity:</strong>
                         <field name="l10n_cr_suggested_ciiu_id" readonly="1" force_save="1"/>
@@ -27,14 +68,88 @@
                             icon="fa-check"/>
                 </div>
 
-                <!-- Warning for missing CIIU code -->
-                <div class="alert alert-warning"
-                     attrs="{'invisible': [('l10n_cr_missing_ciiu', '=', False)]}">
+                <!-- E-Invoice Status Alert -->
+                <div class="alert" role="alert"
+                     invisible="country_code != 'CR' or l10n_cr_einvoice_status == 'not_applicable'"
+                     decoration-success="l10n_cr_einvoice_status == 'ready'"
+                     decoration-warning="l10n_cr_einvoice_status == 'needs_ciiu'"
+                     decoration-danger="l10n_cr_einvoice_status == 'incomplete'">
+                    <div invisible="l10n_cr_einvoice_status != 'ready'" class="text-success">
+                        <p>
+                            <strong>✓ Ready for E-Invoice</strong>
+                        </p>
+                        <field name="l10n_cr_einvoice_status_message" readonly="1"/>
+                    </div>
+                    <div invisible="l10n_cr_einvoice_status != 'needs_ciiu'" class="text-warning">
+                        <p>
+                            <strong>⚠ CIIU Code Missing</strong>
+                        </p>
+                        <field name="l10n_cr_einvoice_status_message" readonly="1"/>
+                    </div>
+                    <div invisible="l10n_cr_einvoice_status != 'incomplete'" class="text-danger">
+                        <p>
+                            <strong>✗ Incomplete Data</strong>
+                        </p>
+                        <field name="l10n_cr_einvoice_status_message" readonly="1"/>
+                        <p>
+                            <button name="action_populate_from_cedula_cache"
+                                    string="Auto-Fill from Cache"
+                                    type="object"
+                                    class="btn-sm btn-warning"
+                                    icon="fa-refresh"
+                                    invisible="not vat"/>
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Warning for missing CIIU code (legacy, replaced by status alert) -->
+                <div class="alert alert-warning" role="alert"
+                     invisible="not l10n_cr_missing_ciiu or l10n_cr_einvoice_status != 'not_applicable'">
                     <p>
                         <strong>Warning:</strong> This Costa Rica partner is missing an economic activity code.
                         Economic activity (CIIU code) will be <strong>REQUIRED for all e-invoices from October 6, 2025</strong>.
                     </p>
                 </div>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- Partner Form View Extension - Corporate Billing Tab -->
+    <record id="view_partner_form_corporate_billing" model="ir.ui.view">
+        <field name="name">res.partner.form.corporate.billing</field>
+        <field name="model">res.partner</field>
+        <field name="inherit_id" ref="base.view_partner_form"/>
+        <field name="arch" type="xml">
+            <!-- Add Corporate Billing tab after Sales & Purchase -->
+            <xpath expr="//notebook" position="inside">
+                <page name="corporate_billing" string="Corporate Billing">
+                    <group>
+                        <group name="corporate_info" string="Corporate Information">
+                            <field name="parent_id" string="Related Company"
+                                   options="{'no_create': True}"/>
+                            <field name="employee_number"
+                                   invisible="not parent_id"
+                                   placeholder="e.g., EMP-001"/>
+                        </group>
+                        <group name="einvoice_preferences" string="E-Invoice Preferences">
+                            <field name="l10n_cr_default_einvoice_type"/>
+                        </group>
+                    </group>
+                    <group>
+                        <group>
+                            <div class="alert alert-info" role="alert">
+                                <p>
+                                    <strong>Corporate Billing:</strong> Configure employee numbers for company members
+                                    and set their default e-invoice type preference.
+                                </p>
+                                <ul>
+                                    <li><strong>TE (Electronic Ticket):</strong> Simplified invoices for quick transactions</li>
+                                    <li><strong>FE (Electronic Invoice):</strong> Detailed invoices with full itemization</li>
+                                </ul>
+                            </div>
+                        </group>
+                    </group>
+                </page>
             </xpath>
         </field>
     </record>
@@ -47,6 +162,12 @@
         <field name="arch" type="xml">
             <xpath expr="//field[@name='phone']" position="after">
                 <field name="l10n_cr_economic_activity_id" optional="hide"/>
+                <field name="l10n_cr_einvoice_status" optional="show" widget="badge"
+                       decoration-success="l10n_cr_einvoice_status == 'ready'"
+                       decoration-warning="l10n_cr_einvoice_status == 'needs_ciiu'"
+                       decoration-danger="l10n_cr_einvoice_status == 'incomplete'"/>
+                <field name="employee_number" optional="hide"/>
+                <field name="l10n_cr_default_einvoice_type" optional="hide"/>
             </xpath>
         </field>
     </record>
@@ -59,15 +180,52 @@
         <field name="arch" type="xml">
             <xpath expr="//filter[@name='inactive']" position="after">
                 <separator/>
+                <filter name="einvoice_ready"
+                        string="E-Invoice Ready"
+                        domain="[('l10n_cr_einvoice_status', '=', 'ready')]"
+                        help="Partners ready for Factura Electrónica"/>
+                <filter name="einvoice_incomplete"
+                        string="Incomplete Data"
+                        domain="[('l10n_cr_einvoice_status', '=', 'incomplete')]"
+                        help="Partners with missing required fields"/>
+                <filter name="einvoice_needs_ciiu"
+                        string="Needs CIIU Code"
+                        domain="[('l10n_cr_einvoice_status', '=', 'needs_ciiu')]"
+                        help="Partners missing only CIIU code"/>
+                <separator/>
                 <filter name="missing_ciiu"
                         string="Missing Economic Activity"
                         domain="[('l10n_cr_missing_ciiu', '=', True)]"
                         help="Costa Rica partners missing CIIU economic activity code"/>
+                <filter name="corporate_employees"
+                        string="Corporate Employees"
+                        domain="[('employee_number', '!=', False)]"
+                        help="Partners with employee numbers"/>
+                <filter name="prefers_te"
+                        string="Prefers TE (Ticket)"
+                        domain="[('l10n_cr_default_einvoice_type', '=', 'TE')]"
+                        help="Partners who prefer Electronic Tickets"/>
+                <filter name="prefers_fe"
+                        string="Prefers FE (Invoice)"
+                        domain="[('l10n_cr_default_einvoice_type', '=', 'FE')]"
+                        help="Partners who prefer Electronic Invoices"/>
+            </xpath>
+            <xpath expr="//field[@name='category_id']" position="after">
+                <field name="employee_number" string="Employee Number"/>
             </xpath>
             <xpath expr="//group" position="inside">
+                <filter name="group_by_einvoice_status"
+                        string="E-Invoice Status"
+                        context="{'group_by': 'l10n_cr_einvoice_status'}"/>
                 <filter name="group_by_economic_activity"
                         string="Economic Activity"
                         context="{'group_by': 'l10n_cr_economic_activity_id'}"/>
+                <filter name="group_by_einvoice_type"
+                        string="E-Invoice Type Preference"
+                        context="{'group_by': 'l10n_cr_default_einvoice_type'}"/>
+                <filter name="group_by_parent_company"
+                        string="Related Company"
+                        context="{'group_by': 'parent_id'}"/>
             </xpath>
         </field>
     </record>
@@ -84,12 +242,12 @@
                                 type="object"
                                 class="oe_stat_button"
                                 icon="fa-users"
-                                attrs="{'invisible': [('partner_count', '=', 0)]}">
+                                invisible="partner_count == 0">
                             <field name="partner_count" widget="statinfo" string="Partners"/>
                         </button>
                     </div>
                     <widget name="web_ribbon" title="Archived" bg_color="bg-danger"
-                            attrs="{'invisible': [('active', '=', True)]}"/>
+                            invisible="active"/>
                     <group>
                         <group>
                             <field name="code"/>
@@ -109,21 +267,23 @@
     </record>
 
     <!-- CIIU Code Tree View -->
-    <record id="view_ciiu_code_tree" model="ir.ui.view">
-        <field name="name">l10n_cr.ciiu.code.tree</field>
+    <record id="view_ciiu_code_list" model="ir.ui.view">
+        <field name="name">l10n_cr.ciiu.code.list</field>
         <field name="model">l10n_cr.ciiu.code</field>
         <field name="arch" type="xml">
-            <tree string="CIIU Economic Activity Codes">
+            <list string="CIIU Economic Activity Codes">
                 <field name="code"/>
                 <field name="name"/>
                 <field name="section"/>
                 <field name="partner_count"/>
                 <field name="active"/>
-            </tree>
+            </list>
         </field>
     </record>
 
-    <!-- CIIU Code Search View -->
+    <!-- TODO: CIIU Code Search View needs deeper Odoo 19 investigation -->
+    <!-- Commenting out - has validation issues beyond expand attribute -->
+    <!--
     <record id="view_ciiu_code_search" model="ir.ui.view">
         <field name="name">l10n_cr.ciiu.code.search</field>
         <field name="model">l10n_cr.ciiu.code</field>
@@ -135,18 +295,17 @@
                 <filter name="active" string="Active" domain="[('active', '=', True)]"/>
                 <filter name="inactive" string="Archived" domain="[('active', '=', False)]"/>
                 <separator/>
-                <group expand="0" string="Group By">
                     <filter name="group_by_section" string="Section" context="{'group_by': 'section'}"/>
-                </group>
             </search>
         </field>
     </record>
+    -->
 
     <!-- CIIU Code Action -->
     <record id="action_ciiu_code" model="ir.actions.act_window">
         <field name="name">Economic Activity Codes (CIIU)</field>
         <field name="res_model">l10n_cr.ciiu.code</field>
-        <field name="view_mode">tree,form</field>
+        <field name="view_mode">list,form</field>
         <field name="context">{'search_default_active': 1}</field>
         <field name="help" type="html">
             <p class="o_view_nocontent_smiling_face">

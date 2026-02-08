@@ -1,0 +1,15 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_einvoice_document_user,einvoice.document.user,model_l10n_cr_einvoice_document,account.group_account_invoice,1,1,1,0
+access_einvoice_document_manager,einvoice.document.manager,model_l10n_cr_einvoice_document,account.group_account_manager,1,1,1,1
+access_einvoice_document_readonly,einvoice.document.readonly,model_l10n_cr_einvoice_document,account.group_account_readonly,1,0,0,0
+access_batch_einvoice_wizard_user,batch.einvoice.wizard.user,model_l10n_cr_batch_einvoice_wizard,account.group_account_invoice,1,1,1,1
+access_batch_submit_wizard_user,batch.submit.wizard.user,model_l10n_cr_batch_submit_wizard,account.group_account_invoice,1,1,1,1
+access_batch_check_status_wizard_user,batch.check.status.wizard.user,model_l10n_cr_batch_check_status_wizard,account.group_account_invoice,1,1,1,1
+access_payment_method_user,payment.method.user,model_l10n_cr_payment_method,base.group_user,1,0,0,0
+access_payment_method_invoice,payment.method.invoice,model_l10n_cr_payment_method,account.group_account_invoice,1,1,0,0
+access_payment_method_manager,payment.method.manager,model_l10n_cr_payment_method,account.group_account_manager,1,1,1,1
+access_discount_code_all,discount.code.all,model_l10n_cr_discount_code,base.group_user,1,0,0,0
+access_discount_code_accountant,discount.code.accountant,model_l10n_cr_discount_code,account.group_account_invoice,1,1,0,0
+access_discount_code_manager,discount.code.manager,model_l10n_cr_discount_code,account.group_account_manager,1,1,1,1
+access_ciiu_code_all,ciiu.code.all,model_l10n_cr_ciiu_code,base.group_user,1,0,0,0
+access_ciiu_code_accountant,ciiu.code.accountant,model_l10n_cr_ciiu_code,account.group_account_manager,1,1,1,1

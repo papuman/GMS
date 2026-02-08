@@ -1,0 +1,276 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo noupdate="1">
+        <!-- Email Template: Void Confirmation for Gym Members -->
+        <record id="email_template_void_confirmation" model="mail.template">
+            <field name="name">Costa Rica - Void Invoice Confirmation (Gym)</field>
+            <field name="model">l10n_cr.gym.invoice.void.wizard</field>
+            <field name="subject">Confirmación de Anulación de Factura ${object.invoice_number}</field>
+            <field name="email_from">${object.invoice_id.company_id.email or user.email or ''}</field>
+            <field name="email_to">${object.partner_id.email}</field>
+            <field name="lang">${object.partner_id.lang}</field>
+            <field name="auto_delete" eval="True"/>
+            <field name="body_html" type="html">
+<![CDATA[
+<div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-size: 14px; color: #333; max-width: 700px; margin: 0 auto;">
+    <!-- Header with gym branding -->
+    <table width="100%" cellpadding="0" cellspacing="0" style="background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); color: white; padding: 30px 20px; border-radius: 8px 8px 0 0;">
+        <tr>
+            <td style="text-align: center;">
+                % if object.invoice_id.company_id.logo:
+                <img src="/logo.png?company=${object.invoice_id.company_id.id}" alt="${object.invoice_id.company_id.name}" style="max-height: 60px; margin-bottom: 15px;"/>
+                % endif
+                <h1 style="margin: 0; font-size: 28px; font-weight: 300;">
+                    Confirmación de Anulación
+                </h1>
+                <div style="margin-top: 10px; padding: 8px 16px; background-color: rgba(255,255,255,0.2); border-radius: 20px; display: inline-block;">
+                    <strong style="font-size: 16px;">Factura Anulada</strong>
+                </div>
+            </td>
+        </tr>
+    </table>
+
+    <!-- Body content -->
+    <table width="100%" cellpadding="0" cellspacing="0" style="background-color: white; padding: 30px 20px; border-left: 1px solid #e0e0e0; border-right: 1px solid #e0e0e0;">
+        <tr>
+            <td>
+                <p style="font-size: 16px; margin: 0 0 20px 0;">
+                    Estimado/a <strong>${object.partner_id.name}</strong>,
+                </p>
+
+                <p style="margin: 0 0 20px 0; line-height: 1.6;">
+                    Le confirmamos que su factura ha sido <strong>anulada exitosamente</strong> y se ha generado
+                    una Nota de Crédito Electrónica conforme a los requisitos del Ministerio de Hacienda de Costa Rica.
+                </p>
+
+                <!-- Invoice Details Card -->
+                <div style="background-color: #f8f9fa; border-left: 4px solid #6366f1; padding: 20px; margin: 20px 0; border-radius: 4px;">
+                    <h3 style="margin: 0 0 15px 0; color: #6366f1;">Detalles de la Anulación</h3>
+                    <table width="100%" cellpadding="8" cellspacing="0">
+                        <tr>
+                            <td style="width: 45%; color: #666;"><strong>Factura Anulada:</strong></td>
+                            <td><strong>${object.invoice_number}</strong></td>
+                        </tr>
+                        <tr>
+                            <td style="color: #666;"><strong>Monto:</strong></td>
+                            <td>
+                                <strong style="font-size: 18px; color: #6366f1;">
+                                    ${object.currency_id.symbol} ${'{:,.2f}'.format(object.amount_total)}
+                                </strong>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td style="color: #666;"><strong>Razón:</strong></td>
+                            <td>${dict(object._fields['void_reason'].selection).get(object.void_reason, 'N/A')}</td>
+                        </tr>
+                        % if object.credit_note_id:
+                        <tr>
+                            <td style="color: #666;"><strong>Nota de Crédito:</strong></td>
+                            <td><strong>${object.credit_note_id.name}</strong></td>
+                        </tr>
+                        % endif
+                        % if object.credit_note_einvoice_id and object.credit_note_einvoice_id.clave:
+                        <tr>
+                            <td style="color: #666;"><strong>Clave Numérica NC:</strong></td>
+                            <td style="font-family: 'Courier New', monospace; font-size: 11px; word-break: break-all;">
+                                ${object.credit_note_einvoice_id.clave}
+                            </td>
+                        </tr>
+                        % endif
+                    </table>
+                </div>
+
+                <!-- Refund Information -->
+                <div style="background-color: #d1fae5; border-left: 4px solid #10b981; padding: 20px; margin: 20px 0; border-radius: 4px;">
+                    <h3 style="margin: 0 0 15px 0; color: #059669;">Información de Devolución</h3>
+                    <table width="100%" cellpadding="8" cellspacing="0">
+                        <tr>
+                            <td style="width: 45%; color: #065f46;"><strong>Método de Devolución:</strong></td>
+                            <td style="color: #065f46;">
+                                <strong>${dict(object._fields['refund_method'].selection).get(object.refund_method, 'N/A')}</strong>
+                            </td>
+                        </tr>
+                        % if object.refund_reference:
+                        <tr>
+                            <td style="color: #065f46;"><strong>Referencia:</strong></td>
+                            <td style="color: #065f46;">${object.refund_reference}</td>
+                        </tr>
+                        % endif
+                        % if object.refund_bank_account:
+                        <tr>
+                            <td style="color: #065f46;"><strong>Cuenta Bancaria:</strong></td>
+                            <td style="color: #065f46;">${object.refund_bank_account}</td>
+                        </tr>
+                        % endif
+                        <tr>
+                            <td style="color: #065f46;"><strong>Monto a Devolver:</strong></td>
+                            <td style="color: #065f46;">
+                                <strong>${object.currency_id.symbol} ${'{:,.2f}'.format(object.amount_total)}</strong>
+                            </td>
+                        </tr>
+                    </table>
+
+                    % if object.refund_method == 'cash':
+                    <div style="margin-top: 15px; padding: 10px; background-color: #fef3c7; border-radius: 4px;">
+                        <p style="margin: 0; color: #92400e; font-size: 13px;">
+                            <strong>Instrucciones:</strong> Por favor, acérquese a nuestras instalaciones para
+                            recibir su devolución en efectivo. Traiga una identificación válida.
+                        </p>
+                    </div>
+                    % elif object.refund_method == 'transfer':
+                    <div style="margin-top: 15px; padding: 10px; background-color: #dbeafe; border-radius: 4px;">
+                        <p style="margin: 0; color: #1e40af; font-size: 13px;">
+                            <strong>Instrucciones:</strong> La devolución se procesará mediante transferencia bancaria
+                            a la cuenta indicada en un plazo de 3-5 días hábiles.
+                        </p>
+                    </div>
+                    % elif object.refund_method == 'credit':
+                    <div style="margin-top: 15px; padding: 10px; background-color: #ede9fe; border-radius: 4px;">
+                        <p style="margin: 0; color: #5b21b6; font-size: 13px;">
+                            <strong>Instrucciones:</strong> Se ha generado un crédito en su cuenta que puede utilizar
+                            para futuras compras o servicios en nuestras instalaciones.
+                        </p>
+                    </div>
+                    % elif object.refund_method == 'card':
+                    <div style="margin-top: 15px; padding: 10px; background-color: #dbeafe; border-radius: 4px;">
+                        <p style="margin: 0; color: #1e40af; font-size: 13px;">
+                            <strong>Instrucciones:</strong> La devolución se procesará a la tarjeta de crédito/débito
+                            utilizada en la compra original en un plazo de 5-10 días hábiles.
+                        </p>
+                    </div>
+                    % endif
+
+                    % if object.refund_notes:
+                    <div style="margin-top: 15px;">
+                        <p style="margin: 0; color: #065f46; font-size: 13px;">
+                            <strong>Notas adicionales:</strong><br/>
+                            ${object.refund_notes}
+                        </p>
+                    </div>
+                    % endif
+                </div>
+
+                <!-- Membership Cancellation (if applicable) -->
+                % if object.cancel_membership and object.has_membership:
+                <div style="background-color: #fee2e2; border-left: 4px solid #ef4444; padding: 20px; margin: 20px 0; border-radius: 4px;">
+                    <h3 style="margin: 0 0 15px 0; color: #dc2626;">Cancelación de Membresía</h3>
+                    <p style="margin: 0 0 10px 0; color: #7f1d1d;">
+                        Como parte de esta anulación, su(s) membresía(s) ha(n) sido cancelada(s):
+                    </p>
+                    <ul style="margin: 0; padding-left: 20px; color: #7f1d1d;">
+                        % for subscription in object.subscription_ids:
+                        <li>${subscription.code or subscription.name}</li>
+                        % endfor
+                    </ul>
+                    % if object.membership_cancellation_reason:
+                    <p style="margin: 15px 0 0 0; color: #7f1d1d; font-size: 13px;">
+                        <strong>Razón:</strong> ${object.membership_cancellation_reason}
+                    </p>
+                    % endif
+                </div>
+                % endif
+
+                <!-- Additional Notes -->
+                % if object.void_reason_notes:
+                <div style="background-color: #fef3c7; border-left: 4px solid #f59e0b; padding: 15px; margin: 20px 0; border-radius: 4px;">
+                    <p style="margin: 0; color: #92400e;"><strong>Notas:</strong></p>
+                    <p style="margin: 5px 0 0 0; color: #92400e; font-size: 13px;">
+                        ${object.void_reason_notes}
+                    </p>
+                </div>
+                % endif
+
+                <!-- Hacienda Verification -->
+                % if object.credit_note_einvoice_id and object.credit_note_einvoice_id.state == 'accepted':
+                <div style="background-color: #d1fae5; border: 1px solid #10b981; padding: 15px; margin: 20px 0; border-radius: 4px;">
+                    <p style="margin: 0 0 10px 0; color: #065f46;"><strong>Verificación Hacienda:</strong></p>
+                    <p style="margin: 0; font-size: 13px; color: #065f46;">
+                        La Nota de Crédito Electrónica ha sido <strong>aceptada por el Ministerio de Hacienda</strong>.
+                        Puede verificar su autenticidad ingresando la clave numérica en:
+                        <a href="https://tribunet.hacienda.go.cr" style="color: #059669;">tribunet.hacienda.go.cr</a>
+                    </p>
+                </div>
+                % endif
+
+                <!-- Attachments Notice -->
+                <p style="margin: 20px 0 10px 0; font-size: 13px; color: #666;">
+                    <strong>Documentos Adjuntos:</strong>
+                </p>
+                <ul style="margin: 0; padding-left: 20px; font-size: 13px; color: #666;">
+                    <li>Nota de Crédito Electrónica (PDF)</li>
+                    <li>Documento XML firmado digitalmente</li>
+                </ul>
+
+                <!-- Contact Information -->
+                <div style="background-color: #f8f9fa; border-radius: 4px; padding: 15px; margin: 20px 0;">
+                    <p style="margin: 0 0 10px 0; color: #666; font-size: 13px;">
+                        <strong>¿Tiene preguntas sobre esta anulación?</strong>
+                    </p>
+                    <p style="margin: 0; color: #666; font-size: 13px;">
+                        No dude en contactarnos:
+                    </p>
+                    <ul style="margin: 5px 0 0 0; padding-left: 20px; font-size: 13px; color: #666;">
+                        % if object.invoice_id.company_id.phone:
+                        <li>Teléfono: ${object.invoice_id.company_id.phone}</li>
+                        % endif
+                        % if object.invoice_id.company_id.email:
+                        <li>Email: ${object.invoice_id.company_id.email}</li>
+                        % endif
+                    </ul>
+                </div>
+
+                <p style="margin: 20px 0 10px 0;">
+                    Lamentamos que haya tenido que realizar esta anulación. Si hay algo que podamos hacer
+                    para mejorar nuestro servicio, por favor háganoslo saber.
+                </p>
+
+                <p style="margin: 20px 0 0 0;">
+                    Atentamente,<br/>
+                    <strong>${object.invoice_id.company_id.name}</strong>
+                </p>
+            </td>
+        </tr>
+    </table>
+
+    <!-- Footer -->
+    <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f8f9fa; padding: 20px; border-radius: 0 0 8px 8px; border: 1px solid #e0e0e0; border-top: none;">
+        <tr>
+            <td style="text-align: center; font-size: 12px; color: #6c757d;">
+                <p style="margin: 0 0 10px 0;">
+                    <strong>Documento Electrónico Autorizado</strong><br/>
+                    Ministerio de Hacienda - Costa Rica
+                </p>
+                <p style="margin: 0;">
+                    ${object.invoice_id.company_id.name}
+                    % if object.invoice_id.company_id.vat:
+                    | Cédula Jurídica: ${object.invoice_id.company_id.vat}
+                    % endif
+                    <br/>
+                    % if object.invoice_id.company_id.street:
+                    ${object.invoice_id.company_id.street}
+                    % if object.invoice_id.company_id.city:
+                    , ${object.invoice_id.company_id.city}
+                    % endif
+                    <br/>
+                    % endif
+                    % if object.invoice_id.company_id.phone:
+                    Tel: ${object.invoice_id.company_id.phone}
+                    % endif
+                    % if object.invoice_id.company_id.email:
+                    | Email: ${object.invoice_id.company_id.email}
+                    % endif
+                    % if object.invoice_id.company_id.website:
+                    <br/>Web: ${object.invoice_id.company_id.website}
+                    % endif
+                </p>
+                <p style="margin: 10px 0 0 0; font-size: 10px; color: #999;">
+                    Este es un correo automático. Por favor no responda directamente a este mensaje.
+                </p>
+            </td>
+        </tr>
+    </table>
+</div>
+]]>
+            </field>
+        </record>
+
+</odoo>

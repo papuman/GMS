@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TiloPay - Pago Exitoso - Mockup</title>
+
+    <!-- FontAwesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+
+    <!-- Our custom styles -->
+    <link rel="stylesheet" href="src/css/payment_portal.css">
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: #f9fafb;
+            padding: 20px 0;
+        }
+
+        .mockup-header {
+            background: white;
+            padding: 1rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            margin-bottom: 2rem;
+        }
+
+        .mockup-header h1 {
+            font-size: 1.5rem;
+            color: #10b981;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <!-- Simple header -->
+    <div class="mockup-header">
+        <h1>
+            <i class="fa fa-check-circle"></i>
+            Pago Completado
+        </h1>
+    </div>
+
+    <!-- Main container -->
+    <div class="tilopay-payment-container">
+        <div class="tilopay-payment-card tilopay-payment-status" data-payment-status="success">
+            <!-- Header -->
+            <div class="tilopay-payment-card-header success">
+                <h1>
+                    <i class="fa fa-check-circle" aria-hidden="true"></i>
+                    ¡Pago Exitoso!
+                </h1>
+            </div>
+
+            <!-- Body -->
+            <div class="tilopay-payment-card-body tilopay-text-center">
+                <!-- Animated Success Icon -->
+                <svg class="tilopay-checkmark" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52" aria-hidden="true">
+                    <circle class="tilopay-checkmark-circle" cx="26" cy="26" r="25" fill="none"/>
+                    <path class="tilopay-checkmark-check" fill="none" d="M14.1 27.2l7.1 7.2 16.7-16.8"/>
+                </svg>
+
+                <h2 class="tilopay-mb-md" style="font-size: 1.5rem; color: var(--tilopay-gray-900);">
+                    Su pago ha sido procesado exitosamente
+                </h2>
+
+                <p class="tilopay-mb-lg" style="font-size: 1.125rem; color: var(--tilopay-gray-600);">
+                    Gracias por su pago. Hemos recibido su transacción correctamente.
+                </p>
+
+                <!-- Transaction Details -->
+                <div class="tilopay-transaction-details tilopay-text-left">
+                    <h3 style="font-size: 1rem; margin-bottom: 1rem; color: var(--tilopay-gray-900);">
+                        Detalles de la Transacción
+                    </h3>
+
+                    <div class="tilopay-detail-row">
+                        <span class="tilopay-detail-label">Referencia:</span>
+                        <span class="tilopay-detail-value">TXN-2024-12-28-001234</span>
+                    </div>
+
+                    <div class="tilopay-detail-row">
+                        <span class="tilopay-detail-label">Monto Pagado:</span>
+                        <span class="tilopay-detail-value">₡45,000.00</span>
+                    </div>
+
+                    <div class="tilopay-detail-row">
+                        <span class="tilopay-detail-label">Método de Pago:</span>
+                        <span class="tilopay-detail-value">SINPE Móvil</span>
+                    </div>
+
+                    <div class="tilopay-detail-row">
+                        <span class="tilopay-detail-label">ID de Transacción:</span>
+                        <span class="tilopay-detail-value">TILO-5678-9012-3456</span>
+                    </div>
+
+                    <div class="tilopay-detail-row">
+                        <span class="tilopay-detail-label">Fecha y Hora:</span>
+                        <span class="tilopay-detail-value">28 de Diciembre, 2024 - 14:35</span>
+                    </div>
+                </div>
+
+                <!-- Info Alert -->
+                <div class="tilopay-alert tilopay-alert-success tilopay-mt-lg" role="status">
+                    <i class="fa fa-envelope tilopay-alert-icon" aria-hidden="true"></i>
+                    <div class="tilopay-alert-content">
+                        <strong>Factura Electrónica:</strong>
+                        Recibirá su factura electrónica por correo electrónico en los próximos minutos.
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="tilopay-btn-group tilopay-mt-xl">
+                    <a href="mockup_payment_form.html" class="tilopay-btn tilopay-btn-primary">
+                        <i class="fa fa-file-text tilopay-btn-icon" aria-hidden="true"></i>
+                        Ver Mis Facturas
+                    </a>
+
+                    <a href="#" class="tilopay-btn tilopay-btn-secondary">
+                        <i class="fa fa-eye tilopay-btn-icon" aria-hidden="true"></i>
+                        Ver Detalles de Factura
+                    </a>
+                </div>
+
+                <!-- Print Receipt Link -->
+                <div class="tilopay-mt-lg">
+                    <a href="javascript:window.print()"
+                       class="tilopay-badge"
+                       style="cursor: pointer; text-decoration: none;">
+                        <i class="fa fa-print" aria-hidden="true"></i>
+                        <span>Imprimir Recibo</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

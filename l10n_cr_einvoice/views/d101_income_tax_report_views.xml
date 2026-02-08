@@ -1,0 +1,236 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- D-101 Income Tax Report Tree View -->
+    <record id="view_d101_report_list" model="ir.ui.view">
+        <field name="name">l10n_cr.d101.report.list</field>
+        <field name="model">l10n_cr.d101.report</field>
+        <field name="arch" type="xml">
+            <list string="D-101 Income Tax Reports" decoration-success="state=='accepted'" decoration-info="state=='ready'" decoration-warning="state=='submitted'" decoration-danger="state=='error'">
+                <field name="name"/>
+                <field name="period_id"/>
+                <field name="company_id" groups="base.group_multi_company"/>
+                <field name="total_gross_income" sum="Total Gross Income" widget="monetary"/>
+                <field name="taxable_income" sum="Taxable Income" widget="monetary"/>
+                <field name="total_income_tax" sum="Total Tax" widget="monetary"/>
+                <field name="state" widget="badge" decoration-success="state=='accepted'" decoration-info="state=='ready'" decoration-warning="state=='submitted'" decoration-muted="state=='draft'" decoration-danger="state=='error'"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- D-101 Income Tax Report Form View -->
+    <record id="view_d101_report_form" model="ir.ui.view">
+        <field name="name">l10n_cr.d101.report.form</field>
+        <field name="model">l10n_cr.d101.report</field>
+        <field name="arch" type="xml">
+            <form string="D-101 Income Tax Report">
+                <header>
+                    <button name="action_calculate" string="Calculate" type="object" class="oe_highlight" invisible="state != 'draft'" confirm="This will recalculate all income tax amounts. Continue?"/>
+                    <button name="action_generate_xml" string="Generate XML" type="object" class="oe_highlight" invisible="state not in ['calculated', 'ready']"/>
+                    <button name="action_sign_xml" string="Sign XML" type="object" class="oe_highlight" invisible="state != 'ready' or not xml_content"/>
+                    <button name="action_submit_to_hacienda" string="Submit to Hacienda" type="object" class="oe_highlight" invisible="state != 'ready' or not xml_signed" confirm="Submit this income tax declaration to Hacienda?"/>
+                    <button name="action_check_status" string="Check Status" type="object" invisible="state not in ['submitted']"/>
+                    <button name="action_reset_to_draft" string="Reset to Draft" type="object" invisible="state in ['submitted', 'accepted']" confirm="This will reset the report to draft state. Continue?"/>
+                    <field name="state" widget="statusbar" statusbar_visible="draft,calculated,ready,submitted,accepted"/>
+                </header>
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <!-- Smart buttons can be added here in future -->
+                    </div>
+
+                    <div class="oe_title">
+                        <h1>
+                            <field name="name" readonly="1"/>
+                        </h1>
+                    </div>
+
+                    <group>
+                        <group>
+                            <field name="period_id" required="1" readonly="state != 'draft'"/>
+                            <field name="company_id" groups="base.group_multi_company" readonly="state != 'draft'"/>
+                        </group>
+                        <group>
+                            <field name="currency_id" invisible="1"/>
+                        </group>
+                    </group>
+
+                    <notebook>
+                        <page string="Gross Income (Ingresos Brutos)" name="gross_income">
+                            <group>
+                                <group string="Revenue Sources">
+                                    <field name="sales_revenue" readonly="state != 'draft'" widget="monetary"/>
+                                    <field name="other_income" readonly="state != 'draft'" widget="monetary"/>
+                                </group>
+                                <group string="Total Gross Income">
+                                    <field name="total_gross_income" readonly="1" class="oe_subtotal_footer_separator" widget="monetary"/>
+                                </group>
+                            </group>
+                        </page>
+
+                        <page string="Deductible Expenses (Gastos Deducibles)" name="expenses">
+                            <group>
+                                <group string="Direct Costs">
+                                    <field name="cost_of_goods_sold" readonly="state != 'draft'" widget="monetary"/>
+                                </group>
+                                <group string="Operating Expenses">
+                                    <field name="operating_expenses" readonly="state != 'draft'" widget="monetary" help="Salaries, rent, utilities, etc."/>
+                                </group>
+                            </group>
+                            <group>
+                                <group string="Other Deductible Expenses">
+                                    <field name="depreciation" readonly="state != 'draft'" widget="monetary"/>
+                                    <field name="financial_expenses" readonly="state != 'draft'" widget="monetary" help="Interest, bank fees"/>
+                                    <field name="other_deductible_expenses" readonly="state != 'draft'" widget="monetary"/>
+                                </group>
+                                <group string="Total Deductible Expenses">
+                                    <field name="total_deductible_expenses" readonly="1" class="oe_subtotal_footer_separator" widget="monetary"/>
+                                </group>
+                            </group>
+                        </page>
+
+                        <page string="Taxable Income Calculation" name="tax_calculation">
+                            <group>
+                                <group string="Net Income">
+                                    <field name="total_gross_income" readonly="1" widget="monetary"/>
+                                    <field name="total_deductible_expenses" readonly="1" widget="monetary"/>
+                                    <field name="net_income_before_adjustments" readonly="1" class="oe_subtotal_footer_separator" widget="monetary"/>
+                                </group>
+                                <group string="Adjustments">
+                                    <field name="tax_loss_carryforward" readonly="state != 'draft'" widget="monetary" help="Losses from previous years (max 3 years)"/>
+                                    <field name="non_deductible_expenses" readonly="state != 'draft'" widget="monetary" help="Expenses rejected by Hacienda"/>
+                                </group>
+                            </group>
+                            <separator/>
+                            <group>
+                                <group string="Final Taxable Income">
+                                    <field name="taxable_income" readonly="1" class="oe_subtotal_footer_separator" widget="monetary"/>
+                                </group>
+                                <group/>
+                            </group>
+
+                            <separator string="Tax Brackets (Progressive Rate)" invisible="total_gross_income &gt; 119626000"/>
+                            <group invisible="total_gross_income &gt; 119626000">
+                                <group string="Bracket 1 (0%): ₡0 - ₡4,000,000">
+                                    <field name="tax_bracket_0_amount" readonly="1"/>
+                                </group>
+                                <group string="Bracket 2 (10%): ₡4M - ₡8M">
+                                    <field name="tax_bracket_10_amount" readonly="1"/>
+                                </group>
+                            </group>
+                            <group invisible="total_gross_income &gt; 119626000">
+                                <group string="Bracket 3 (15%): ₡8M - ₡16M">
+                                    <field name="tax_bracket_15_amount" readonly="1"/>
+                                </group>
+                                <group string="Bracket 4 (20%): ₡16M - ₡48M">
+                                    <field name="tax_bracket_20_amount" readonly="1"/>
+                                </group>
+                            </group>
+                            <group invisible="total_gross_income &gt; 119626000">
+                                <group string="Bracket 5 (25%): Over ₡48M">
+                                    <field name="tax_bracket_25_amount" readonly="1"/>
+                                </group>
+                                <group>
+                                </group>
+                            </group>
+
+                            <div class="alert alert-warning" role="alert" invisible="total_gross_income &lt;= 119626000">
+                                <strong>Large Entity:</strong> Gross income exceeds ₡119,626,000. Flat 30% tax rate applies.
+                            </div>
+
+                            <group>
+                                <group string="Credits and Withholdings">
+                                    <field name="advance_payments" readonly="state != 'draft'" widget="monetary"/>
+                                    <field name="withholdings" readonly="state != 'draft'" widget="monetary"/>
+                                    <field name="tax_credits" readonly="state != 'draft'" widget="monetary" help="Other tax credits"/>
+                                </group>
+                                <group string="Tax Calculation Summary">
+                                    <field name="total_income_tax" readonly="1" class="oe_subtotal_footer_separator" widget="monetary"/>
+                                    <field name="net_tax_due" readonly="1" class="oe_subtotal_footer_separator" widget="monetary" decoration-danger="net_tax_due &gt; 0" decoration-success="net_tax_due &lt;= 0"/>
+                                    <field name="amount_to_pay" readonly="1" invisible="net_tax_due &lt;= 0" widget="monetary"/>
+                                    <field name="refund_amount" readonly="1" invisible="net_tax_due &gt; 0" widget="monetary"/>
+                                </group>
+                            </group>
+
+                            <div class="alert alert-info" role="alert" invisible="net_tax_due &lt;= 0">
+                                <strong>Tax Payable:</strong> This amount must be paid to Hacienda by March 15.
+                            </div>
+                            <div class="alert alert-success" role="alert" invisible="net_tax_due &gt; 0">
+                                <strong>Tax Overpaid:</strong> This amount may be refunded or credited to next year.
+                            </div>
+                        </page>
+
+                        <page string="Hacienda Submission" name="submission" invisible="state in ['draft', 'calculated']">
+                            <group>
+                                <group>
+                                    <field name="submission_key" readonly="1"/>
+                                    <field name="submission_date" readonly="1"/>
+                                </group>
+                                <group>
+                                    <field name="acceptance_date" readonly="1"/>
+                                    <field name="hacienda_message" readonly="1"/>
+                                </group>
+                            </group>
+                            <group string="XML Content">
+                                <field name="xml_content" widget="ace" options="{'mode': 'xml'}" readonly="1"/>
+                            </group>
+                            <group string="Signed XML" invisible="not xml_signed">
+                                <field name="xml_signed" widget="ace" options="{'mode': 'xml'}" readonly="1"/>
+                            </group>
+                        </page>
+
+                        <page string="Notes" name="notes">
+                            <field name="notes" placeholder="Internal notes about this income tax declaration..."/>
+                        </page>
+                    </notebook>
+                </sheet>
+                <div class="oe_chatter">
+                    <field name="message_follower_ids"/>
+                    <field name="activity_ids"/>
+                    <field name="message_ids"/>
+                </div>
+            </form>
+        </field>
+    </record>
+
+    <!-- D-101 Income Tax Report Search View -->
+    <record id="view_d101_report_search" model="ir.ui.view">
+        <field name="name">l10n_cr.d101.report.search</field>
+        <field name="model">l10n_cr.d101.report</field>
+        <field name="arch" type="xml">
+            <search string="D-101 Income Tax Reports">
+                <field name="name"/>
+                <field name="period_id"/>
+                <filter string="Draft" name="filter_draft" domain="[('state', '=', 'draft')]"/>
+                <filter string="Calculated" name="filter_calculated" domain="[('state', '=', 'calculated')]"/>
+                <filter string="Ready" name="filter_ready" domain="[('state', '=', 'ready')]"/>
+                <filter string="Submitted" name="filter_submitted" domain="[('state', '=', 'submitted')]"/>
+                <filter string="Accepted" name="filter_accepted" domain="[('state', '=', 'accepted')]"/>
+                <filter string="Errors" name="filter_error" domain="[('state', '=', 'error')]"/>
+                <separator/>
+                <filter string="Tax Payable" name="filter_payable" domain="[('net_tax_due', '&gt;', 0)]"/>
+                <filter string="Tax Overpaid" name="filter_overpaid" domain="[('net_tax_due', '&lt;=', 0)]"/>
+                <separator/>
+                <filter string="Period" name="group_period" context="{'group_by': 'period_id'}"/>
+                <filter string="State" name="group_state" context="{'group_by': 'state'}"/>
+                <filter string="Company" name="group_company" context="{'group_by': 'company_id'}" groups="base.group_multi_company"/>
+            </search>
+        </field>
+    </record>
+
+    <!-- D-101 Income Tax Report Action -->
+    <record id="action_d101_report" model="ir.actions.act_window">
+        <field name="name">D-101 Income Tax Declarations</field>
+        <field name="res_model">l10n_cr.d101.report</field>
+        <field name="view_mode">list,form</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Create a new D-101 Income Tax Declaration
+            </p>
+            <p>
+                The D-101 annual income tax declaration reports gross income, deductible expenses,
+                and calculates income tax using progressive brackets or flat rate, then submits to Hacienda.
+            </p>
+        </field>
+    </record>
+
+</odoo>

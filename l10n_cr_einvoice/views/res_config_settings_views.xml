@@ -33,18 +33,18 @@
                         <div class="col-12 col-lg-6 o_setting_box">
                             <div class="o_setting_left_pane"/>
                             <div class="o_setting_right_pane">
-                                <label for="l10n_cr_hacienda_username" string="API Credentials"/>
+                                <label for="l10n_cr_active_username" string="API Credentials"/>
                                 <div class="text-muted mb-2">
                                     Hacienda API authentication credentials
                                 </div>
                                 <div class="content-group">
                                     <div class="row mt8">
-                                        <label for="l10n_cr_hacienda_username" string="Username" class="col-lg-3 o_light_label"/>
-                                        <field name="l10n_cr_hacienda_username" placeholder="cpj-xxx-xxxxxx"/>
+                                        <label for="l10n_cr_active_username" string="Username" class="col-lg-3 o_light_label"/>
+                                        <field name="l10n_cr_active_username" placeholder="cpj-xxx-xxxxxx"/>
                                     </div>
                                     <div class="row mt8">
-                                        <label for="l10n_cr_hacienda_password" string="Password" class="col-lg-3 o_light_label"/>
-                                        <field name="l10n_cr_hacienda_password" password="True" placeholder="API Password"/>
+                                        <label for="l10n_cr_active_password" string="Password" class="col-lg-3 o_light_label"/>
+                                        <field name="l10n_cr_active_password" password="True" placeholder="API Password"/>
                                     </div>
                                 </div>
                                 <div class="mt8">
@@ -65,28 +65,28 @@
                         <div class="col-12 o_setting_box">
                             <div class="o_setting_left_pane"/>
                             <div class="o_setting_right_pane">
-                                <label for="l10n_cr_certificate" string="Digital Certificate"/>
+                                <label for="l10n_cr_active_certificate" string="Digital Certificate"/>
                                 <div class="text-muted mb-2">
                                     Upload your X.509 digital certificate and private key for signing electronic invoices
                                 </div>
                                 <div class="content-group">
                                     <div class="row mt8">
-                                        <label for="l10n_cr_certificate" string="Certificate (.crt or .pem)" class="col-lg-3 o_light_label"/>
-                                        <field name="l10n_cr_certificate" filename="l10n_cr_certificate_filename"/>
-                                        <field name="l10n_cr_certificate_filename" invisible="1"/>
+                                        <label for="l10n_cr_active_certificate" string="Certificate (.p12 / .pem)" class="col-lg-3 o_light_label"/>
+                                        <field name="l10n_cr_active_certificate" filename="l10n_cr_active_certificate_filename"/>
+                                        <field name="l10n_cr_active_certificate_filename" invisible="1"/>
                                     </div>
                                     <div class="row mt8">
-                                        <label for="l10n_cr_private_key" string="Private Key (.key or .pem)" class="col-lg-3 o_light_label"/>
-                                        <field name="l10n_cr_private_key" filename="l10n_cr_private_key_filename"/>
-                                        <field name="l10n_cr_private_key_filename" invisible="1"/>
+                                        <label for="l10n_cr_active_private_key" string="Private Key (.key or .pem)" class="col-lg-3 o_light_label"/>
+                                        <field name="l10n_cr_active_private_key" filename="l10n_cr_active_private_key_filename"/>
+                                        <field name="l10n_cr_active_private_key_filename" invisible="1"/>
                                     </div>
                                     <div class="row mt8">
-                                        <label for="l10n_cr_key_password" string="Key Password (if encrypted)" class="col-lg-3 o_light_label"/>
-                                        <field name="l10n_cr_key_password" password="True" placeholder="Leave empty if not encrypted"/>
+                                        <label for="l10n_cr_active_key_password" string="Key Password (if encrypted)" class="col-lg-3 o_light_label"/>
+                                        <field name="l10n_cr_active_key_password" password="True" placeholder="Leave empty if not encrypted"/>
                                     </div>
                                 </div>
                                 <div class="alert alert-info mt-3" role="alert">
-                                    <i class="fa fa-info-circle"/> The certificate must be issued by a recognized Costa Rican CA
+                                    <i class="fa fa-info-circle" title="Information"/> The certificate must be issued by a recognized Costa Rican CA
                                     and registered with Hacienda. For testing, you can use a self-signed certificate in Sandbox mode.
                                 </div>
                             </div>
@@ -107,6 +107,21 @@
                                 </div>
                                 <div class="text-muted mt-2">
                                     Example: 01010100 for San José, Carmen, Merced, La California
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Software Provider ID (v4.4 ProveedorSistemas) -->
+                        <div class="col-12 col-lg-6 o_setting_box">
+                            <div class="o_setting_left_pane"/>
+                            <div class="o_setting_right_pane">
+                                <label for="l10n_cr_proveedor_sistemas" string="Software Provider ID"/>
+                                <div class="text-muted mb-2">
+                                    Cedula of the software developer/provider (required by Hacienda v4.4).
+                                    If empty, the company VAT is used as fallback.
+                                </div>
+                                <div class="content-group">
+                                    <field name="l10n_cr_proveedor_sistemas" placeholder="3101XXXXXX"/>
                                 </div>
                             </div>
                         </div>
@@ -181,7 +196,7 @@
                         <div class="col-12">
                             <div class="alert alert-info" role="alert">
                                 <h4 class="alert-heading">
-                                    <i class="fa fa-info-circle"/> Getting Started with Costa Rica E-Invoicing
+                                    <i class="fa fa-info-circle" title="Information"/> Getting Started with Costa Rica E-Invoicing
                                 </h4>
                                 <ol class="mb-0">
                                     <li>Register your company with Hacienda and obtain API credentials</li>

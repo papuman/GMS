@@ -1,0 +1,172 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Partner Form View Extension - Add Economic Activity Field -->
+    <record id="view_partner_form_ciiu" model="ir.ui.view">
+        <field name="name">res.partner.form.ciiu</field>
+        <field name="model">res.partner</field>
+        <field name="inherit_id" ref="base.view_partner_form"/>
+        <field name="arch" type="xml">
+            <!-- Add economic activity field in Costa Rica section -->
+            <xpath expr="//field[@name='vat']" position="after">
+                <!-- Show only for Costa Rica partners -->
+                <field name="l10n_cr_economic_activity_id"
+                       options="{'no_create': True}"
+                       invisible="country_code != 'CR'"/>
+
+                <!-- Show suggested code if available -->
+                <div class="alert alert-info"
+                     invisible="not l10n_cr_suggested_ciiu_id or l10n_cr_economic_activity_id">
+                    <p>
+                        <strong>Suggested Economic Activity:</strong>
+                        <field name="l10n_cr_suggested_ciiu_id" readonly="1" force_save="1"/>
+                    </p>
+                    <button name="action_use_suggested_ciiu"
+                            string="Use Suggested Code"
+                            type="object"
+                            class="btn-sm btn-primary"
+                            icon="fa-check"/>
+                </div>
+
+                <!-- Warning for missing CIIU code -->
+                <div class="alert alert-warning"
+                     invisible="not l10n_cr_missing_ciiu">
+                    <p>
+                        <strong>Warning:</strong> This Costa Rica partner is missing an economic activity code.
+                        Economic activity (CIIU code) will be <strong>REQUIRED for all e-invoices from October 6, 2025</strong>.
+                    </p>
+                </div>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- Partner List View Extension - Add Economic Activity Column -->
+    <record id="view_partner_tree_ciiu" model="ir.ui.view">
+        <field name="name">res.partner.tree.ciiu</field>
+        <field name="model">res.partner</field>
+        <field name="inherit_id" ref="base.view_partner_tree"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='phone']" position="after">
+                <field name="l10n_cr_economic_activity_id" optional="hide"/>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- Filter: Partners Missing Economic Activity -->
+    <record id="view_partner_search_ciiu" model="ir.ui.view">
+        <field name="name">res.partner.search.ciiu</field>
+        <field name="model">res.partner</field>
+        <field name="inherit_id" ref="base.view_res_partner_filter"/>
+        <field name="arch" type="xml">
+            <xpath expr="//filter[@name='inactive']" position="after">
+                <separator/>
+                <filter name="missing_ciiu"
+                        string="Missing Economic Activity"
+                        domain="[('l10n_cr_missing_ciiu', '=', True)]"
+                        help="Costa Rica partners missing CIIU economic activity code"/>
+            </xpath>
+            <xpath expr="//group" position="inside">
+                <filter name="group_by_economic_activity"
+                        string="Economic Activity"
+                        context="{'group_by': 'l10n_cr_economic_activity_id'}"/>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- CIIU Code Form View -->
+    <record id="view_ciiu_code_form" model="ir.ui.view">
+        <field name="name">l10n_cr.ciiu.code.form</field>
+        <field name="model">l10n_cr.ciiu.code</field>
+        <field name="arch" type="xml">
+            <form string="CIIU Economic Activity Code">
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="action_view_partners"
+                                type="object"
+                                class="oe_stat_button"
+                                icon="fa-users"
+                                invisible="partner_count == 0">
+                            <field name="partner_count" widget="statinfo" string="Partners"/>
+                        </button>
+                    </div>
+                    <widget name="web_ribbon" title="Archived" bg_color="bg-danger"
+                            invisible="active"/>
+                    <group>
+                        <group>
+                            <field name="code"/>
+                            <field name="name"/>
+                            <field name="section"/>
+                        </group>
+                        <group>
+                            <field name="active"/>
+                        </group>
+                    </group>
+                    <group>
+                        <field name="description" placeholder="Extended description of this economic activity..."/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- CIIU Code Tree View -->
+    <record id="view_ciiu_code_list" model="ir.ui.view">
+        <field name="name">l10n_cr.ciiu.code.list</field>
+        <field name="model">l10n_cr.ciiu.code</field>
+        <field name="arch" type="xml">
+            <list string="CIIU Economic Activity Codes">
+                <field name="code"/>
+                <field name="name"/>
+                <field name="section"/>
+                <field name="partner_count"/>
+                <field name="active"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- TODO: Fix Odoo 19 search view validation -->
+    <!-- CIIU Code Search View -->
+    <!--
+    <record id="view_ciiu_code_search" model="ir.ui.view">
+        <field name="name">l10n_cr.ciiu.code.search</field>
+        <field name="model">l10n_cr.ciiu.code</field>
+        <field name="arch" type="xml">
+            <search string="CIIU Codes">
+                <field name="code"/>
+                <field name="name"/>
+                <field name="section"/>
+                <filter name="active" string="Active" domain="[('active', '=', True)]"/>
+                <filter name="inactive" string="Archived" domain="[('active', '=', False)]"/>
+                <separator/>
+                <group expand="0" string="Group By">
+                    <filter name="group_by_section" string="Section" context="{'group_by': 'section'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+    -->
+
+    <!-- CIIU Code Action -->
+    <record id="action_ciiu_code" model="ir.actions.act_window">
+        <field name="name">Economic Activity Codes (CIIU)</field>
+        <field name="res_model">l10n_cr.ciiu.code</field>
+        <field name="view_mode">list,form</field>
+        <field name="context">{'search_default_active': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Create a new CIIU economic activity code
+            </p>
+            <p>
+                CIIU 4 codes classify economic activities for Costa Rica e-invoicing.
+                These codes are required for recipient's economic activity from October 6, 2025.
+            </p>
+        </field>
+    </record>
+
+    <!-- Menu Item for CIIU Codes -->
+    <menuitem id="menu_ciiu_code"
+              name="Economic Activity Codes"
+              parent="account.account_account_menu"
+              action="action_ciiu_code"
+              sequence="50"/>
+
+</odoo>

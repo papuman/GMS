@@ -1,0 +1,151 @@
+version: '3.8'
+
+services:
+  # ===================================
+  # TRAEFIK REVERSE PROXY
+  # ===================================
+  traefik:
+    image: traefik:latest
+    container_name: gms_traefik
+    environment:
+      - DOCKER_API_VERSION=1.45
+    command:
+      - "--api.dashboard=true"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      - "--certificatesresolvers.letsencrypt.acme.httpchallenge=true"
+      - "--certificatesresolvers.letsencrypt.acme.httpchallenge.entrypoint=web"
+      - "--certificatesresolvers.letsencrypt.acme.email=${ACME_EMAIL}"
+      - "--certificatesresolvers.letsencrypt.acme.storage=/acme.json"
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./traefik/acme.json:/acme.json
+    networks:
+      - gms-network
+    restart: unless-stopped
+    labels:
+      - "traefik.enable=true"
+      # Dashboard
+      - "traefik.http.routers.traefik.rule=Host(`traefik.${DOMAIN_BASE}`)"
+      - "traefik.http.routers.traefik.entrypoints=websecure"
+      - "traefik.http.routers.traefik.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.traefik.service=api@internal"
+      - "traefik.http.routers.traefik.middlewares=auth"
+      - "traefik.http.middlewares.auth.basicauth.users=${TRAEFIK_AUTH}"
+
+  # ===================================
+  # STAGING ENVIRONMENT
+  # ===================================
+  postgres-stage:
+    image: postgres:13
+    container_name: gms_postgres_stage
+    environment:
+      POSTGRES_DB: gms_staging
+      POSTGRES_USER: odoo
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD_STAGE}
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - postgres-stage-data:/var/lib/postgresql/data/pgdata
+    networks:
+      - gms-network
+    restart: unless-stopped
+    shm_size: 1gb
+    command: postgres -c max_connections=150 -c shared_buffers=512MB -c effective_cache_size=2GB
+
+  odoo-stage:
+    image: odoo:19.0
+    container_name: gms_odoo_stage
+    depends_on:
+      - postgres-stage
+    environment:
+      HOST: postgres-stage
+      USER: odoo
+      PASSWORD: ${POSTGRES_PASSWORD_STAGE}
+      DB_NAME: gms_staging
+    volumes:
+      - ./staging/addons:/mnt/extra-addons:ro
+      - odoo-stage-data:/var/lib/odoo
+      - ./staging/odoo.conf:/etc/odoo/odoo.conf:ro
+    networks:
+      - gms-network
+    restart: unless-stopped
+    command: odoo --config=/etc/odoo/odoo.conf --log-level=info
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.odoo-stage.rule=Host(`stage.${DOMAIN_BASE}`)"
+      - "traefik.http.routers.odoo-stage.entrypoints=websecure"
+      - "traefik.http.routers.odoo-stage.tls.certresolver=letsencrypt"
+      - "traefik.http.services.odoo-stage.loadbalancer.server.port=8069"
+      # HTTP to HTTPS redirect
+      - "traefik.http.routers.odoo-stage-http.rule=Host(`stage.${DOMAIN_BASE}`)"
+      - "traefik.http.routers.odoo-stage-http.entrypoints=web"
+      - "traefik.http.routers.odoo-stage-http.middlewares=redirect-to-https"
+      - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
+
+  # ===================================
+  # PRODUCTION ENVIRONMENT
+  # ===================================
+  postgres-prod:
+    image: postgres:13
+    container_name: gms_postgres_prod
+    environment:
+      POSTGRES_DB: gms_production
+      POSTGRES_USER: odoo
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD_PROD}
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - postgres-prod-data:/var/lib/postgresql/data/pgdata
+    networks:
+      - gms-network
+    restart: unless-stopped
+    shm_size: 2gb
+    command: postgres -c max_connections=200 -c shared_buffers=1GB -c effective_cache_size=4GB -c work_mem=16MB
+
+  odoo-prod:
+    image: odoo:19.0
+    container_name: gms_odoo_prod
+    depends_on:
+      - postgres-prod
+    environment:
+      HOST: postgres-prod
+      USER: odoo
+      PASSWORD: ${POSTGRES_PASSWORD_PROD}
+      DB_NAME: gms_production
+    volumes:
+      - ./production/addons:/mnt/extra-addons:ro
+      - odoo-prod-data:/var/lib/odoo
+      - ./production/odoo.conf:/etc/odoo/odoo.conf:ro
+    networks:
+      - gms-network
+    restart: unless-stopped
+    command: odoo --config=/etc/odoo/odoo.conf --log-level=warn --workers=4
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.odoo-prod.rule=Host(`${DOMAIN_BASE}`)"
+      - "traefik.http.routers.odoo-prod.entrypoints=websecure"
+      - "traefik.http.routers.odoo-prod.tls.certresolver=letsencrypt"
+      - "traefik.http.services.odoo-prod.loadbalancer.server.port=8069"
+      # HTTP to HTTPS redirect
+      - "traefik.http.routers.odoo-prod-http.rule=Host(`${DOMAIN_BASE}`)"
+      - "traefik.http.routers.odoo-prod-http.entrypoints=web"
+      - "traefik.http.routers.odoo-prod-http.middlewares=redirect-to-https"
+      # Security headers
+      - "traefik.http.middlewares.secure-headers.headers.stsSeconds=31536000"
+      - "traefik.http.middlewares.secure-headers.headers.stsIncludeSubdomains=true"
+      - "traefik.http.middlewares.secure-headers.headers.stsPreload=true"
+      - "traefik.http.routers.odoo-prod.middlewares=secure-headers"
+
+volumes:
+  postgres-stage-data:
+  odoo-stage-data:
+  postgres-prod-data:
+  odoo-prod-data:
+
+networks:
+  gms-network:
+    driver: bridge

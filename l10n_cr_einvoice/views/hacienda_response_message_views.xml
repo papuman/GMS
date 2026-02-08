@@ -1,0 +1,173 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Hacienda Response Message Tree View -->
+    <record id="view_hacienda_response_message_list" model="ir.ui.view">
+        <field name="name">l10n_cr.hacienda.response.message.list</field>
+        <field name="model">l10n_cr.hacienda.response.message</field>
+        <field name="arch" type="xml">
+            <list string="Hacienda Response Messages" default_order="response_date desc">
+                <field name="name"/>
+                <field name="clave"/>
+                <field name="message_type" widget="badge"/>
+                <field name="status" widget="badge"
+                       decoration-success="status == 'aceptado'"
+                       decoration-danger="status == 'rechazado'"
+                       decoration-info="status in ['procesando', 'recibido']"/>
+                <field name="response_date"/>
+                <field name="has_error" widget="boolean" string="Error"/>
+                <field name="error_code"/>
+                <field name="is_final" widget="boolean"/>
+                <field name="company_id" groups="base.group_multi_company"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Hacienda Response Message Form View -->
+    <record id="view_hacienda_response_message_form" model="ir.ui.view">
+        <field name="name">l10n_cr.hacienda.response.message.form</field>
+        <field name="model">l10n_cr.hacienda.response.message</field>
+        <field name="arch" type="xml">
+            <form string="Hacienda Response Message">
+                <header>
+                    <button name="action_view_xml" type="object" string="View XML" class="oe_highlight"
+                            invisible="not decoded_xml and not raw_xml"/>
+                    <button name="action_download_xml" type="object" string="Download XML"
+                            invisible="not decoded_xml and not raw_xml"/>
+                </header>
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="action_view_document" type="object" class="oe_stat_button" icon="fa-file-text-o">
+                            <div class="o_field_widget o_stat_info">
+                                <span class="o_stat_text">View</span>
+                                <span class="o_stat_text">Document</span>
+                            </div>
+                        </button>
+                    </div>
+
+                    <div class="oe_title">
+                        <h1>
+                            <field name="display_name"/>
+                        </h1>
+                    </div>
+
+                    <group>
+                        <group name="response_info" string="Response Information">
+                            <field name="name"/>
+                            <field name="message_type" widget="badge"/>
+                            <field name="status" widget="badge"
+                                   decoration-success="status == 'aceptado'"
+                                   decoration-danger="status == 'rechazado'"
+                                   decoration-info="status in ['procesando', 'recibido']"/>
+                            <field name="response_date"/>
+                            <field name="response_number"/>
+                            <field name="is_final" widget="boolean"/>
+                        </group>
+
+                        <group name="document_info" string="Related Document">
+                            <field name="document_id"/>
+                            <field name="clave"/>
+                            <field name="company_id" groups="base.group_multi_company"/>
+                        </group>
+                    </group>
+
+                    <notebook>
+                        <page name="error_details" string="Error Details" invisible="not has_error">
+                            <group>
+                                <field name="has_error" invisible="1"/>
+                                <field name="error_code"/>
+                                <field name="error_description" widget="text"/>
+                            </group>
+                        </page>
+
+                        <page name="xml_content" string="XML Content">
+                            <group>
+                                <field name="base64_content" invisible="1"/>
+                                <field name="decoded_xml" widget="ace" options="{'mode': 'xml'}"
+                                       invisible="not decoded_xml"/>
+                                <field name="raw_xml" widget="text"
+                                       invisible="decoded_xml or not raw_xml"
+                                       readonly="1"/>
+                            </group>
+                        </page>
+
+                        <page name="raw_response" string="Raw Response">
+                            <field name="raw_xml" widget="text" readonly="1"/>
+                        </page>
+                    </notebook>
+                </sheet>
+                <div class="oe_chatter">
+                    <field name="message_follower_ids"/>
+                    <field name="message_ids"/>
+                </div>
+            </form>
+        </field>
+    </record>
+
+    <!-- Hacienda Response Message Search View -->
+    <record id="view_hacienda_response_message_search" model="ir.ui.view">
+        <field name="name">l10n_cr.hacienda.response.message.search</field>
+        <field name="model">l10n_cr.hacienda.response.message</field>
+        <field name="arch" type="xml">
+            <search string="Search Response Messages">
+                <field name="name" string="Message ID"/>
+                <field name="clave" string="Document Clave"/>
+                <field name="document_id"/>
+                <field name="status"/>
+                <field name="error_code"/>
+
+                <filter name="filter_acceptance" string="Acceptances"
+                        domain="[('message_type', '=', 'acceptance')]"/>
+                <filter name="filter_rejection" string="Rejections"
+                        domain="[('message_type', '=', 'rejection')]"/>
+                <filter name="filter_with_errors" string="With Errors"
+                        domain="[('has_error', '=', True)]"/>
+                <filter name="filter_final" string="Final Responses"
+                        domain="[('is_final', '=', True)]"/>
+
+                <separator/>
+                <filter name="filter_today" string="Today"
+                        domain="[('response_date', '&gt;=', context_today())]"/>
+                <filter name="filter_this_week" string="This Week"
+                        domain="[('response_date', '&gt;=', (context_today - datetime.timedelta(days=7)).strftime('%Y-%m-%d'))]"/>
+                <filter name="filter_this_month" string="This Month"
+                        domain="[('response_date', '&gt;=', (context_today.replace(day=1)).strftime('%Y-%m-%d'))]"/>
+
+                    <filter name="group_message_type" string="Message Type"
+                            context="{'group_by': 'message_type'}"/>
+                    <filter name="group_status" string="Status"
+                            context="{'group_by': 'status'}"/>
+                    <filter name="group_response_date" string="Response Date"
+                            context="{'group_by': 'response_date:day'}"/>
+                    <filter name="group_company" string="Company"
+                            context="{'group_by': 'company_id'}"
+                            groups="base.group_multi_company"/>
+            </search>
+        </field>
+    </record>
+
+    <!-- Action: Hacienda Response Messages -->
+    <record id="action_hacienda_response_message" model="ir.actions.act_window">
+        <field name="name">Response Messages</field>
+        <field name="res_model">l10n_cr.hacienda.response.message</field>
+        <field name="view_mode">list,form</field>
+        <field name="context">{'search_default_filter_this_month': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                No response messages yet
+            </p>
+            <p>
+                Response messages from Hacienda will appear here after submitting electronic invoices.
+                This provides a complete audit trail of all communications with Hacienda.
+            </p>
+        </field>
+    </record>
+
+    <!-- Menu Item: Response Messages -->
+    <menuitem id="menu_hacienda_response_message"
+              name="Response Messages"
+              parent="menu_hacienda_root"
+              action="action_hacienda_response_message"
+              sequence="40"/>
+
+</odoo>

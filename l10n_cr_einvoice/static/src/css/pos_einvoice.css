@@ -1,0 +1,16 @@
+/* E-Invoice POS - Clean Odoo Style */
+
+.einvoice-section .btn-success {
+    background-color: #28a745;
+    border-color: #28a745;
+}
+
+.einvoice-section .btn-primary {
+    background-color: #714B67;
+    border-color: #714B67;
+}
+
+.einvoice-section .btn-primary:hover {
+    background-color: #5a3a52;
+    border-color: #5a3a52;
+}

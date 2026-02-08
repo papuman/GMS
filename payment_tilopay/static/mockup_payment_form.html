@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TiloPay - Pagar Factura - Mockup</title>
+
+    <!-- FontAwesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+
+    <!-- Our custom styles (inline for standalone mockup) -->
+    <link rel="stylesheet" href="src/css/payment_portal.css">
+
+    <style>
+        /* Basic page styles */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: #f9fafb;
+            padding: 20px 0;
+        }
+
+        /* Simple header for mockup */
+        .mockup-header {
+            background: white;
+            padding: 1rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            margin-bottom: 2rem;
+        }
+
+        .mockup-header h1 {
+            font-size: 1.5rem;
+            color: #2563eb;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <!-- Simple header -->
+    <div class="mockup-header">
+        <h1>
+            <i class="fa fa-building"></i>
+            Gimnasio CR - Portal de Pagos
+        </h1>
+    </div>
+
+    <!-- Main payment container -->
+    <div class="tilopay-payment-container">
+        <div class="tilopay-payment-card tilopay-payment-form">
+            <!-- Header -->
+            <div class="tilopay-payment-card-header">
+                <h1>
+                    <i class="fa fa-credit-card" aria-hidden="true"></i>
+                    Pagar Factura
+                </h1>
+            </div>
+
+            <!-- Body -->
+            <div class="tilopay-payment-card-body">
+                <!-- Payment Summary -->
+                <div class="tilopay-payment-summary">
+                    <h2 style="font-size: 1.25rem; margin-bottom: 1rem; color: var(--tilopay-gray-900);">
+                        Resumen de Pago
+                    </h2>
+
+                    <div class="tilopay-summary-row">
+                        <span class="tilopay-summary-label">Factura Número:</span>
+                        <span class="tilopay-summary-value">INV-2024-001234</span>
+                    </div>
+
+                    <div class="tilopay-summary-row">
+                        <span class="tilopay-summary-label">Fecha de Emisión:</span>
+                        <span class="tilopay-summary-value">15 de Diciembre, 2024</span>
+                    </div>
+
+                    <div class="tilopay-summary-row">
+                        <span class="tilopay-summary-label">Fecha de Vencimiento:</span>
+                        <span class="tilopay-summary-value">31 de Diciembre, 2024</span>
+                    </div>
+
+                    <div class="tilopay-summary-row tilopay-summary-total">
+                        <span class="tilopay-summary-label">Total a Pagar:</span>
+                        <span class="tilopay-summary-value" data-amount="45000">
+                            ₡45,000.00
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Payment Method Selection -->
+                <h2 style="font-size: 1.25rem; margin: 1.5rem 0 1rem; color: var(--tilopay-gray-900);">
+                    Seleccione Método de Pago
+                </h2>
+
+                <form method="post" action="#" class="tilopay-form" id="paymentForm">
+                    <div class="tilopay-payment-methods" role="radiogroup" aria-label="Métodos de pago disponibles">
+                        <!-- SINPE Móvil Option -->
+                        <label class="tilopay-payment-method" for="payment_method_sinpe">
+                            <input type="radio"
+                                   id="payment_method_sinpe"
+                                   name="payment_method"
+                                   value="sinpe"
+                                   class="tilopay-sr-only"/>
+                            <div class="tilopay-method-icon">
+                                <i class="fa fa-mobile" aria-hidden="true"></i>
+                            </div>
+                            <div class="tilopay-method-details">
+                                <div class="tilopay-method-name">SINPE Móvil</div>
+                                <div class="tilopay-method-description">
+                                    Pago inmediato desde su banco. Seguro y rápido.
+                                </div>
+                            </div>
+                        </label>
+
+                        <!-- Credit/Debit Card Option -->
+                        <label class="tilopay-payment-method" for="payment_method_card">
+                            <input type="radio"
+                                   id="payment_method_card"
+                                   name="payment_method"
+                                   value="card"
+                                   class="tilopay-sr-only"/>
+                            <div class="tilopay-method-icon">
+                                <i class="fa fa-credit-card" aria-hidden="true"></i>
+                            </div>
+                            <div class="tilopay-method-details">
+                                <div class="tilopay-method-name">Tarjeta de Crédito/Débito</div>
+                                <div class="tilopay-method-description">
+                                    Visa, Mastercard, American Express
+                                </div>
+                            </div>
+                        </label>
+                    </div>
+
+                    <!-- Payment Button -->
+                    <div class="tilopay-btn-group">
+                        <button type="submit"
+                                class="tilopay-btn tilopay-btn-primary tilopay-btn-lg tilopay-btn-pay"
+                                aria-label="Proceder al pago">
+                            <i class="fa fa-lock tilopay-btn-icon" aria-hidden="true"></i>
+                            Pagar Ahora
+                        </button>
+
+                        <a href="#"
+                           class="tilopay-btn tilopay-btn-secondary">
+                            <i class="fa fa-arrow-left tilopay-btn-icon" aria-hidden="true"></i>
+                            Cancelar
+                        </a>
+                    </div>
+                </form>
+
+                <!-- Security Badges -->
+                <div class="tilopay-security-badges">
+                    <div class="tilopay-badge">
+                        <i class="fa fa-shield tilopay-badge-icon" aria-hidden="true"></i>
+                        <span>Pago Seguro SSL</span>
+                    </div>
+                    <div class="tilopay-badge">
+                        <i class="fa fa-lock tilopay-badge-icon" aria-hidden="true"></i>
+                        <span>Encriptación 256-bit</span>
+                    </div>
+                    <div class="tilopay-badge">
+                        <i class="fa fa-check-circle tilopay-badge-icon" aria-hidden="true"></i>
+                        <span>Procesamiento Seguro</span>
+                    </div>
+                </div>
+
+                <!-- Payment Method Logos -->
+                <div class="tilopay-payment-logos">
+                    <div class="tilopay-logo-item">VISA</div>
+                    <div class="tilopay-logo-item">Mastercard</div>
+                    <div class="tilopay-logo-item">AMEX</div>
+                    <div class="tilopay-logo-item">SINPE</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Simple JavaScript for mockup interaction -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Payment method selection
+            const methods = document.querySelectorAll('.tilopay-payment-method');
+
+            methods.forEach(method => {
+                method.addEventListener('click', function() {
+                    // Remove selected from all
+                    methods.forEach(m => {
+                        m.classList.remove('selected');
+                        m.setAttribute('aria-checked', 'false');
+                    });
+
+                    // Add selected to clicked
+                    this.classList.add('selected');
+                    this.setAttribute('aria-checked', 'true');
+
+                    // Check radio
+                    const radio = this.querySelector('input[type="radio"]');
+                    radio.checked = true;
+
+                    // Remove any existing info
+                    const existingInfo = document.querySelector('.tilopay-method-info-dynamic');
+                    if (existingInfo) {
+                        existingInfo.remove();
+                    }
+
+                    // Show method-specific info
+                    let infoHtml = '';
+                    if (radio.value === 'sinpe') {
+                        infoHtml = `
+                            <div class="tilopay-alert tilopay-alert-info tilopay-method-info-dynamic" role="status">
+                                <i class="fa fa-info-circle tilopay-alert-icon"></i>
+                                <div class="tilopay-alert-content">
+                                    <strong>SINPE Móvil:</strong> Será redirigido a su banco para completar el pago de forma segura.
+                                </div>
+                            </div>
+                        `;
+                    } else if (radio.value === 'card') {
+                        infoHtml = `
+                            <div class="tilopay-alert tilopay-alert-info tilopay-method-info-dynamic" role="status">
+                                <i class="fa fa-credit-card tilopay-alert-icon"></i>
+                                <div class="tilopay-alert-content">
+                                    <strong>Tarjeta de crédito/débito:</strong> Aceptamos Visa, Mastercard y American Express.
+                                </div>
+                            </div>
+                        `;
+                    }
+
+                    if (infoHtml) {
+                        const methodsContainer = document.querySelector('.tilopay-payment-methods');
+                        methodsContainer.insertAdjacentHTML('afterend', infoHtml);
+                    }
+                });
+            });
+
+            // Form submission
+            const form = document.getElementById('paymentForm');
+            form.addEventListener('submit', function(e) {
+                e.preventDefault();
+
+                // Check if method selected
+                const selectedMethod = document.querySelector('input[name="payment_method"]:checked');
+                if (!selectedMethod) {
+                    // Show error
+                    const existingError = document.querySelector('.tilopay-validation-errors');
+                    if (existingError) {
+                        existingError.remove();
+                    }
+
+                    const errorHtml = `
+                        <div class="tilopay-alert tilopay-alert-danger tilopay-validation-errors" role="alert">
+                            <i class="fa fa-exclamation-circle tilopay-alert-icon"></i>
+                            <div class="tilopay-alert-content">
+                                <div class="tilopay-alert-title">Error de validación</div>
+                                <ul style="margin: 0; padding-left: 20px;">
+                                    <li>Por favor seleccione un método de pago.</li>
+                                </ul>
+                            </div>
+                        </div>
+                    `;
+
+                    document.querySelector('.tilopay-payment-card-body').insertAdjacentHTML('afterbegin', errorHtml);
+                    return false;
+                }
+
+                // Show loading
+                const submitBtn = document.querySelector('.tilopay-btn-pay');
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<i class="fa fa-spinner fa-spin tilopay-btn-icon"></i> Procesando...';
+
+                // Show overlay
+                const loadingHtml = `
+                    <div class="tilopay-loading-overlay" style="
+                        position: fixed;
+                        top: 0;
+                        left: 0;
+                        right: 0;
+                        bottom: 0;
+                        background: rgba(0, 0, 0, 0.5);
+                        z-index: 9999;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                    ">
+                        <div class="tilopay-loading" style="background: white; padding: 2rem; border-radius: 1rem; max-width: 300px;">
+                            <div class="tilopay-spinner"></div>
+                            <div class="tilopay-loading-text">Procesando su pago</div>
+                            <div class="tilopay-loading-subtext">Por favor espere, esto puede tomar unos segundos...</div>
+                            <div class="tilopay-progress-bar">
+                                <div class="tilopay-progress-fill"></div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                document.body.insertAdjacentHTML('beforeend', loadingHtml);
+
+                // Simulate redirect after 2 seconds
+                setTimeout(() => {
+                    // In real app, would redirect to payment gateway
+                    window.location.href = 'mockup_payment_success.html';
+                }, 2000);
+            });
+        });
+    </script>
+</body>
+</html>

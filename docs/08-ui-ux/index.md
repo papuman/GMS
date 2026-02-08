@@ -1,0 +1,473 @@
+---
+title: "UI/UX Documentation - Design & Research Index"
+category: "ui-ux"
+domain: "ui-ux"
+layer: "index"
+audience: ["designer", "product-manager", "developer"]
+last_updated: "2026-01-02"
+status: "production-ready"
+version: "1.0.0"
+maintainer: "Design Team"
+description: "Master index for UI/UX research, design specifications, and user experience documentation"
+keywords: ["ui", "ux", "design", "user-research", "wireframes", "mockups", "usability"]
+---
+
+# 📍 Navigation Breadcrumb
+[Home](../index.md) > UI/UX Documentation
+
+---
+
+# 🎨 UI/UX Documentation
+**Design, Research & User Experience - Master Index**
+
+**Version:** 1.0.0
+**Last Updated:** 2026-01-01
+**Status:** ✅ Production Ready - User-Centered Design
+**Design Lead:** UX/UI Team
+
+---
+
+## 📊 Executive Summary
+
+The UI/UX Documentation contains comprehensive user research, design specifications, UX audits, and interface guidelines for the GMS platform.
+
+**UX Coverage:**
+- **User Research:** Gym owner insights and pain points (2025 research)
+- **UX Audits:** Costa Rica e-invoicing UX audit
+- **Design Specs:** Interface specifications and design system
+- **User Research Findings:** Real gym owner interviews and feedback
+- **Competitive UX Analysis:** HuliPractice UX patterns
+
+**Key Findings:**
+- **Primary Users:** Gym owners, front desk staff, members
+- **Critical Pain Points:** Invoice complexity, compliance confusion, time-consuming admin
+- **Design Goals:** Simple, compliant, fast, mobile-friendly
+
+---
+
+## 🎯 Quick Navigation
+
+| I Need To... | Go Here |
+|--------------|---------|
+| **Understand gym owner needs** | [User Research - Gym Owners](../USER_RESEARCH_GYM_OWNERS_2025.md) |
+| **See research executive summary** | [User Research Summary](../USER_RESEARCH_EXECUTIVE_SUMMARY.md) |
+| **Review UX audit findings** | [UX Audit - Costa Rica E-Invoicing](../UX_AUDIT_COSTA_RICA_EINVOICING.md) |
+| **See UX audit summary** | [UX Audit Executive Summary](../UX_AUDIT_EXECUTIVE_SUMMARY.md) |
+| **Copy HuliPractice UX patterns** | [HuliPractice UX Guide](../02-research/competitive/hulipractice/ux-implementation-guide.md) |
+| **View design mockups** | Design Mockups *(mockups/ subdirectory)* |
+| **See design specs** | Design Specifications *(design-specs/ subdirectory)* |
+
+---
+
+## 📚 UX Documentation Categories
+
+### 1. User Research (`user-research/`)
+
+**Purpose:** Understanding user needs, behaviors, and pain points
+**Status:** ✅ Comprehensive 2025 research completed
+
+#### Gym Owner Research 2025
+**Document:** [USER_RESEARCH_GYM_OWNERS_2025.md](../USER_RESEARCH_GYM_OWNERS_2025.md)
+**Size:** 61KB (comprehensive research)
+**Research Method:** Direct interviews, surveys, observational studies
+
+**What's Inside:**
+- ✅ User personas (gym owners, front desk, trainers, members)
+- ✅ Pain point analysis
+- ✅ Feature prioritization
+- ✅ Workflow analysis
+- ✅ Technology adoption barriers
+- ✅ Competitive software usage
+- ✅ Pricing sensitivity research
+
+**Key Personas:**
+
+**1. Small Gym Owner (10-50 members)**
+- **Pain Points:** Time-consuming admin, compliance confusion, cost sensitivity
+- **Goals:** Simplicity, automation, low cost
+- **Tech Savvy:** Low to medium
+- **Quote:** *"I want to focus on training, not paperwork"*
+
+**2. Front Desk Staff**
+- **Pain Points:** Complex invoice system, customer complaints, manual processes
+- **Goals:** Fast checkout, easy void/refund, clear status
+- **Tech Savvy:** Medium
+- **Quote:** *"The system should be faster than paper"*
+
+**3. Member (Customer)**
+- **Pain Points:** Want digital invoices, easy payment, self-service portal
+- **Goals:** Convenience, transparency, mobile access
+- **Tech Savvy:** High
+- **Quote:** *"I should be able to manage everything from my phone"*
+
+#### User Research Executive Summary
+**Document:** [USER_RESEARCH_EXECUTIVE_SUMMARY.md](../USER_RESEARCH_EXECUTIVE_SUMMARY.md)
+**Size:** 8KB
+**Audience:** Product managers, executives
+
+**What's Inside:**
+- ✅ Top 10 user insights
+- ✅ Critical pain points summary
+- ✅ Feature prioritization matrix
+- ✅ Design recommendations
+- ✅ Competitive landscape insights
+
+**Top User Insights:**
+1. **Simplicity > Features:** Gym owners prefer simple, focused tools
+2. **Compliance is Scary:** Fear of Hacienda penalties drives anxiety
+3. **Time is Money:** Admin should take < 10 min/day
+4. **Mobile First:** 70%+ want mobile invoice access
+5. **Trust Through Transparency:** Clear status, no black boxes
+6. **Automation > Manual:** Automate everything possible
+7. **Copy-Paste Patterns:** Willing to pay for proven UX
+8. **Visual Status:** Color-coded statuses reduce cognitive load
+9. **Inline Editing:** Edit in place, don't open modals
+10. **Progressive Disclosure:** Show basics, hide complexity
+
+---
+
+### 2. UX Audits (`ux-audits/`)
+
+**Purpose:** Evaluating existing UX and identifying improvements
+**Status:** ✅ Costa Rica e-invoicing audit complete
+
+#### UX Audit: Costa Rica E-Invoicing
+**Document:** [UX_AUDIT_COSTA_RICA_EINVOICING.md](../UX_AUDIT_COSTA_RICA_EINVOICING.md)
+**Size:** 46KB
+**Audit Scope:** E-invoice module UX evaluation
+
+**What Was Audited:**
+- ✅ Invoice creation workflow
+- ✅ Status visibility and clarity
+- ✅ Error messaging
+- ✅ Filter and search UX
+- ✅ Mobile responsiveness
+- ✅ Accessibility compliance
+- ✅ Consistency with Odoo patterns
+
+**Key Findings:**
+
+**Critical Issues (Fixed in Phase 4):**
+1. **Status Visibility:** Hard to see invoice status at a glance
+   - **Fix:** Added visual status badges (draft, submitted, accepted, rejected)
+
+2. **Filter Complexity:** Filters buried in menu
+   - **Fix:** Persistent filter sidebar (HuliPractice pattern)
+
+3. **No Preview:** Can't preview invoice before submission
+   - **Fix:** Added preview button (CRITICAL for trust)
+
+4. **Void/Cancel Missing:** No way to cancel invoices
+   - **Fix:** Implemented void wizard (Phase 8)
+
+5. **Error Messages Unclear:** Technical jargon, no actionable guidance
+   - **Fix:** Plain language errors with "What to do next"
+
+**Medium Issues:**
+- Mobile layout issues (fixed)
+- Search performance (optimized)
+- Batch operations missing (added)
+
+#### UX Audit Executive Summary
+**Document:** [UX_AUDIT_EXECUTIVE_SUMMARY.md](../UX_AUDIT_EXECUTIVE_SUMMARY.md)
+**Size:** 9KB
+
+**What's Inside:**
+- ✅ Top 5 UX issues identified
+- ✅ Recommended fixes with priority
+- ✅ Competitive UX comparison
+- ✅ Implementation roadmap
+
+---
+
+### 3. Design Specifications (`design-specs/`)
+
+**Purpose:** Detailed UI specifications and design system
+**Status:** 🔄 Directory created, specs to be documented
+
+**Planned Content:**
+- Design system (colors, typography, spacing)
+- Component library
+- UI patterns and guidelines
+- Responsive design specs
+- Accessibility standards (WCAG 2.1 AA)
+
+**Design Principles:**
+1. **Clarity:** Every element has clear purpose
+2. **Consistency:** Reuse patterns across features
+3. **Efficiency:** Minimize clicks to complete tasks
+4. **Feedback:** Clear status and progress indicators
+5. **Forgiveness:** Easy to undo, hard to break
+
+---
+
+### 4. Mockups & Wireframes (`mockups/`)
+
+**Purpose:** Visual design mockups and wireframes
+**Status:** 🔄 Directory for mockups
+
+**Planned Mockups:**
+- Invoice list view (desktop + mobile)
+- Invoice form view
+- Void wizard flow
+- Analytics dashboard
+- Member portal
+- POS interface
+
+---
+
+## 🎨 Design System
+
+### Color Palette
+
+**Primary Colors:**
+```css
+/* Brand */
+--primary: #0066CC;      /* GMS Blue */
+--secondary: #00AA66;    /* Success Green */
+
+/* Status Colors (Costa Rica compliance) */
+--draft: #6C757D;        /* Gray - Not submitted */
+--submitted: #0066CC;    /* Blue - Pending Hacienda */
+--accepted: #00AA66;     /* Green - Hacienda accepted */
+--rejected: #DC3545;     /* Red - Hacienda rejected */
+--voided: #FFC107;       /* Amber - Voided/Cancelled */
+```
+
+**Use Cases:**
+- **Draft:** Invoice created but not submitted
+- **Submitted:** Sent to Hacienda, waiting response
+- **Accepted:** Hacienda approved (legal invoice)
+- **Rejected:** Hacienda rejected (fix and resubmit)
+- **Voided:** Cancelled with credit note
+
+### Typography
+
+**Font Family:** Roboto (Odoo default)
+```css
+/* Headings */
+h1: 32px, bold
+h2: 24px, medium
+h3: 18px, medium
+
+/* Body */
+body: 14px, regular
+small: 12px, regular
+
+/* Code/Numbers */
+monospace: Roboto Mono
+```
+
+### Spacing
+
+**Scale:** 8px base unit
+```css
+--space-xs: 4px;
+--space-sm: 8px;
+--space-md: 16px;
+--space-lg: 24px;
+--space-xl: 32px;
+```
+
+---
+
+## 🧩 UI Patterns (From HuliPractice Analysis)
+
+### Pattern 1: Persistent Filter Sidebar
+**Source:** [HuliPractice UX Guide](../02-research/competitive/hulipractice/ux-implementation-guide.md)
+
+**Why It Works:**
+- Always visible (no hunting for filters)
+- Reduces clicks (1 click vs 3+)
+- Visual feedback (active filters highlighted)
+- Mobile: Collapses to icon
+
+**Implementation:**
+```xml
+<div class="o_filter_sidebar">
+    <h4>Filters</h4>
+    <div class="filter_group">
+        <label>Status</label>
+        <button class="filter_btn" data-filter="draft">Draft</button>
+        <button class="filter_btn" data-filter="accepted">Accepted</button>
+        <button class="filter_btn" data-filter="rejected">Rejected</button>
+    </div>
+</div>
+```
+
+### Pattern 2: Visual Status Badges
+**Source:** HuliPractice competitive analysis
+
+**Why It Works:**
+- Color-coded (instant recognition)
+- Consistent placement (always in same spot)
+- Accessible (color + icon + text)
+
+**Implementation:**
+```xml
+<span class="badge badge-draft">
+    <i class="fa fa-circle"></i> Draft
+</span>
+<span class="badge badge-accepted">
+    <i class="fa fa-check-circle"></i> Accepted
+</span>
+```
+
+### Pattern 3: Inline Editing
+**Source:** Modern SaaS best practices
+
+**Why It Works:**
+- Faster than modal dialogs
+- Context preserved (see related data)
+- Progressive disclosure (show on hover/click)
+
+### Pattern 4: Cascading Dropdowns
+**Source:** Costa Rica compliance requirement
+
+**Why It Works:**
+- Prevents invalid combinations (Province → Canton → District)
+- Guided input (can't skip levels)
+- Data validation built-in
+
+**Implementation:**
+```python
+# Odoo domain filtering
+<field name="province_id" on_change="onchange_province"/>
+<field name="canton_id" domain="[('province_id', '=', province_id)]" on_change="onchange_canton"/>
+<field name="district_id" domain="[('canton_id', '=', canton_id)]"/>
+```
+
+---
+
+## 📱 Mobile-First Design
+
+### Responsive Breakpoints
+
+```css
+/* Mobile First */
+@media (min-width: 576px) { /* sm */ }
+@media (min-width: 768px) { /* md */ }
+@media (min-width: 992px) { /* lg */ }
+@media (min-width: 1200px) { /* xl */ }
+```
+
+### Mobile UX Priorities
+
+**1. Touch-Friendly Targets:**
+- Minimum 44x44px tap target
+- Adequate spacing between buttons
+- Swipe gestures for common actions
+
+**2. Simplified Navigation:**
+- Bottom navigation bar (thumb zone)
+- Hamburger menu for secondary actions
+- FAB (Floating Action Button) for primary action
+
+**3. Performance:**
+- Lazy load images
+- Minimize network requests
+- Offline mode support (POS)
+
+---
+
+## ♿ Accessibility (WCAG 2.1 AA)
+
+### Key Requirements
+
+**1. Color Contrast:**
+- Text: 4.5:1 minimum
+- Large text: 3:1 minimum
+- UI components: 3:1 minimum
+
+**2. Keyboard Navigation:**
+- All functions accessible via keyboard
+- Visible focus indicators
+- Logical tab order
+
+**3. Screen Reader Support:**
+- Semantic HTML
+- ARIA labels where needed
+- Alt text for images
+
+**4. Form Accessibility:**
+- Labels associated with inputs
+- Error messages programmatically linked
+- Required fields clearly marked
+
+---
+
+## 🔍 Search Keywords (For LLM Agents)
+
+**UI/UX:**
+- `ui`, `ux`, `user-experience`, `design`, `interface`
+- `user-research`, `personas`, `pain-points`, `usability`
+
+**Design:**
+- `mockups`, `wireframes`, `design-system`, `style-guide`
+- `color-palette`, `typography`, `spacing`, `responsive`
+
+**Patterns:**
+- `ux-patterns`, `ui-components`, `design-patterns`
+- `hulipractice-ux`, `filter-sidebar`, `status-badges`
+
+---
+
+## 🔗 Related Documentation
+
+**For Research:**
+- [HuliPractice UX Guide](../02-research/competitive/hulipractice/ux-implementation-guide.md) - Competitor UX patterns
+- [Research Hub](../02-research/index.md) - Market and competitive research
+
+**For Implementation:**
+- [Implementation Guides](../05-implementation/index.md) - How UX was implemented
+- [Phase 4: UI Polish](../05-implementation/index.md#phase-4-ui-polish) - UX improvements
+
+**For Testing:**
+- [Testing Domain](../07-testing/index.md) - Usability testing results
+
+---
+
+## 🔄 Maintenance & Updates
+
+### Update Schedule
+
+- **After user research** - Update personas and insights
+- **Quarterly** - UX audit refresh
+- **Annually** - Full user research cycle
+- **Ongoing** - Design system updates
+
+### Document Ownership
+
+| Category | Owner |
+|----------|-------|
+| User Research | Product Team |
+| UX Audits | UX Team |
+| Design Specs | Design Team |
+| Mockups | Design Team |
+
+---
+
+## ✅ UI/UX Documentation Status
+
+**Status:** ✅ **PRODUCTION READY - v1.0.0**
+**Coverage:**
+- ✅ User research complete (2025 gym owners)
+- ✅ UX audit complete (Costa Rica e-invoicing)
+- ✅ Competitive UX analysis (HuliPractice)
+- 🔄 Design specifications (in progress)
+- 🔄 Component library (in progress)
+
+**Quality Indicators:**
+- ✅ Real user interviews conducted
+- ✅ UX issues identified and fixed
+- ✅ Competitive patterns documented
+- ✅ Mobile-first approach validated
+
+**Last User Research:** December 2025
+**Next UX Audit:** March 2026 (Quarterly)
+
+---
+
+**🎨 UI/UX Documentation Maintained By:** GMS Design Team
+**Version:** 1.0.0
+**Last Updated:** 2026-01-01

@@ -15,40 +15,62 @@
                     <group string="Hacienda API Configuration">
                         <group>
                             <field name="l10n_cr_hacienda_env" widget="radio" options="{'horizontal': true}"/>
-                            <field name="l10n_cr_hacienda_username" placeholder="cpj-xxx-xxxxxx"/>
-                            <field name="l10n_cr_hacienda_password" password="True"/>
+                            <field name="l10n_cr_active_username" placeholder="cpj-xxx-xxxxxx"/>
+                            <field name="l10n_cr_active_password" password="True"/>
                         </group>
                         <group>
                             <field name="l10n_cr_emisor_location" placeholder="01010100"/>
+                            <field name="l10n_cr_sucursal" placeholder="001"/>
+                            <field name="l10n_cr_terminal" placeholder="00001"/>
                             <div class="text-muted">
-                                8-digit location code: Provincia-Canton-Distrito-Barrio
+                                Location: 8-digit Provincia-Canton-Distrito-Barrio
                                 <br/>
-                                Example: 01010100 for San José, Carmen, Merced, La California
+                                Sucursal: 3-digit branch code (001 for single location)
+                                <br/>
+                                Terminal: 5-digit default terminal (POS uses its own)
                             </div>
                         </group>
                     </group>
 
+                    <div class="mt-2 mb-3">
+                        <button name="action_test_hacienda_connection" type="object"
+                                string="Test Connection" class="btn-secondary"
+                                icon="fa-plug"/>
+                    </div>
+
                     <separator string="Digital Certificate"/>
                     <group>
                         <group>
-                            <field name="l10n_cr_certificate" filename="l10n_cr_certificate_filename"/>
-                            <field name="l10n_cr_certificate_filename" readonly="1"/>
-                            <field name="l10n_cr_private_key" filename="l10n_cr_private_key_filename"/>
-                            <field name="l10n_cr_private_key_filename" readonly="1"/>
+                            <field name="l10n_cr_active_certificate" filename="l10n_cr_active_certificate_filename"
+                                   string="Certificate File (.p12)"/>
+                            <field name="l10n_cr_active_certificate_filename" readonly="1"/>
+                            <field name="l10n_cr_active_key_password" password="True"
+                                   string="Certificate PIN / Password"
+                                   placeholder="PIN provided with your .p12 certificate"/>
                         </group>
                         <group>
-                            <field name="l10n_cr_key_password" password="True" placeholder="Leave empty if not encrypted"/>
+                            <div class="text-muted">
+                                <strong>For .p12 certificates (recommended):</strong>
+                                <br/>
+                                Upload your .p12 file and enter the PIN. No separate private key needed.
+                            </div>
+                            <field name="l10n_cr_needs_private_key" invisible="1"/>
+                            <field name="l10n_cr_active_private_key" filename="l10n_cr_active_private_key_filename"
+                                   string="Private Key (PEM only)"
+                                   invisible="not l10n_cr_needs_private_key"/>
+                            <field name="l10n_cr_active_private_key_filename" readonly="1"
+                                   invisible="not l10n_cr_needs_private_key"/>
                         </group>
                     </group>
 
                     <div class="alert alert-info mt-3" role="alert">
-                        <i class="fa fa-info-circle"/>
-                        <strong>Certificate Requirements:</strong>
+                        <i class="fa fa-info-circle" title="Certificate Information"/>
+                        <strong>Certificate Information:</strong>
                         <ul class="mb-0">
-                            <li>Must be a valid X.509 certificate in PEM format</li>
+                            <li><strong>Recommended:</strong> Upload your .p12 file (PKCS#12) provided by Hacienda and enter the PIN</li>
+                            <li>PEM format (.pem/.crt + separate .key file) is also supported</li>
                             <li>Must be issued by a recognized Costa Rican Certificate Authority</li>
                             <li>Must be registered with the Ministry of Finance (Hacienda)</li>
-                            <li>Private key must match the certificate</li>
                         </ul>
                     </div>
 

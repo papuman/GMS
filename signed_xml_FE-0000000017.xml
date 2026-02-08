@@ -1,0 +1,64 @@
+<?xml version='1.0' encoding='utf-8'?>
+<TiqueteElectronico xmlns="https://cdn.comprobanteselectronicos.go.cr/xml-schemas/v4.4/tiqueteElectronico" xmlns:ds="http://www.w3.org/2000/09/xmldsig#">
+  <Clave>50601051281225040031012345670010000000171976631921</Clave>
+  <NumeroConsecutivo>FE-0000000017</NumeroConsecutivo>
+  <FechaEmision>2025-12-28T02:50:31.923345</FechaEmision>
+  <Emisor>
+    <Nombre>GMS Gym</Nombre>
+    <Identificacion>
+      <Tipo>02</Tipo>
+      <Numero>3101234567</Numero>
+    </Identificacion>
+    <Ubicacion>
+      <Provincia>0</Provincia>
+      <Canton>10</Canton>
+      <Distrito>51</Distrito>
+      <Barrio>00</Barrio>
+    </Ubicacion>
+    <Telefono>
+      <CodigoPais>506</CodigoPais>
+      <NumTelefono>00000000</NumTelefono>
+    </Telefono>
+  </Emisor>
+  <CondicionVenta>01</CondicionVenta>
+  <MedioPago>01</MedioPago>
+  <DetalleServicio>
+    <LineaDetalle>
+      <NumeroLinea>1</NumeroLinea>
+      <Codigo>
+        <Tipo>04</Tipo>
+        <Codigo>8611</Codigo>
+      </Codigo>
+      <Cantidad>1.0</Cantidad>
+      <UnidadMedida>Unid</UnidadMedida>
+      <Detalle>Test Product for Signature</Detalle>
+      <PrecioUnitario>50000.00000</PrecioUnitario>
+      <MontoTotal>50000.00000</MontoTotal>
+      <SubTotal>50000.00000</SubTotal>
+      <Impuesto>
+        <Codigo>01</Codigo>
+        <CodigoTarifa>01</CodigoTarifa>
+        <Tarifa>15.0</Tarifa>
+        <Monto>7500.00000</Monto>
+      </Impuesto>
+      <MontoTotalLinea>57500.00000</MontoTotalLinea>
+    </LineaDetalle>
+  </DetalleServicio>
+  <ResumenFactura>
+    <CodigoTipoMoneda>
+      <CodigoMoneda>CRC</CodigoMoneda>
+      <TipoCambio>1.00000</TipoCambio>
+    </CodigoTipoMoneda>
+    <TotalServGravados>50000.00000</TotalServGravados>
+    <TotalServExentos>0.00000</TotalServExentos>
+    <TotalMercanciasGravadas>0.00000</TotalMercanciasGravadas>
+    <TotalMercanciasExentas>0.00000</TotalMercanciasExentas>
+    <TotalGravado>50000.00000</TotalGravado>
+    <TotalExento>0.00000</TotalExento>
+    <TotalVenta>50000.00000</TotalVenta>
+    <TotalDescuentos>0.00000</TotalDescuentos>
+    <TotalVentaNeta>50000.00000</TotalVentaNeta>
+    <TotalImpuesto>7500.00000</TotalImpuesto>
+    <TotalComprobante>57500.00000</TotalComprobante>
+  </ResumenFactura>
+<ds:Signature><ds:SignedInfo><ds:CanonicalizationMethod Algorithm="http://www.w3.org/TR/2001/REC-xml-c14n-20010315"/><ds:SignatureMethod Algorithm="http://www.w3.org/2001/04/xmldsig-more#rsa-sha256"/><ds:Reference URI=""><ds:Transforms><ds:Transform Algorithm="http://www.w3.org/2000/09/xmldsig#enveloped-signature"/></ds:Transforms><ds:DigestMethod Algorithm="http://www.w3.org/2001/04/xmlenc#sha256"/><ds:DigestValue>UBdVvI8sH4w+howNf918Y+ns6CPvI3TDWUwy+I6IVGU=</ds:DigestValue></ds:Reference></ds:SignedInfo><ds:SignatureValue>BAgrzGLOLoibxqU8Agj4fb/BmMyUVRLPnt2HFWb4jM2J/UXR5ka0JXnK8WaiOy0VvoxJl6jFWyn3xd0elu87nyyyYSOVS1r4iVIsa6n+mVU5dZwoNqqREYqwwdUBRj1H0MQC2bfZg7mbgBfG5L90bB3D9HYlXOlRTONInJjznKWZSHfljWGI4/6LgApOpQ9o8htfaefU0nc3DPfTI/v+iW+9ULWFaMnQ/UnSK3SlA2oEZDv70tVmZ9q7apF/qYk5syJBYR5xlsyJi87sLQwOEWjF1KC4+cy82ie8yo3XE3yIisbP0gct80rGQkJOe0StoS89oj7eczlZ/YF9z078Ow==</ds:SignatureValue><ds:KeyInfo><ds:X509Data><ds:X509Certificate>MIIFUTCCAzmgAwIBAgIGAZtmhGeQMA0GCSqGSIb3DQEBCwUAMGwxCzAJBgNVBAYTAkNSMSkwJwYDVQQKDCBNSU5JU1RFUklPIERFIEhBQ0lFTkRBIC0gU0FOREJPWDEMMAoGA1UECwwDREdUMSQwIgYDVQQDDBtDQSBQRVJTT05BIEZJU0lDQSAtIFNBTkRCT1gwHhcNMjUxMjI4MTk1MTUxWhcNMjkxMjI3MTk1MTUxWjCBmTEZMBcGA1UEBRMQQ1BGLTAxLTEzMTMtMDU3NDEZMBcGA1UEBAwQQ0FSUklMTE8gTVVSSUxMTzENMAsGA1UEKgwESkFWWTELMAkGA1UEBhMCQ1IxFzAVBgNVBAoMDlBFUlNPTkEgRklTSUNBMQwwCgYDVQQLDANDUEYxHjAcBgNVBAMMFUpBVlkgQ0FSUklMTE8gTVVSSUxMTzCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBAK12JAL/4+Ar74nYQe5O1QemHscBR7vg5sK3Wk2nYb6ii7QvAoSquTJLHZHC4Rdkyl2l4WYNzOc/ry/AGg1xoAB+zevIrIq78CxFzhHrnQo6rb+QevSWHXWVqkOg354OtGLJfB4uik9qNw0T49vi02chnTo8IW7XQSBLNc0LUcLGgAjTwjxn15ZdFerYnC6MHotphrmWRcCtuP82DRWWi9ZK9nH6Z1BkG7B3/lwgodrln0qBijTTxHfq6O8zBCcLgrKMqmnneYr4ZPJvytO6icFbd8EDqwfEe/Sgk+rJh80UUL/D4mScDmAuLM8Wetd7PuT25pbH9dp8AmJ8Na8pjgkCAwEAAaOByjCBxzAfBgNVHSMEGDAWgBRGI9JET79XWSHkv5PVMJuVTOP3hzAdBgNVHQ4EFgQUO9q84+Z99Or69Y26wIgAv/VP/e0wCwYDVR0PBAQDAgbAMBMGA1UdJQQMMAoGCCsGAQUFBwMEMGMGCCsGAQUFBwEBBFcwVTBTBggrBgEFBQcwAoZHaHR0cHM6Ly9wa2kuY29tcHJvYmFudGVzZWxlY3Ryb25pY29zLmdvLmNyL3N0YWcvaW50ZXJtZWRpYXRlLXBmLXBlbS5jcnQwDQYJKoZIhvcNAQELBQADggIBAEYv7IeF3oTRghkzQk+TxUwgX8QNZTy5BlumxI9s0i+THBomO4n1e2ch+3b2w80z8W2eYHMlDPRiQt05iZBzRiDEVqR3HlmndnWy+nJOuKO3l60VLMjJ18RjvEocNpbFvx0wF8BZ0L/rE9RpTLrNEAnH/FWkuQUYVOvXNhPVxH/j+FRt18IOS6XVUalVL+hJdLMNUtoI2ieN/q2qc28OSOsHYiX/rGOI6ZSBlfG70j0pOohq3Exj2h0QViDhfhx4R5N6gCH2edxXiaf/+wGG2uwS2OqVvHS76IxBjYBamsP9AYFR3EUiifgHhvwy0t/9h1Sphot6vlA5EFUaG7J47try4fijJ+eFo/CoYIExEHJiGlnZWhNhuPH3IgBZHhdiGFZp2ypIDG7ytoRJCoqz7ClgKPPsTDN8qwcD95GTPEEYIOyzZ6Zxo4hEveWhNitXqhM+sLb0Ic9jFl6pXUA5FPq3152ntXKcw3/wgsuHrfNLA6CFpv7X/KBjiq20IJHrChNM1C5D+lLiojb+KyKoruLs62b2+VXS/13uGND7T7cCynlnoPRE4gxSJwYUJJao4GxaPpFacTPwYIRPFMldPdVzphOAQgJHJIvrnQ/OV5PQXaGg75ATE4T+ZOBlfa9xK7FvSqxbYN9msPaKnjCEZ7fdJFd1oEKPX5pXZwEtMwAl</ds:X509Certificate></ds:X509Data></ds:KeyInfo></ds:Signature></TiqueteElectronico>

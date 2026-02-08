@@ -1,0 +1,154 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+
+        <!-- POS Config Form View Extension for Costa Rica E-Invoice -->
+        <!-- Odoo 19 pos.config form has no notebook - uses settings container divs -->
+        <record id="view_pos_config_form_einvoice" model="ir.ui.view">
+            <field name="name">pos.config.form.einvoice</field>
+            <field name="model">pos.config</field>
+            <field name="inherit_id" ref="point_of_sale.pos_config_view_form"/>
+            <field name="priority">50</field>
+            <field name="arch" type="xml">
+
+                <!-- Add E-Invoice settings section before the "More settings" link -->
+                <!-- Target the last div with o_settings_container class inside sheet -->
+                <xpath expr="//sheet//div[hasclass('o_settings_container')][last()]" position="after">
+
+                    <!-- E-Invoice Settings Section - Only visible for Costa Rica companies -->
+                    <div class="row mt16 o_settings_container" id="einvoice_settings">
+                        <field name="company_id" invisible="1"/>
+
+                        <!-- Main E-Invoice Enable Setting -->
+                        <setting string="Electronic Invoicing (Costa Rica)"
+                                 help="Enable Costa Rica Hacienda e-invoice generation for POS orders">
+                            <field name="l10n_cr_enable_einvoice"/>
+
+                            <div class="content-group mt16" invisible="not l10n_cr_enable_einvoice">
+                                <div class="row">
+                                    <div class="col-lg-6">
+                                        <label for="l10n_cr_terminal_id" string="Terminal ID"/>
+                                        <field name="l10n_cr_terminal_id" required="l10n_cr_enable_einvoice"/>
+                                    </div>
+                                    <div class="col-lg-6">
+                                        <label for="l10n_cr_connection_status" string="Connection Status"/>
+                                        <field name="l10n_cr_connection_status" widget="badge"
+                                               decoration-success="l10n_cr_connection_status == 'online'"
+                                               decoration-danger="l10n_cr_connection_status == 'offline'"/>
+                                    </div>
+                                </div>
+                            </div>
+                        </setting>
+
+                        <!-- E-Invoice Options -->
+                        <setting string="E-Invoice Options"
+                                 help="Configure e-invoice behavior"
+                                 invisible="not l10n_cr_enable_einvoice">
+                            <div class="content-group">
+                                <div class="row">
+                                    <div class="col-lg-5 o_light_label">
+                                        <label string="Require Customer ID" for="l10n_cr_require_customer_id"/>
+                                    </div>
+                                    <div class="col-lg-7">
+                                        <field name="l10n_cr_require_customer_id"/>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-lg-5 o_light_label">
+                                        <label string="Auto-Submit to Hacienda" for="l10n_cr_auto_submit"/>
+                                    </div>
+                                    <div class="col-lg-7">
+                                        <field name="l10n_cr_auto_submit"/>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-lg-5 o_light_label">
+                                        <label string="Offline Mode" for="l10n_cr_offline_mode"/>
+                                    </div>
+                                    <div class="col-lg-7">
+                                        <field name="l10n_cr_offline_mode"/>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-lg-5 o_light_label">
+                                        <label string="Email Customer by Default" for="l10n_cr_default_email_customer"/>
+                                    </div>
+                                    <div class="col-lg-7">
+                                        <field name="l10n_cr_default_email_customer"/>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-lg-5 o_light_label">
+                                        <label string="Allow Anonymous Sales" for="l10n_cr_allow_anonymous"/>
+                                    </div>
+                                    <div class="col-lg-7">
+                                        <field name="l10n_cr_allow_anonymous"/>
+                                    </div>
+                                </div>
+                            </div>
+                        </setting>
+
+                        <!-- E-Invoice Queue/Sync Info -->
+                        <setting string="Sync Status"
+                                 help="View queue and synchronization status"
+                                 invisible="not l10n_cr_enable_einvoice">
+                            <div class="content-group">
+                                <div class="row">
+                                    <div class="col-lg-5 o_light_label">
+                                        <label string="Pending in Queue" for="l10n_cr_queue_count"/>
+                                    </div>
+                                    <div class="col-lg-7">
+                                        <field name="l10n_cr_queue_count"/>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-lg-5 o_light_label">
+                                        <label string="Last Sync" for="l10n_cr_last_sync"/>
+                                    </div>
+                                    <div class="col-lg-7">
+                                        <field name="l10n_cr_last_sync" readonly="1"/>
+                                    </div>
+                                </div>
+                                <div class="row mt8">
+                                    <div class="col-lg-12">
+                                        <button name="action_test_hacienda_connection"
+                                                string="Test Connection"
+                                                type="object"
+                                                class="btn-primary me-2"/>
+                                        <button name="action_sync_offline_queue"
+                                                string="Sync Offline Queue"
+                                                type="object"
+                                                class="btn-secondary"
+                                                invisible="l10n_cr_queue_count == 0"/>
+                                    </div>
+                                </div>
+                            </div>
+                        </setting>
+
+                    </div>
+
+                </xpath>
+
+            </field>
+        </record>
+
+        <!-- POS Config List/Tree View Extension -->
+        <!-- Odoo 19 uses view_pos_config_tree (not view_pos_config_list) -->
+        <record id="view_pos_config_tree_einvoice" model="ir.ui.view">
+            <field name="name">pos.config.tree.einvoice</field>
+            <field name="model">pos.config</field>
+            <field name="inherit_id" ref="point_of_sale.view_pos_config_tree"/>
+            <field name="arch" type="xml">
+                <xpath expr="//field[@name='name']" position="after">
+                    <field name="l10n_cr_enable_einvoice" optional="show"/>
+                    <field name="l10n_cr_terminal_id" optional="show"/>
+                    <field name="l10n_cr_connection_status" optional="show" widget="badge"
+                           decoration-success="l10n_cr_connection_status == 'online'"
+                           decoration-danger="l10n_cr_connection_status == 'offline'"/>
+                    <field name="l10n_cr_queue_count" optional="show"/>
+                </xpath>
+            </field>
+        </record>
+
+    </data>
+</odoo>

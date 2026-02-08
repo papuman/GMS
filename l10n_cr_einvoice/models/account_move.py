@@ -37,6 +37,15 @@ class AccountMove(models.Model):
         store=True,
     )
 
+    # XML Import Batch (Phase 3)
+    l10n_cr_import_batch_id = fields.Many2one(
+        'l10n_cr.einvoice.import.batch',
+        string='Import Batch',
+        readonly=True,
+        copy=False,
+        help='Batch from which this invoice was imported via XML',
+    )
+
     # Payment Method Fields (Phase 1A)
     l10n_cr_payment_method_id = fields.Many2one(
         'l10n_cr.payment.method',
@@ -54,6 +63,15 @@ class AccountMove(models.Model):
         tracking=True,
     )
 
+    # Debit Note Origin (Phase 7)
+    debit_origin_id = fields.Many2one(
+        'account.move',
+        string='Origin Invoice (for Debit Notes)',
+        help='Original invoice being debited (for Nota de Débito)',
+        copy=False,
+        domain="[('move_type', '=', 'out_invoice'), ('state', '=', 'posted'), ('company_id', '=', company_id)]",
+    )
+
     @api.depends('move_type', 'country_code', 'company_id')
     def _compute_requires_einvoice(self):
         """Determine if this invoice requires electronic invoicing."""
@@ -64,6 +82,18 @@ class AccountMove(models.Model):
                 and move.country_code == 'CR'
                 and move.company_id.country_id.code == 'CR'
             )
+
+    # Mapping from Odoo payment.method codes to Hacienda l10n_cr.payment.method codes.
+    # Keys: (provider_code or None, payment_method_code) -> Hacienda code
+    # provider_code=None means any provider.
+    PAYMENT_METHOD_MAPPING = {
+        # TiloPay-specific: bank_transfer from TiloPay is always SINPE Movil
+        ('tilopay', 'bank_transfer'): '06',  # SINPE Movil
+        ('tilopay', 'card'): '02',           # Tarjeta
+        # Generic mappings (any provider)
+        (None, 'card'): '02',                # Tarjeta
+        (None, 'bank_transfer'): '04',       # Transferencia bancaria
+    }
 
     @api.model
     def _get_default_payment_method(self):
@@ -76,26 +106,111 @@ class AccountMove(models.Model):
         if self.l10n_cr_payment_method_id and not self.l10n_cr_payment_method_id.requires_transaction_id:
             self.l10n_cr_payment_transaction_id = False
 
+    def _detect_payment_method_from_transactions(self):
+        """Detect the Costa Rica payment method from linked payment transactions.
+
+        Maps Odoo payment.method codes (e.g. 'card', 'bank_transfer') to
+        Hacienda l10n_cr.payment.method codes (e.g. '02', '06').
+
+        Special handling for TiloPay: 'bank_transfer' from TiloPay is SINPE Movil
+        (code '06'), while from other providers it maps to Transferencia (code '04').
+
+        Returns:
+            l10n_cr.payment.method record or False if no mapping found
+        """
+        self.ensure_one()
+
+        # Check if account_payment module is installed (provides transaction_ids)
+        if not hasattr(self, 'transaction_ids'):
+            return False
+
+        # Get the most recent done transaction linked to this invoice
+        done_txs = self.transaction_ids.filtered(lambda tx: tx.state == 'done')
+        if not done_txs:
+            return False
+
+        # Use the last completed transaction
+        tx = done_txs.sorted('last_state_change', reverse=True)[:1]
+        if not tx:
+            return False
+
+        provider_code = tx.provider_code or ''
+        method_code = tx.payment_method_code or ''
+
+        if not method_code:
+            return False
+
+        # Look up the Hacienda payment method code using the mapping
+        # Try provider-specific mapping first, then generic
+        hacienda_code = self.PAYMENT_METHOD_MAPPING.get(
+            (provider_code, method_code)
+        ) or self.PAYMENT_METHOD_MAPPING.get(
+            (None, method_code)
+        )
+
+        if not hacienda_code:
+            _logger.info(
+                'No Hacienda payment method mapping for provider=%s, method=%s on invoice %s',
+                provider_code, method_code, self.name
+            )
+            return False
+
+        # Find the l10n_cr.payment.method record by Hacienda code
+        cr_payment_method = self.env['l10n_cr.payment.method'].search(
+            [('code', '=', hacienda_code), ('active', '=', True)], limit=1
+        )
+
+        if cr_payment_method:
+            _logger.info(
+                'Detected payment method "%s" (code %s) from transaction %s '
+                '(provider: %s, method: %s) for invoice %s',
+                cr_payment_method.name, hacienda_code,
+                tx.reference, provider_code, method_code, self.name
+            )
+
+            # Also store the provider reference as transaction ID if applicable
+            if tx.provider_reference and not self.l10n_cr_payment_transaction_id:
+                self.l10n_cr_payment_transaction_id = tx.provider_reference
+                _logger.info(
+                    'Auto-set transaction ID "%s" from payment provider on invoice %s',
+                    tx.provider_reference, self.name
+                )
+
+        return cr_payment_method
+
     def _validate_payment_method_transaction_id(self):
-        """Validate that SINPE Móvil has transaction ID."""
+        """Validate that SINPE Movil has transaction ID.
+
+        If no payment method is set, first tries to detect it from linked
+        payment transactions (e.g. TiloPay SINPE/Card), then falls back
+        to the default (01 - Efectivo).
+        """
         self.ensure_one()
 
         if not self.l10n_cr_requires_einvoice:
             return True
 
-        # If no payment method selected, set default
+        # If no payment method selected, try to detect from payment transactions
         if not self.l10n_cr_payment_method_id:
-            default_method = self._get_default_payment_method()
-            if default_method:
-                self.l10n_cr_payment_method_id = default_method
-                _logger.info(f'Auto-assigned default payment method "01-Efectivo" to invoice {self.name}')
+            detected_method = self._detect_payment_method_from_transactions()
+            if detected_method:
+                self.l10n_cr_payment_method_id = detected_method
             else:
-                raise UserError(_(
-                    'Payment method is required for Costa Rica electronic invoicing.\n'
-                    'Please select a payment method before posting this invoice.'
-                ))
+                # Fall back to default (Efectivo)
+                default_method = self._get_default_payment_method()
+                if default_method:
+                    self.l10n_cr_payment_method_id = default_method
+                    _logger.info(
+                        'Auto-assigned default payment method "01-Efectivo" to invoice %s',
+                        self.name
+                    )
+                else:
+                    raise UserError(_(
+                        'Payment method is required for Costa Rica electronic invoicing.\n'
+                        'Please select a payment method before posting this invoice.'
+                    ))
 
-        # Validate SINPE Móvil requires transaction ID
+        # Validate SINPE Movil requires transaction ID
         if self.l10n_cr_payment_method_id.requires_transaction_id:
             if not self.l10n_cr_payment_transaction_id:
                 raise UserError(_(
@@ -157,19 +272,27 @@ class AccountMove(models.Model):
         """Create the electronic invoice document."""
         self.ensure_one()
 
+        # Get the billing partner (corporate parent if applicable)
+        invoice_partner = self.partner_id._get_invoice_partner()
+
         # Determine document type
         doc_type = self._get_einvoice_document_type()
 
         # Create e-invoice document
+        # The partner_id in einvoice_document will be used for Receptor in XML
         einvoice = self.env['l10n_cr.einvoice.document'].create({
             'move_id': self.id,
             'document_type': doc_type,
             'company_id': self.company_id.id,
+            'partner_id': invoice_partner.id,  # Bill to corporate parent if applicable
         })
 
         self.l10n_cr_einvoice_id = einvoice.id
 
-        _logger.info(f'Created e-invoice document {einvoice.name} for invoice {self.name}')
+        _logger.info(
+            f'Created e-invoice document {einvoice.name} for invoice {self.name}. '
+            f'Billing partner: {invoice_partner.name} (ID: {invoice_partner.id})'
+        )
 
         return einvoice
 
@@ -230,42 +353,8 @@ class AccountMove(models.Model):
 
         einvoice = self.l10n_cr_einvoice_id
 
-        # Prepare email
-        template = self.env.ref('l10n_cr_einvoice.email_template_einvoice', raise_if_not_found=False)
-
-        if template:
-            template.send_mail(self.id, force_send=True)
-
-            einvoice.write({
-                'email_sent': True,
-                'email_sent_date': fields.Datetime.now(),
-            })
-
+        # Delegate to the einvoice document's own send method
+        # which handles PDF + XML attachments correctly
+        if einvoice.state == 'accepted':
+            einvoice.action_send_email()
             _logger.info(f'Sent e-invoice email for {self.name}')
-
-
-class AccountMoveLine(models.Model):
-    _inherit = 'account.move.line'
-
-    # Costa Rica specific tax codes
-    l10n_cr_tax_code = fields.Selection([
-        ('01', 'IVA 13%'),
-        ('02', 'IVA 4%'),
-        ('03', 'IVA 2%'),
-        ('04', 'IVA 1%'),
-        ('05', 'Exento'),
-        ('06', 'Gravado 0%'),
-        ('07', 'No sujeto'),
-        ('08', 'Exonerado'),
-    ], string='CR Tax Code', help='Costa Rica tax code for electronic invoicing')
-
-    l10n_cr_product_code = fields.Char(
-        string='CR Product Code',
-        help='Costa Rica product classification code (Cabys)',
-    )
-
-    @api.onchange('product_id')
-    def _onchange_product_id_l10n_cr(self):
-        """Set CR product code from product."""
-        if self.product_id and self.product_id.l10n_cr_cabys_code:
-            self.l10n_cr_product_code = self.product_id.l10n_cr_cabys_code

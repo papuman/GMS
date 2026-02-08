@@ -1,0 +1,437 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Cédula Lookup Dashboard View -->
+    <record id="view_cedula_dashboard_kanban" model="ir.ui.view">
+        <field name="name">l10n_cr.cedula.dashboard.kanban</field>
+        <field name="model">l10n_cr.cedula.dashboard</field>
+        <field name="arch" type="xml">
+            <kanban class="o_dashboard_kanban" create="false" edit="false" delete="false">
+                <field name="name"/>
+                <templates>
+                    <t t-name="card">
+                        <div class="container-fluid o_kanban_card_content">
+                            <div class="row">
+                                <div class="col-12">
+                                    <h2 class="text-center mb-4">Cédula Lookup Monitoring Dashboard</h2>
+                                    <p class="text-center text-muted">Real-time cache health, API metrics, and usage statistics</p>
+                                </div>
+                            </div>
+
+                            <!-- Cache Health Section -->
+                            <div class="row mt-4">
+                                <div class="col-12">
+                                    <h4 class="mb-3">
+                                        <i class="fa fa-database" title="Database"/> Cache Health
+                                        <button type="object" name="refresh_dashboard" class="btn btn-sm btn-primary float-end">
+                                            <i class="fa fa-refresh" title="Refresh"/> Refresh
+                                        </button>
+                                    </h4>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <!-- Total Cached Entries -->
+                                <div class="col-md-3 mb-3">
+                                    <div class="card text-center h-100">
+                                        <div class="card-body">
+                                            <h6 class="text-muted">Total Cached</h6>
+                                            <h2 class="text-primary" id="total_cached">-</h2>
+                                            <small class="text-muted">Entries</small>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Fresh Entries -->
+                                <div class="col-md-3 mb-3">
+                                    <div class="card text-center h-100">
+                                        <div class="card-body">
+                                            <h6 class="text-muted">Fresh (0-7 days)</h6>
+                                            <h2 class="text-success" id="fresh_count">-</h2>
+                                            <small class="text-muted" id="fresh_pct">-%</small>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Refresh Needed -->
+                                <div class="col-md-3 mb-3">
+                                    <div class="card text-center h-100">
+                                        <div class="card-body">
+                                            <h6 class="text-muted">Refresh Needed</h6>
+                                            <h2 class="text-warning" id="refresh_needed">-</h2>
+                                            <small class="text-muted">(5-7 days)</small>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Cache Coverage -->
+                                <div class="col-md-3 mb-3">
+                                    <div class="card text-center h-100">
+                                        <div class="card-body">
+                                            <h6 class="text-muted">Cache Coverage</h6>
+                                            <h2 class="text-info" id="cache_coverage">-%</h2>
+                                            <small class="text-muted">Hit Rate: <span id="hit_rate">-%</span></small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <!-- Stale Entries -->
+                                <div class="col-md-4 mb-3">
+                                    <div class="card text-center h-100">
+                                        <div class="card-body">
+                                            <h6 class="text-muted">Stale (7-90 days)</h6>
+                                            <h3 class="text-orange" id="stale_count">-</h3>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Expired Entries -->
+                                <div class="col-md-4 mb-3">
+                                    <div class="card text-center h-100">
+                                        <div class="card-body">
+                                            <h6 class="text-muted">Expired (&gt;90 days)</h6>
+                                            <h3 class="text-danger" id="expired_count">-</h3>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Health Status -->
+                                <div class="col-md-4 mb-3">
+                                    <div class="card text-center h-100">
+                                        <div class="card-body">
+                                            <h6 class="text-muted">Health Status</h6>
+                                            <h3 id="health_status">-</h3>
+                                            <div id="health_indicator" class="mt-2" style="width: 20px; height: 20px; border-radius: 50%; margin: 0 auto; background-color: gray;"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- API Performance Section -->
+                            <div class="row mt-4">
+                                <div class="col-12">
+                                    <h4 class="mb-3"><i class="fa fa-line-chart" title="Chart"/> API Performance (Last 24 Hours)</h4>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <!-- Success Rate -->
+                                <div class="col-md-3 mb-3">
+                                    <div class="card text-center h-100">
+                                        <div class="card-body">
+                                            <h6 class="text-muted">Success Rate</h6>
+                                            <h2 class="text-success" id="api_success_rate">-%</h2>
+                                            <small class="text-muted" id="api_total_lookups">0 lookups</small>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Failed Lookups -->
+                                <div class="col-md-3 mb-3">
+                                    <div class="card text-center h-100">
+                                        <div class="card-body">
+                                            <h6 class="text-muted">Failed Lookups</h6>
+                                            <h2 class="text-danger" id="api_failed_lookups">-</h2>
+                                            <small class="text-muted" id="api_failure_rate">-% failure</small>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Avg Response Time -->
+                                <div class="col-md-3 mb-3">
+                                    <div class="card text-center h-100">
+                                        <div class="card-body">
+                                            <h6 class="text-muted">Avg Response</h6>
+                                            <h2 class="text-info" id="api_avg_response">-s</h2>
+                                            <small class="text-muted">API latency</small>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Rate Limit Hits -->
+                                <div class="col-md-3 mb-3">
+                                    <div class="card text-center h-100">
+                                        <div class="card-body">
+                                            <h6 class="text-muted">Rate Limits</h6>
+                                            <h2 id="api_rate_limit_hits">-</h2>
+                                            <small class="text-muted">Hits (24h)</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <!-- Fallback to GoMeta -->
+                                <div class="col-md-6 mb-3">
+                                    <div class="card text-center h-100">
+                                        <div class="card-body">
+                                            <h6 class="text-muted">Fallback to GoMeta API</h6>
+                                            <h3 id="api_fallback_count">-</h3>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Not Found -->
+                                <div class="col-md-6 mb-3">
+                                    <div class="card text-center h-100">
+                                        <div class="card-body">
+                                            <h6 class="text-muted">Cédulas Not Found</h6>
+                                            <h3 id="api_not_found_count">-</h3>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Usage Statistics Section -->
+                            <div class="row mt-4">
+                                <div class="col-12">
+                                    <h4 class="mb-3"><i class="fa fa-bar-chart" title="Statistics"/> Usage Statistics</h4>
+                                </div>
+                            </div>
+
+                            <!-- Usage Tabs -->
+                            <div class="row">
+                                <div class="col-12">
+                                    <ul class="nav nav-tabs mb-3" id="usageTabs" role="tablist">
+                                        <li class="nav-item">
+                                            <button class="nav-link active" id="today-tab" data-bs-toggle="tab" data-bs-target="#today" type="button" role="tab" aria-controls="today" aria-selected="true">Today</button>
+                                        </li>
+                                        <li class="nav-item">
+                                            <button class="nav-link" id="week-tab" data-bs-toggle="tab" data-bs-target="#week" type="button" role="tab" aria-controls="week" aria-selected="false">Last 7 Days</button>
+                                        </li>
+                                        <li class="nav-item">
+                                            <button class="nav-link" id="month-tab" data-bs-toggle="tab" data-bs-target="#month" type="button" role="tab" aria-controls="month" aria-selected="false">Last 30 Days</button>
+                                        </li>
+                                    </ul>
+
+                                    <div class="tab-content" id="usageTabContent">
+                                        <!-- Today Tab -->
+                                        <div class="tab-pane fade show active" id="today" role="tabpanel">
+                                            <div class="row">
+                                                <div class="col-md-3">
+                                                    <div class="card text-center">
+                                                        <div class="card-body">
+                                                            <h6 class="text-muted">Total Lookups</h6>
+                                                            <h3 id="usage_today_total">-</h3>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-3">
+                                                    <div class="card text-center">
+                                                        <div class="card-body">
+                                                            <h6 class="text-muted">Unique Cédulas</h6>
+                                                            <h3 id="usage_today_unique">-</h3>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-3">
+                                                    <div class="card text-center">
+                                                        <div class="card-body">
+                                                            <h6 class="text-muted">Cache Hits</h6>
+                                                            <h3 class="text-success" id="usage_today_hits">-</h3>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-3">
+                                                    <div class="card text-center">
+                                                        <div class="card-body">
+                                                            <h6 class="text-muted">API Calls</h6>
+                                                            <h3 class="text-info" id="usage_today_api">-</h3>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Week Tab -->
+                                        <div class="tab-pane fade" id="week" role="tabpanel">
+                                            <div class="row">
+                                                <div class="col-md-3">
+                                                    <div class="card text-center">
+                                                        <div class="card-body">
+                                                            <h6 class="text-muted">Total Lookups</h6>
+                                                            <h3 id="usage_week_total">-</h3>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-3">
+                                                    <div class="card text-center">
+                                                        <div class="card-body">
+                                                            <h6 class="text-muted">Unique Cédulas</h6>
+                                                            <h3 id="usage_week_unique">-</h3>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-3">
+                                                    <div class="card text-center">
+                                                        <div class="card-body">
+                                                            <h6 class="text-muted">Avg/Day</h6>
+                                                            <h3 id="usage_week_avg">-</h3>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-3">
+                                                    <div class="card text-center">
+                                                        <div class="card-body">
+                                                            <h6 class="text-muted">Peak Hour</h6>
+                                                            <h3 id="usage_week_peak">-</h3>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Month Tab -->
+                                        <div class="tab-pane fade" id="month" role="tabpanel">
+                                            <div class="row">
+                                                <div class="col-md-3">
+                                                    <div class="card text-center">
+                                                        <div class="card-body">
+                                                            <h6 class="text-muted">Total Lookups</h6>
+                                                            <h3 id="usage_month_total">-</h3>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-3">
+                                                    <div class="card text-center">
+                                                        <div class="card-body">
+                                                            <h6 class="text-muted">Unique Cédulas</h6>
+                                                            <h3 id="usage_month_unique">-</h3>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-3">
+                                                    <div class="card text-center">
+                                                        <div class="card-body">
+                                                            <h6 class="text-muted">Avg/Day</h6>
+                                                            <h3 id="usage_month_avg">-</h3>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-3">
+                                                    <div class="card text-center">
+                                                        <div class="card-body">
+                                                            <h6 class="text-muted">Cache Hit Rate</h6>
+                                                            <h3 id="usage_month_hit_rate">-%</h3>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Top Looked-Up Cédulas -->
+                            <div class="row mt-4">
+                                <div class="col-12">
+                                    <h4 class="mb-3"><i class="fa fa-list" title="List"/> Top 10 Most Looked-Up Cédulas</h4>
+                                    <div class="table-responsive">
+                                        <table class="table table-striped" id="top_cedulas_table">
+                                            <thead>
+                                                <tr>
+                                                    <th>Rank</th>
+                                                    <th>Cédula</th>
+                                                    <th>Company Name</th>
+                                                    <th>Access Count</th>
+                                                    <th>Cache Tier</th>
+                                                    <th>Last Access</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="top_cedulas_tbody">
+                                                <tr>
+                                                    <td colspan="6" class="text-center text-muted">Loading...</td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Rate Limiter Status -->
+                            <div class="row mt-4">
+                                <div class="col-12">
+                                    <h4 class="mb-3"><i class="fa fa-tachometer" title="Rate Limiter"/> Rate Limiter Status</h4>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-3 mb-3">
+                                    <div class="card text-center h-100">
+                                        <div class="card-body">
+                                            <h6 class="text-muted">Max Req/Sec</h6>
+                                            <h3 id="rate_limit_max">10</h3>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3 mb-3">
+                                    <div class="card text-center h-100">
+                                        <div class="card-body">
+                                            <h6 class="text-muted">Burst Limit</h6>
+                                            <h3 id="rate_limit_burst">20</h3>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3 mb-3">
+                                    <div class="card text-center h-100">
+                                        <div class="card-body">
+                                            <h6 class="text-muted">Tokens Available</h6>
+                                            <h3 id="rate_limit_tokens">15</h3>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3 mb-3">
+                                    <div class="card text-center h-100">
+                                        <div class="card-body">
+                                            <h6 class="text-muted">Status</h6>
+                                            <h3 id="rate_limit_status">OK</h3>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Action Buttons -->
+                            <div class="row mt-4">
+                                <div class="col-12">
+                                    <div class="d-flex justify-content-center gap-2">
+                                        <button type="object" name="action_refresh_stale_cache" class="btn btn-warning">
+                                            <i class="fa fa-refresh" title="Refresh"/> Refresh Stale Cache
+                                        </button>
+                                        <button type="object" name="action_purge_expired_cache" class="btn btn-danger">
+                                            <i class="fa fa-trash" title="Delete"/> Purge Expired Entries
+                                        </button>
+                                        <button type="object" name="action_view_cache_entries" class="btn btn-info">
+                                            <i class="fa fa-list" title="List"/> View All Cache Entries
+                                        </button>
+                                        <button type="object" name="action_test_api_connection" class="btn btn-success">
+                                            <i class="fa fa-plug" title="Connection"/> Test API Connection
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
+
+    <!-- Dashboard Action -->
+    <record id="action_cedula_dashboard" model="ir.actions.act_window">
+        <field name="name">Cédula Lookup Dashboard</field>
+        <field name="res_model">l10n_cr.cedula.dashboard</field>
+        <field name="view_mode">kanban</field>
+        <field name="target">current</field>
+    </record>
+
+    <!-- Menu Item -->
+    <menuitem id="menu_cedula_dashboard"
+              name="Cédula Lookup Dashboard"
+              parent="menu_hacienda_root"
+              action="action_cedula_dashboard"
+              sequence="100"
+              groups="account.group_account_manager"/>
+
+</odoo>

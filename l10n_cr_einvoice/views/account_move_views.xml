@@ -59,10 +59,14 @@
                 <field name="l10n_cr_payment_transaction_id"
                        placeholder="Enter transaction ID (e.g., SINPE Móvil reference)"
                        invisible="not l10n_cr_payment_method_id or not l10n_cr_payment_method_id.requires_transaction_id"/>
+                <field name="debit_origin_id"
+                       placeholder="Select Original Invoice (for Debit Notes)"
+                       invisible="move_type != 'out_invoice'"
+                       options="{'no_create': True}"/>
             </xpath>
 
             <!-- Add E-Invoice Information Group -->
-            <xpath expr="//group[@name='header_group']" position="after">
+            <xpath expr="//group[@id='header_right_group']" position="after">
                 <group name="einvoice_group" string="Electronic Invoice (Costa Rica)"
                        invisible="not l10n_cr_requires_einvoice"
                        groups="account.group_account_invoice">
@@ -88,13 +92,14 @@
         </field>
     </record>
 
+    <!-- TODO: Fix Odoo 19 - discount field XPath needs update for invoice line views -->
     <!-- Inherit Invoice Line Form View to Add Discount Code Fields (Phase 1B) -->
+    <!--
     <record id="view_move_line_form_discount_code" model="ir.ui.view">
         <field name="name">account.move.line.form.discount.code</field>
         <field name="model">account.move.line</field>
         <field name="inherit_id" ref="account.view_move_line_form"/>
         <field name="arch" type="xml">
-            <!-- Add Discount Code Field After Discount Percentage -->
             <xpath expr="//field[@name='discount']" position="after">
                 <field name="l10n_cr_discount_code_id"
                        widget="selection"
@@ -109,14 +114,15 @@
             </xpath>
         </field>
     </record>
+    -->
 
     <!-- Inherit Invoice Line Tree View to Add Discount Code Column (Phase 1B) -->
+    <!--
     <record id="view_invoice_line_tree_discount_code" model="ir.ui.view">
         <field name="name">account.move.line.tree.discount.code</field>
         <field name="model">account.move.line</field>
-        <field name="inherit_id" ref="account.view_invoice_line_tree"/>
+        <field name="inherit_id" ref="account.view_invoice_line_list"/>
         <field name="arch" type="xml">
-            <!-- Add Discount Code Column After Discount -->
             <xpath expr="//field[@name='discount']" position="after">
                 <field name="l10n_cr_discount_code_id"
                        string="Discount Code (CR)"
@@ -125,14 +131,16 @@
             </xpath>
         </field>
     </record>
+    -->
 
+    <!-- TODO: Fix Odoo 19 - payment_state field XPath needs update for invoice tree view -->
     <!-- Inherit Invoice Tree View to Show E-Invoice Status and Payment Method -->
+    <!--
     <record id="view_move_tree_einvoice" model="ir.ui.view">
         <field name="name">account.move.tree.einvoice</field>
         <field name="model">account.move</field>
-        <field name="inherit_id" ref="account.view_invoice_tree"/>
+        <field name="inherit_id" ref="account.view_invoice_list"/>
         <field name="arch" type="xml">
-            <!-- Add E-Invoice Status Column -->
             <xpath expr="//field[@name='payment_state']" position="after">
                 <field name="l10n_cr_einvoice_state"
                        string="E-Invoice"
@@ -150,6 +158,7 @@
             </xpath>
         </field>
     </record>
+    -->
 
     <!-- Inherit Invoice Search View to Add E-Invoice Filters -->
     <record id="view_account_invoice_filter_einvoice" model="ir.ui.view">
@@ -193,7 +202,7 @@
     <record id="action_invoices_requiring_einvoice" model="ir.actions.act_window">
         <field name="name">Invoices Requiring E-Invoice</field>
         <field name="res_model">account.move</field>
-        <field name="view_mode">tree,form</field>
+        <field name="view_mode">list,form</field>
         <field name="domain">[('l10n_cr_requires_einvoice', '=', True), ('state', '=', 'posted')]</field>
         <field name="context">{'search_default_einvoice_pending': 1}</field>
         <field name="help" type="html">
@@ -210,7 +219,7 @@
     <record id="action_invoices_einvoice_errors" model="ir.actions.act_window">
         <field name="name">E-Invoice Errors</field>
         <field name="res_model">account.move</field>
-        <field name="view_mode">tree,form</field>
+        <field name="view_mode">list,form</field>
         <field name="domain">[('l10n_cr_einvoice_state', '=', 'error')]</field>
         <field name="help" type="html">
             <p class="o_view_nocontent_smiling_face">

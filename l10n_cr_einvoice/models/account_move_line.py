@@ -22,6 +22,23 @@ class AccountMoveLine(models.Model):
     """
     _inherit = 'account.move.line'
 
+    # Costa Rica specific tax codes
+    l10n_cr_tax_code = fields.Selection([
+        ('01', 'IVA 13%'),
+        ('02', 'IVA 4%'),
+        ('03', 'IVA 2%'),
+        ('04', 'IVA 1%'),
+        ('05', 'Exento'),
+        ('06', 'Gravado 0%'),
+        ('07', 'No sujeto'),
+        ('08', 'Exonerado'),
+    ], string='CR Tax Code', help='Costa Rica tax code for electronic invoicing')
+
+    l10n_cr_product_code = fields.Char(
+        string='CR Product Code',
+        help='Costa Rica product classification code (Cabys)',
+    )
+
     l10n_cr_discount_code_id = fields.Many2one(
         'l10n_cr.discount.code',
         string='Discount Code (CR)',
@@ -115,7 +132,7 @@ class AccountMoveLine(models.Model):
         """
         Validate discount description length (max 80 characters).
 
-        Hacienda XML spec limits NaturalezaDescuento to 80 characters.
+        Hacienda v4.4 XML spec limits CodigoDescuento description to 80 characters.
         """
         for line in self:
             if line.l10n_cr_discount_description:
@@ -155,32 +172,29 @@ class AccountMoveLine(models.Model):
                 if line.l10n_cr_discount_description:
                     line.l10n_cr_discount_description = False
 
-    def _get_discount_nature_for_xml(self):
+    def _get_discount_code_for_xml(self):
         """
-        Get the discount nature text for XML generation.
+        Get the discount code for XML generation (v4.4 CodigoDescuento).
 
-        Returns the discount code or "code - description" format for code 99.
-        Used by xml_generator.py for NaturalezaDescuento XML tag.
+        v4.4 replaced NaturalezaDescuento with CodigoDescuento.
+        Valid codes: 01-09, 99.
 
         Returns:
-            str: Discount nature text (e.g., "01" or "99 - Special promotion")
+            str: Discount code (e.g., '01', '99')
         """
         self.ensure_one()
 
         if not self.l10n_cr_discount_code_id:
-            # Fallback for legacy data without discount code
-            return 'Descuento comercial'
+            return '99'  # Default: Otros
 
-        code = self.l10n_cr_discount_code_id.code
+        return self.l10n_cr_discount_code_id.code
 
-        # For code "99", include description
-        if code == '99' and self.l10n_cr_discount_description:
-            description = self.l10n_cr_discount_description.strip()
-            # Ensure total length doesn't exceed 80 characters
-            nature = f"{code} - {description}"
-            if len(nature) > 80:
-                nature = nature[:80]
-            return nature
+    def _get_discount_nature_for_xml(self):
+        """Backward compatibility alias for _get_discount_code_for_xml."""
+        return self._get_discount_code_for_xml()
 
-        # For other codes, just return the code
-        return code
+    @api.onchange('product_id')
+    def _onchange_product_id_l10n_cr(self):
+        """Set CR product code from product."""
+        if self.product_id and getattr(self.product_id, 'l10n_cr_cabys_code', ''):
+            self.l10n_cr_product_code = self.product_id.l10n_cr_cabys_code

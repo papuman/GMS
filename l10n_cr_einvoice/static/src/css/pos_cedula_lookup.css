@@ -1,0 +1,488 @@
+/**
+ * Cédula Lookup UI Styles for POS
+ *
+ * Visual feedback system for real-time customer data lookup:
+ * - Cache status indicators (green/yellow/orange/red)
+ * - Loading states and spinners
+ * - Modal styling
+ * - Badge colors for data sources
+ */
+
+/* =============================================================================
+   CEDULA LOOKUP SECTION
+   ============================================================================= */
+
+.cedula-lookup-section {
+    background: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.cedula-lookup-section h6 {
+    color: #495057;
+    font-weight: 600;
+    margin-bottom: 0.75rem;
+}
+
+#cedula-input {
+    font-family: 'Courier New', monospace;
+    font-size: 1.1rem;
+    letter-spacing: 0.5px;
+    font-weight: 500;
+}
+
+#cedula-input:focus {
+    border-color: #0d6efd;
+    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+}
+
+#cedula-input:disabled {
+    background-color: #e9ecef;
+    opacity: 0.7;
+}
+
+/* =============================================================================
+   CACHE STATUS INDICATORS
+   ============================================================================= */
+
+.cache-status-indicator {
+    padding: 0.5rem;
+    background: white;
+    border-radius: 4px;
+    border: 1px solid #e9ecef;
+}
+
+.cache-status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+/* Fresh cache (0-7 days) - Green */
+.cache-status-badge.text-success {
+    color: #198754 !important;
+}
+
+.cache-status-badge.text-success i {
+    color: #198754;
+}
+
+/* Stale cache (7-30 days) - Yellow/Orange */
+.cache-status-badge.text-warning {
+    color: #fd7e14 !important;
+}
+
+.cache-status-badge.text-warning i {
+    color: #fd7e14;
+}
+
+/* Expired cache (>30 days) - Red */
+.cache-status-badge.text-danger {
+    color: #dc3545 !important;
+}
+
+.cache-status-badge.text-danger i {
+    color: #dc3545;
+}
+
+/* New (not in cache) - Gray */
+.cache-status-badge.text-secondary {
+    color: #6c757d !important;
+}
+
+.cache-status-badge.text-secondary i {
+    color: #6c757d;
+}
+
+/* =============================================================================
+   LOADING OVERLAY
+   ============================================================================= */
+
+.lookup-loading-overlay {
+    position: relative;
+    margin-top: 1rem;
+    padding: 2rem;
+    background: rgba(255, 255, 255, 0.95);
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    text-align: center;
+}
+
+.spinner-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.spinner-border {
+    width: 3rem;
+    height: 3rem;
+    border-width: 0.3rem;
+}
+
+/* =============================================================================
+   LOOKUP SUGGESTION (INLINE)
+   ============================================================================= */
+
+.lookup-suggestion-inline {
+    margin-top: 1rem;
+    padding: 1rem;
+    background: #d1ecf1;
+    border: 1px solid #bee5eb;
+    border-radius: 6px;
+    animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.lookup-suggestion-inline strong {
+    color: #0c5460;
+}
+
+/* =============================================================================
+   LOOKUP MODAL CONTENT
+   ============================================================================= */
+
+.cedula-lookup-modal-content {
+    padding: 1rem;
+}
+
+.lookup-company-header {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    border-left: 4px solid #0d6efd;
+}
+
+.lookup-company-header h4 {
+    color: #212529;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+}
+
+.lookup-meta {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+/* =============================================================================
+   DATA SOURCE BADGES
+   ============================================================================= */
+
+/* Fresh from Hacienda API - Blue */
+.badge.bg-info {
+    background-color: #0dcaf0 !important;
+    color: #000;
+}
+
+/* Fresh Cache - Green */
+.badge.bg-success {
+    background-color: #198754 !important;
+}
+
+/* Stale Cache - Orange/Yellow */
+.badge.bg-warning {
+    background-color: #ffc107 !important;
+    color: #000;
+}
+
+/* Manual Entry - Gray */
+.badge.bg-secondary {
+    background-color: #6c757d !important;
+}
+
+/* Primary Activity - Purple */
+.badge.bg-primary.rounded-pill {
+    background-color: #0d6efd !important;
+}
+
+/* =============================================================================
+   CIIU CODE LIST
+   ============================================================================= */
+
+.lookup-ciiu-section ul.list-group {
+    max-height: 200px;
+    overflow-y: auto;
+    border-radius: 6px;
+}
+
+.lookup-ciiu-section .list-group-item {
+    padding: 0.75rem 1rem;
+    border-left: 3px solid transparent;
+}
+
+.lookup-ciiu-section .list-group-item:hover {
+    background-color: #f8f9fa;
+}
+
+.lookup-ciiu-section .list-group-item.active {
+    background-color: #e7f1ff !important;
+    border-left-color: #0d6efd !important;
+    color: #212529;
+}
+
+.lookup-ciiu-section .list-group-item.active strong {
+    color: #0d6efd;
+}
+
+.lookup-ciiu-section .list-group-item strong {
+    font-family: 'Courier New', monospace;
+    font-size: 0.95rem;
+    margin-right: 0.5rem;
+}
+
+/* =============================================================================
+   VALIDATION CHECKLIST
+   ============================================================================= */
+
+.validation-checklist {
+    background: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 6px;
+}
+
+.validation-checklist h6 {
+    color: #495057;
+    font-weight: 600;
+}
+
+.validation-checklist ul li {
+    padding: 0.5rem 0;
+    display: flex;
+    align-items: center;
+}
+
+.validation-checklist ul li i {
+    font-size: 1.1rem;
+}
+
+.validation-checklist ul li.text-success i {
+    color: #198754;
+}
+
+.validation-checklist ul li.text-warning i {
+    color: #fd7e14;
+}
+
+.validation-checklist ul li.text-danger i {
+    color: #dc3545;
+}
+
+/* =============================================================================
+   ERROR MODAL
+   ============================================================================= */
+
+.cedula-lookup-error-modal {
+    padding: 2rem;
+}
+
+.error-icon i {
+    animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 0.7;
+        transform: scale(1.05);
+    }
+}
+
+.error-actions {
+    margin-top: 1.5rem;
+}
+
+.error-actions .btn {
+    padding: 0.75rem 1.5rem;
+    font-weight: 500;
+}
+
+/* =============================================================================
+   DETAILS TABLE
+   ============================================================================= */
+
+.lookup-details table {
+    margin-bottom: 0;
+}
+
+.lookup-details th {
+    font-weight: 600;
+    color: #6c757d;
+    vertical-align: middle;
+    padding: 0.75rem;
+}
+
+.lookup-details td {
+    color: #212529;
+    vertical-align: middle;
+    padding: 0.75rem;
+}
+
+.lookup-details strong {
+    font-family: 'Courier New', monospace;
+    font-size: 1.05rem;
+}
+
+/* =============================================================================
+   HELP TEXT
+   ============================================================================= */
+
+.lookup-help {
+    padding: 0.5rem 0;
+}
+
+.lookup-help small {
+    line-height: 1.5;
+}
+
+.form-text.small {
+    margin-top: 0.25rem;
+    color: #6c757d;
+    font-size: 0.875rem;
+}
+
+/* =============================================================================
+   BUTTONS
+   ============================================================================= */
+
+.cedula-lookup-section .btn {
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+.cedula-lookup-section .btn:disabled {
+    cursor: not-allowed;
+    opacity: 0.65;
+}
+
+.cedula-lookup-section .btn-primary {
+    background-color: #0d6efd;
+    border-color: #0d6efd;
+}
+
+.cedula-lookup-section .btn-primary:hover:not(:disabled) {
+    background-color: #0b5ed7;
+    border-color: #0a58ca;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(13, 110, 253, 0.2);
+}
+
+.cedula-lookup-section .btn-outline-secondary {
+    border-color: #6c757d;
+    color: #6c757d;
+}
+
+.cedula-lookup-section .btn-outline-secondary:hover:not(:disabled) {
+    background-color: #6c757d;
+    color: white;
+    transform: translateY(-1px);
+}
+
+/* =============================================================================
+   RESPONSIVE ADJUSTMENTS
+   ============================================================================= */
+
+@media (max-width: 768px) {
+    .cedula-lookup-section {
+        padding: 0.75rem;
+    }
+
+    .cedula-lookup-section h6 {
+        font-size: 0.95rem;
+    }
+
+    #cedula-input {
+        font-size: 1rem;
+    }
+
+    .lookup-ciiu-section ul.list-group {
+        max-height: 150px;
+    }
+
+    .spinner-border {
+        width: 2.5rem;
+        height: 2.5rem;
+    }
+}
+
+/* =============================================================================
+   ACCESSIBILITY
+   ============================================================================= */
+
+.cedula-lookup-section *:focus {
+    outline: 2px solid #0d6efd;
+    outline-offset: 2px;
+}
+
+.visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
+}
+
+/* =============================================================================
+   ANIMATION UTILITIES
+   ============================================================================= */
+
+.fade-in {
+    animation: fadeIn 0.3s ease-in;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+/* =============================================================================
+   ALERT VARIATIONS
+   ============================================================================= */
+
+.alert-info {
+    background-color: #cff4fc;
+    border-color: #b6effb;
+    color: #055160;
+}
+
+.alert-warning {
+    background-color: #fff3cd;
+    border-color: #ffecb5;
+    color: #664d03;
+}
+
+.alert-danger {
+    background-color: #f8d7da;
+    border-color: #f5c2c7;
+    color: #842029;
+}
+
+.alert-success {
+    background-color: #d1e7dd;
+    border-color: #badbcc;
+    color: #0f5132;
+}

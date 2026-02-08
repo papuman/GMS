@@ -1,9 +1,28 @@
 # -*- coding: utf-8 -*-
+"""
+XML Digital Signature Module for Costa Rica E-Invoicing
+
+Implements XAdES-EPES enveloped signature as required by
+Costa Rica's Ministerio de Hacienda (DGT-R-48-2016).
+
+Uses the enveloped-signature transform (not XPath) and exclusive C14N
+for correct digest computation, matching the approach used by known-working
+implementations (CRLibre, FacturaElectronicaCR, FirmaXadesEpes).
+
+Author: GMS Development Team
+License: LGPL-3
+"""
+
 import base64
+import hashlib
 import logging
+import uuid
+from datetime import datetime
 from lxml import etree
+
+from cryptography import x509
 from cryptography.hazmat.primitives import hashes, serialization
-from cryptography.hazmat.primitives.asymmetric import padding
+from cryptography.hazmat.primitives.asymmetric import padding, rsa
 from cryptography.hazmat.backends import default_backend
 
 from odoo import models, api, _
@@ -11,280 +30,349 @@ from odoo.exceptions import UserError, ValidationError
 
 _logger = logging.getLogger(__name__)
 
+# Namespace URIs
+DS_NS = 'http://www.w3.org/2000/09/xmldsig#'
+XADES_NS = 'http://uri.etsi.org/01903/v1.3.2#'
+
+# Algorithm URIs
+C14N_EXCL = 'http://www.w3.org/2001/10/xml-exc-c14n#'
+SIG_RSA_SHA256 = 'http://www.w3.org/2001/04/xmldsig-more#rsa-sha256'
+DIGEST_SHA256 = 'http://www.w3.org/2001/04/xmlenc#sha256'
+ENVELOPED_SIG = 'http://www.w3.org/2000/09/xmldsig#enveloped-signature'
+SIGNED_PROPS_TYPE = 'http://uri.etsi.org/01903#SignedProperties'
+
+# Hacienda policy
+POLICY_URL = (
+    'https://cdn.comprobanteselectronicos.go.cr/xml-schemas/v4.4/'
+    'Resolucion_Comprobantes_Electronicos_DGT-R-48-2016.pdf'
+)
+POLICY_DESCRIPTION = (
+    'Politica de firma para Comprobantes Electronicos Costa Rica'
+)
+# SHA-256 hash of the policy document (known value from working implementations)
+POLICY_HASH = (
+    'NmI5Njk1ZThkNzI0MmIzMGJmZDAyNDc4YjUwNzkzODM2NTBi'
+    'OWUxNTBkMmI2YjgzYzZjM2I5NTZlNDQ4OWQzMQ=='
+)
+
 
 class XMLSigner(models.AbstractModel):
     """
-    Signs XML documents using XMLDSig (XML Digital Signature) standard.
+    XAdES-EPES digital signature generator for Costa Rica e-invoices.
 
-    Implements enveloped signature as required by Costa Rica Hacienda
-    for electronic invoice v4.4 specification.
+    Uses enveloped-signature transform + exclusive C14N with three
+    references: document, KeyInfo, and SignedProperties.
     """
+
     _name = 'l10n_cr.xml.signer'
     _description = 'Costa Rica E-Invoice XML Signer'
 
     @api.model
-    def sign_xml(self, xml_content, certificate, private_key):
+    def sign_xml(self, xml_content, certificate=None, private_key=None):
         """
-        Sign XML document with digital signature.
+        Sign XML document with XAdES-EPES digital signature.
 
         Args:
             xml_content (str): XML content to sign
-            certificate: cryptography certificate object
-            private_key: cryptography private key object
+            certificate: X.509 certificate object (cryptography)
+            private_key: RSA private key object (cryptography)
 
         Returns:
-            str: Signed XML with embedded signature
-
-        Raises:
-            ValidationError: If signing fails
+            str: Signed XML with embedded XAdES-EPES signature
         """
         try:
-            # Parse XML
-            root = etree.fromstring(xml_content.encode('utf-8'))
+            if not xml_content:
+                raise ValidationError(_('XML content cannot be empty'))
 
-            # Create signature element
-            signature = self._create_signature_element(root, certificate, private_key)
+            if certificate is None or private_key is None:
+                raise UserError(_(
+                    'Certificate and private key must be provided'
+                ))
 
-            # Insert signature as last child of root
+            if isinstance(certificate, int):
+                raise UserError(_(
+                    'Certificate ID signing not yet implemented.'
+                ))
+
+            if not isinstance(certificate, x509.Certificate):
+                raise ValidationError(_(
+                    'Invalid certificate object.'
+                ))
+
+            if not isinstance(private_key, rsa.RSAPrivateKey):
+                raise ValidationError(_(
+                    'Invalid private key object.'
+                ))
+
+            # Parse XML with blank text removal for consistent C14N
+            parser = etree.XMLParser(remove_blank_text=True)
+            try:
+                root = etree.fromstring(xml_content.encode('utf-8'), parser)
+            except etree.XMLSyntaxError as e:
+                raise ValidationError(_('Invalid XML content: %s') % str(e))
+
+            # Generate unique IDs
+            uid = uuid.uuid4().hex[:32]
+            sig_id = 'Signature-' + uid
+            sig_value_id = 'SignatureValue-' + uid
+            ref_id = 'Reference-' + uid
+            key_info_id = 'KeyInfo-' + uid
+            xades_sp_id = 'SignedProperties-' + uid
+
+            # Build the complete Signature element
+            signature = self._build_signature(
+                root, certificate, private_key,
+                sig_id, sig_value_id, ref_id, key_info_id, xades_sp_id
+            )
+
+            # Append signature to root (enveloped)
             root.append(signature)
 
-            # Convert back to string
+            # Serialize without pretty-printing to preserve canonical form
             signed_xml = etree.tostring(
                 root,
-                encoding='utf-8',
+                encoding='UTF-8',
                 xml_declaration=True,
-                pretty_print=True
             ).decode('utf-8')
 
-            _logger.info('XML document signed successfully')
+            _logger.info('Successfully signed XML document with XAdES-EPES')
             return signed_xml
 
+        except (UserError, ValidationError):
+            raise
         except Exception as e:
-            _logger.error(f'XML signing failed: {str(e)}')
-            raise ValidationError(_(
-                'Failed to sign XML document: %s'
-            ) % str(e))
+            error_msg = str(e)
+            _logger.error('XML signing failed: %s' % error_msg, exc_info=True)
+            raise UserError(_('Failed to sign XML: %s') % error_msg)
 
-    def _create_signature_element(self, root, certificate, private_key):
-        """
-        Create XMLDSig Signature element.
+    def _build_signature(self, root, certificate, private_key,
+                         sig_id, sig_value_id, ref_id, key_info_id,
+                         xades_sp_id):
+        """Build the complete XAdES-EPES Signature element."""
+        ds = DS_NS
 
-        Args:
-            root: XML root element to sign
-            certificate: cryptography certificate object
-            private_key: cryptography private key object
+        # 1. Build QualifyingProperties first (we need its digest)
+        qualifying_props = self._build_qualifying_properties(
+            certificate, sig_id, ref_id, xades_sp_id
+        )
+        signed_props = qualifying_props.find('{%s}SignedProperties' % XADES_NS)
+        signed_props_digest = self._c14n_digest(signed_props)
 
-        Returns:
-            lxml.etree.Element: Signature element
-        """
-        # Define namespaces
-        ds_ns = 'http://www.w3.org/2000/09/xmldsig#'
-        NSMAP = {'ds': ds_ns}
+        # 2. Compute document digest (root without Signature - not appended yet)
+        doc_digest = self._c14n_digest(root)
 
-        # Create Signature element
-        signature = etree.Element(
-            '{%s}Signature' % ds_ns,
-            nsmap=NSMAP
+        # 3. Build KeyInfo and compute its digest
+        key_info = self._build_key_info(certificate, key_info_id)
+        key_info_digest = self._c14n_digest(key_info)
+
+        # 4. Build SignedInfo with all three references
+        signed_info = self._build_signed_info(
+            ref_id, doc_digest,
+            key_info_id, key_info_digest,
+            xades_sp_id, signed_props_digest
         )
 
-        # 1. SignedInfo
-        signed_info = self._create_signed_info(root, ds_ns)
+        # 5. Sign the SignedInfo
+        sig_value = self._compute_signature_value(signed_info, private_key)
+
+        # 6. Assemble Signature element
+        signature = etree.Element(
+            '{%s}Signature' % ds,
+            nsmap={'ds': ds},
+            Id=sig_id
+        )
         signature.append(signed_info)
 
-        # 2. Calculate signature value
-        signature_value = self._calculate_signature_value(
-            signed_info,
-            private_key,
-            ds_ns
+        sig_value_elem = etree.SubElement(
+            signature, '{%s}SignatureValue' % ds, Id=sig_value_id
         )
-        signature.append(signature_value)
+        sig_value_elem.text = sig_value
 
-        # 3. KeyInfo with certificate
-        key_info = self._create_key_info(certificate, ds_ns)
         signature.append(key_info)
+
+        obj = etree.SubElement(signature, '{%s}Object' % ds)
+        obj.append(qualifying_props)
 
         return signature
 
-    def _create_signed_info(self, root, ds_ns):
-        """
-        Create SignedInfo element with canonicalization and reference.
-
-        Args:
-            root: XML root element being signed
-            ds_ns: XMLDSig namespace
-
-        Returns:
-            lxml.etree.Element: SignedInfo element
-        """
-        signed_info = etree.Element('{%s}SignedInfo' % ds_ns)
+    def _build_signed_info(self, ref_id, doc_digest,
+                           key_info_id, key_info_digest,
+                           xades_sp_id, signed_props_digest):
+        """Build SignedInfo with document, KeyInfo, and SignedProperties refs."""
+        ds = DS_NS
+        signed_info = etree.Element('{%s}SignedInfo' % ds, nsmap={'ds': ds})
 
         # CanonicalizationMethod
-        canon_method = etree.SubElement(
-            signed_info,
-            '{%s}CanonicalizationMethod' % ds_ns,
-            Algorithm='http://www.w3.org/TR/2001/REC-xml-c14n-20010315'
-        )
-
-        # SignatureMethod (RSA-SHA256)
-        sig_method = etree.SubElement(
-            signed_info,
-            '{%s}SignatureMethod' % ds_ns,
-            Algorithm='http://www.w3.org/2001/04/xmldsig-more#rsa-sha256'
-        )
-
-        # Reference (reference to root document)
-        reference = etree.SubElement(
-            signed_info,
-            '{%s}Reference' % ds_ns,
-            URI=''  # Empty URI means entire document
-        )
-
-        # Transforms
-        transforms = etree.SubElement(reference, '{%s}Transforms' % ds_ns)
-
-        # Enveloped signature transform
         etree.SubElement(
-            transforms,
-            '{%s}Transform' % ds_ns,
-            Algorithm='http://www.w3.org/2000/09/xmldsig#enveloped-signature'
+            signed_info, '{%s}CanonicalizationMethod' % ds, Algorithm=C14N_EXCL
+        )
+        # SignatureMethod
+        etree.SubElement(
+            signed_info, '{%s}SignatureMethod' % ds, Algorithm=SIG_RSA_SHA256
         )
 
-        # DigestMethod (SHA-256)
-        etree.SubElement(
-            reference,
-            '{%s}DigestMethod' % ds_ns,
-            Algorithm='http://www.w3.org/2001/04/xmlenc#sha256'
+        # Reference 1: Document content (enveloped signature)
+        ref1 = etree.SubElement(
+            signed_info, '{%s}Reference' % ds, Id=ref_id, URI=''
         )
-
-        # DigestValue (will be calculated)
-        digest_value = self._calculate_digest(root)
+        transforms1 = etree.SubElement(ref1, '{%s}Transforms' % ds)
         etree.SubElement(
-            reference,
-            '{%s}DigestValue' % ds_ns
-        ).text = digest_value
+            transforms1, '{%s}Transform' % ds, Algorithm=ENVELOPED_SIG
+        )
+        etree.SubElement(
+            transforms1, '{%s}Transform' % ds, Algorithm=C14N_EXCL
+        )
+        etree.SubElement(ref1, '{%s}DigestMethod' % ds, Algorithm=DIGEST_SHA256)
+        dv1 = etree.SubElement(ref1, '{%s}DigestValue' % ds)
+        dv1.text = doc_digest
+
+        # Reference 2: KeyInfo
+        ref2 = etree.SubElement(
+            signed_info, '{%s}Reference' % ds, URI='#' + key_info_id
+        )
+        transforms2 = etree.SubElement(ref2, '{%s}Transforms' % ds)
+        etree.SubElement(
+            transforms2, '{%s}Transform' % ds, Algorithm=C14N_EXCL
+        )
+        etree.SubElement(ref2, '{%s}DigestMethod' % ds, Algorithm=DIGEST_SHA256)
+        dv2 = etree.SubElement(ref2, '{%s}DigestValue' % ds)
+        dv2.text = key_info_digest
+
+        # Reference 3: SignedProperties (XAdES)
+        ref3 = etree.SubElement(
+            signed_info, '{%s}Reference' % ds,
+            Type=SIGNED_PROPS_TYPE, URI='#' + xades_sp_id
+        )
+        transforms3 = etree.SubElement(ref3, '{%s}Transforms' % ds)
+        etree.SubElement(
+            transforms3, '{%s}Transform' % ds, Algorithm=C14N_EXCL
+        )
+        etree.SubElement(ref3, '{%s}DigestMethod' % ds, Algorithm=DIGEST_SHA256)
+        dv3 = etree.SubElement(ref3, '{%s}DigestValue' % ds)
+        dv3.text = signed_props_digest
 
         return signed_info
 
-    def _calculate_digest(self, element):
-        """
-        Calculate SHA-256 digest of XML element.
+    def _build_qualifying_properties(self, certificate, sig_id, ref_id,
+                                     xades_sp_id):
+        """Build XAdES QualifyingProperties with SignaturePolicyIdentifier."""
+        ds = DS_NS
+        xades = XADES_NS
 
-        Args:
-            element: lxml.etree.Element
-
-        Returns:
-            str: Base64-encoded digest
-        """
-        # Canonicalize element
-        canonical = etree.tostring(
-            element,
-            method='c14n',
-            exclusive=False,
-            with_comments=False
+        qp = etree.Element(
+            '{%s}QualifyingProperties' % xades,
+            nsmap={'xades': xades, 'ds': ds},
+            Target='#' + sig_id
+        )
+        sp = etree.SubElement(
+            qp, '{%s}SignedProperties' % xades, Id=xades_sp_id
         )
 
-        # Calculate SHA-256 hash
-        digest = hashes.Hash(hashes.SHA256(), backend=default_backend())
-        digest.update(canonical)
-        digest_bytes = digest.finalize()
+        # SignedSignatureProperties
+        ssp = etree.SubElement(sp, '{%s}SignedSignatureProperties' % xades)
 
-        # Base64 encode
-        return base64.b64encode(digest_bytes).decode('utf-8')
+        # SigningTime
+        st = etree.SubElement(ssp, '{%s}SigningTime' % xades)
+        st.text = datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ')
 
-    def _calculate_signature_value(self, signed_info, private_key, ds_ns):
-        """
-        Calculate and create SignatureValue element.
+        # SignaturePolicyIdentifier (XAdES-EPES)
+        spi = etree.SubElement(ssp, '{%s}SignaturePolicyIdentifier' % xades)
+        spid = etree.SubElement(spi, '{%s}SignaturePolicyId' % xades)
+        sp_id = etree.SubElement(spid, '{%s}SigPolicyId' % xades)
+        identifier = etree.SubElement(sp_id, '{%s}Identifier' % xades)
+        identifier.text = POLICY_URL
+        desc = etree.SubElement(sp_id, '{%s}Description' % xades)
+        desc.text = POLICY_DESCRIPTION
 
-        Args:
-            signed_info: SignedInfo element
-            private_key: cryptography private key object
-            ds_ns: XMLDSig namespace
-
-        Returns:
-            lxml.etree.Element: SignatureValue element
-        """
-        # Canonicalize SignedInfo
-        canonical = etree.tostring(
-            signed_info,
-            method='c14n',
-            exclusive=False,
-            with_comments=False
+        sp_hash = etree.SubElement(spid, '{%s}SigPolicyHash' % xades)
+        etree.SubElement(
+            sp_hash, '{%s}DigestMethod' % ds, Algorithm=DIGEST_SHA256
         )
+        hv = etree.SubElement(sp_hash, '{%s}DigestValue' % ds)
+        hv.text = POLICY_HASH
 
-        # Sign with private key (RSA-SHA256)
-        signature_bytes = private_key.sign(
-            canonical,
-            padding.PKCS1v15(),
-            hashes.SHA256()
-        )
+        # SigningCertificate (SHA-256)
+        sc = etree.SubElement(ssp, '{%s}SigningCertificate' % xades)
+        cert_el = etree.SubElement(sc, '{%s}Cert' % xades)
 
-        # Base64 encode
-        signature_b64 = base64.b64encode(signature_bytes).decode('utf-8')
-
-        # Create SignatureValue element
-        signature_value = etree.Element('{%s}SignatureValue' % ds_ns)
-        signature_value.text = signature_b64
-
-        return signature_value
-
-    def _create_key_info(self, certificate, ds_ns):
-        """
-        Create KeyInfo element with X509 certificate data.
-
-        Args:
-            certificate: cryptography certificate object
-            ds_ns: XMLDSig namespace
-
-        Returns:
-            lxml.etree.Element: KeyInfo element
-        """
-        key_info = etree.Element('{%s}KeyInfo' % ds_ns)
-        x509_data = etree.SubElement(key_info, '{%s}X509Data' % ds_ns)
-
-        # X509Certificate (DER-encoded certificate)
         cert_der = certificate.public_bytes(serialization.Encoding.DER)
-        cert_b64 = base64.b64encode(cert_der).decode('utf-8')
+        cert_hash = hashlib.sha256(cert_der).digest()
 
-        x509_cert = etree.SubElement(x509_data, '{%s}X509Certificate' % ds_ns)
-        x509_cert.text = cert_b64
+        cd = etree.SubElement(cert_el, '{%s}CertDigest' % xades)
+        etree.SubElement(cd, '{%s}DigestMethod' % ds, Algorithm=DIGEST_SHA256)
+        dv = etree.SubElement(cd, '{%s}DigestValue' % ds)
+        dv.text = base64.b64encode(cert_hash).decode('utf-8')
+
+        # IssuerSerial
+        iss = etree.SubElement(cert_el, '{%s}IssuerSerial' % xades)
+        x509_issuer = etree.SubElement(iss, '{%s}X509IssuerName' % ds)
+        x509_issuer.text = self._get_rfc2253_name(certificate.issuer)
+        x509_serial = etree.SubElement(iss, '{%s}X509SerialNumber' % ds)
+        x509_serial.text = str(certificate.serial_number)
+
+        # SignedDataObjectProperties
+        sdop = etree.SubElement(sp, '{%s}SignedDataObjectProperties' % xades)
+        dof = etree.SubElement(
+            sdop, '{%s}DataObjectFormat' % xades, ObjectReference='#' + ref_id
+        )
+        mt = etree.SubElement(dof, '{%s}MimeType' % xades)
+        mt.text = 'text/xml'
+
+        return qp
+
+    def _build_key_info(self, certificate, key_info_id):
+        """Build KeyInfo element with X.509 certificate data."""
+        key_info = etree.Element('{%s}KeyInfo' % DS_NS, nsmap={'ds': DS_NS}, Id=key_info_id)
+        x509_data = etree.SubElement(key_info, '{%s}X509Data' % DS_NS)
+
+        cert_der = certificate.public_bytes(serialization.Encoding.DER)
+        x509_cert = etree.SubElement(x509_data, '{%s}X509Certificate' % DS_NS)
+        x509_cert.text = base64.b64encode(cert_der).decode('utf-8')
 
         return key_info
 
+    def _c14n_digest(self, element):
+        """Compute SHA-256 digest of element's exclusive C14N form."""
+        canonical = etree.tostring(
+            element, method='c14n', exclusive=True, with_comments=False
+        )
+        return base64.b64encode(hashlib.sha256(canonical).digest()).decode('utf-8')
+
+    def _compute_signature_value(self, signed_info, private_key):
+        """Sign the C14N form of SignedInfo using RSA-SHA256."""
+        canonical = etree.tostring(
+            signed_info, method='c14n', exclusive=True, with_comments=False
+        )
+        sig_bytes = private_key.sign(
+            canonical, padding.PKCS1v15(), hashes.SHA256()
+        )
+        return base64.b64encode(sig_bytes).decode('utf-8')
+
+    def _get_rfc2253_name(self, name):
+        """Convert x509.Name to RFC 2253 string representation."""
+        parts = []
+        for attr in name:
+            oid = attr.oid
+            value = attr.value
+            if oid == x509.NameOID.COMMON_NAME:
+                parts.append('CN=%s' % value)
+            elif oid == x509.NameOID.ORGANIZATIONAL_UNIT_NAME:
+                parts.append('OU=%s' % value)
+            elif oid == x509.NameOID.ORGANIZATION_NAME:
+                parts.append('O=%s' % value)
+            elif oid == x509.NameOID.COUNTRY_NAME:
+                parts.append('C=%s' % value)
+            elif oid == x509.NameOID.SERIAL_NUMBER:
+                parts.append('2.5.4.5=#1310%s' % value.encode('utf-8').hex())
+            else:
+                parts.append('%s=%s' % (oid.dotted_string, value))
+        return ','.join(parts)
+
     @api.model
     def verify_signature(self, signed_xml):
-        """
-        Verify XML signature (for debugging/testing).
-
-        Args:
-            signed_xml (str): Signed XML content
-
-        Returns:
-            bool: True if signature is valid
-
-        Note: This is a basic verification. Hacienda will perform
-        the official validation upon submission.
-        """
-        try:
-            root = etree.fromstring(signed_xml.encode('utf-8'))
-
-            # Find Signature element
-            ds_ns = 'http://www.w3.org/2000/09/xmldsig#'
-            signature = root.find('{%s}Signature' % ds_ns)
-
-            if signature is None:
-                _logger.error('No signature found in XML')
-                return False
-
-            _logger.info('Signature element found, basic structure verified')
-
-            # TODO: Implement full signature verification
-            # This requires extracting the certificate, verifying the digest,
-            # and verifying the signature value. For now, we trust that
-            # if the signature was created by our signing method, it's valid.
-            # Hacienda will perform the authoritative verification.
-
-            return True
-
-        except Exception as e:
-            _logger.error(f'Signature verification failed: {str(e)}')
-            return False
+        """Verify digital signature on signed XML (placeholder)."""
+        _logger.warning(
+            'Signature verification not yet implemented. '
+            'Hacienda will verify signatures upon submission.'
+        )
+        return True

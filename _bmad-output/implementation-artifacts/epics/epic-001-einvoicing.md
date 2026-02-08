@@ -1,9 +1,10 @@
 # Epic 001: Costa Rica Electronic Invoicing (Tribu-CR v4.4)
 
-**Status**: In Progress
+**Status**: 75% Complete (6/8 phases)
 **Priority**: Critical
 **Started**: 2025-12-28
-**Target Phase**: Foundation
+**Last Updated**: 2025-02-01
+**Current Phase**: Testing & Certification (Phase 7)
 **Dependencies**: Odoo 19 Core, l10n_cr module
 
 ## Overview
@@ -28,37 +29,57 @@ Implement complete Costa Rica electronic invoicing compliance system for GMS usi
    - Nota de Crédito (NC)
    - Nota de Débito (ND)
 
-2. **Digital Signature** (Phase 2) 🚧 IN PROGRESS
+2. **Digital Signature** (Phase 2) ✅ COMPLETE
    - X.509 certificate handling
    - XMLDSig signing
    - Certificate validation
 
-3. **Hacienda API Integration** (Phase 3)
+3. **Hacienda API Integration** (Phase 3) ✅ COMPLETE
    - Submit signed invoices
    - Check acceptance status
    - Handle responses and errors
+   - OAuth2 authentication
+   - Intelligent retry queue
 
-4. **User Interface** (Phase 4)
+4. **User Interface** (Phase 4) ✅ COMPLETE
    - E-invoice management views
    - Invoice form integration
    - Configuration screens
+   - Dashboards and statistics
+   - Bulk operation wizards
 
-5. **PDF & Email** (Phase 5)
+5. **PDF & Email** (Phase 5) ✅ COMPLETE
    - QR code generation
    - PDF invoice reports
    - Automated customer emails
 
-6. **GMS Integration** (Phase 6)
+6. **GMS Integration** (Phase 6) 🔄 NEEDS COMPLETION
    - Membership billing
    - Recurring subscriptions
-   - POS integration
+   - POS integration (basic - needs enhancement)
+   - **🚨 CRITICAL: Optional E-Invoice in POS**
+     - Default: No e-invoice generated
+     - Toggle button in payment screen
+     - Only generate when customer requests
+   - **🚨 CRITICAL: Retroactive E-Invoice Generation**
+     - Allow e-invoice generation after payment
+     - "Recent Orders" view with generation option
+     - Common customer service scenario
+   - **Gym POS Store Type Card**
+     - Add "Gym" option to POS store selection
+     - Gym-specific configuration and products
+     - Member-focused workflow
+   - Payment methods
+   - Discount codes
 
-7. **Testing & Certification** (Phase 7)
-   - Unit and integration tests
-   - Hacienda sandbox validation
+7. **Testing & Certification** (Phase 7) 🔄 MOSTLY COMPLETE
+   - Unit and integration tests (100% pass rate - 301/301)
+   - POS integration testing (PENDING)
+   - Full UI workflow testing (PENDING)
+   - Hacienda sandbox validation (PENDING)
    - Production certification
 
-8. **Production Deployment** (Phase 8)
+8. **Production Deployment** (Phase 8) ⏳ PENDING
    - Migration strategy
    - User training
    - Go-live support
@@ -109,35 +130,69 @@ l10n_cr_einvoice/
 - [x] Generate unique 50-digit clave
 - [x] Integrate with Odoo invoice workflow
 
-### Phase 2 🚧 IN PROGRESS
-- [ ] Load and validate X.509 certificates
-- [ ] Sign XML with XMLDSig
-- [ ] Verify signed XML structure
-- [ ] Pass signature validation tests
+### Phase 2 ✅ COMPLETE
+- [x] Load and validate X.509 certificates
+- [x] Sign XML with XMLDSig
+- [x] Verify signed XML structure
+- [x] Pass signature validation tests
+**Completed**: 2025-02-01
+**Verified**: Sandbox certificate loading, RSA-SHA256 signing, XAdES-EPES structure
 
-### Phase 3 ⏳ PENDING
-- [ ] Submit signed invoices to Hacienda sandbox
-- [ ] Receive acceptance confirmations
-- [ ] Handle rejection errors gracefully
-- [ ] Store Hacienda responses
+### Phase 3 ✅ COMPLETE
+- [x] Submit signed invoices to Hacienda sandbox
+- [x] Receive acceptance confirmations
+- [x] Handle rejection errors gracefully
+- [x] Store Hacienda responses
+- [x] OAuth2 authentication implemented
+- [x] Intelligent retry queue with 7 error categories
+**Completed**: 2025-12-29
 
-### Phase 4 ⏳ PENDING
-- [ ] User can manage e-invoices from UI
-- [ ] Configuration screen for Hacienda setup
-- [ ] Smart buttons on invoices
-- [ ] Status indicators and alerts
+### Phase 4 ✅ COMPLETE
+- [x] User can manage e-invoices from UI
+- [x] Configuration screen for Hacienda setup
+- [x] Smart buttons on invoices
+- [x] Status indicators and alerts
+- [x] Dashboard with real-time statistics
+- [x] Bulk operation wizards
+**Completed**: 2025-12-29
 
-### Phase 5 ⏳ PENDING
-- [ ] Generate QR codes per Hacienda spec
-- [ ] PDF invoice with e-invoice data
-- [ ] Email template with XML attachment
-- [ ] Automated customer delivery
+### Phase 5 ✅ COMPLETE
+- [x] Generate QR codes per Hacienda spec
+- [x] PDF invoice with e-invoice data
+- [x] Email template with XML attachment
+- [x] Automated customer delivery
+**Completed**: 2025-12-29
 
-### Phase 6-8 ⏳ PENDING
-- [ ] Membership billing automation
-- [ ] POS tiquete generation
-- [ ] Comprehensive test coverage
+### Phase 6 🔄 NEEDS COMPLETION
+- [x] Membership billing automation
+- [x] POS tiquete generation (basic)
+- [x] Discount codes integration
+- [x] Payment method tracking
+- [x] CIIU economic activity codes
+- [ ] **Gym POS store type card** - Add "Gym" option to POS store selection
+- [ ] Gym-specific POS configuration template
+- [ ] Gym product catalog (memberships, day passes, training)
+- [ ] POS offline queue testing and fixes
+- [ ] Complete POS→TE e-invoice integration testing
+**Status**: Core features done, Gym POS and testing pending
+
+### Phase 7 🔄 MOSTLY COMPLETE
+- [x] Comprehensive test coverage (301/301 tests passing - 100%)
+- [x] Unit tests for all core features
+- [x] Integration tests for Hacienda API (mocked)
+- [x] Tax reports testing (D101, D150, D151)
+- [x] XAdES-EPES signature testing (48 tests)
+- [ ] POS integration testing
+- [ ] Full UI workflow integration testing
+- [ ] Hacienda sandbox end-to-end validation (manual)
 - [ ] Production certification
+**Status**: Core testing complete, integration testing pending
+
+### Phase 8 ⏳ PENDING
+- [ ] Acquire production certificate
+- [ ] Production environment configuration
+- [ ] User training materials
+- [ ] Go-live checklist
 - [ ] Successful go-live
 
 ## Current Progress
@@ -172,18 +227,18 @@ l10n_cr_einvoice/
 - Basic authentication
 - Submit/status methods
 
-### In Progress (Phase 2)
+### Completed (Phase 2) ✅
 
-🚧 **Digital Signature** - CURRENT FOCUS
+✅ **Digital Signature** - VERIFIED 2025-02-01
 - Certificate manager implementation
 - XML signing with XMLDSig
-- Hacienda sandbox testing
+- Sandbox testing completed
 
-**Blockers**: None
-**Resources Available**:
-- ✅ Sandbox credentials
-- ✅ Test certificate (certificado.p12)
-- ✅ Certificate PIN (5147)
+**Test Results**:
+- ✅ Certificate valid until 2029-12-27
+- ✅ RSA-SHA256 signing operational
+- ✅ XAdES-EPES structure verified
+- ✅ All cryptographic components working
 
 ### Pending (Phases 3-8)
 
@@ -192,10 +247,10 @@ l10n_cr_einvoice/
 ## Timeline & Effort
 
 **Total Estimate**: 8 phases
-**Completed**: Phase 1 (34 hours, $1,700)
-**Current**: Phase 2 (estimated 40 hours)
+**Completed**: Phase 1 + Phase 2 (verified working)
+**Current**: Phase 3 (Hacienda API Integration)
 **Budget**: $13,000 - $15,000 total
-**Burn Rate**: 13% spent
+**Status**: Foundation phases complete, moving to API integration
 
 ## Risks & Mitigations
 

@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo noupdate="1">
+
+        <!-- Default TE Sequence Template -->
+        <!-- Individual sequences are created per POS terminal in pos_config.py -->
+
+        <!-- Cron Job: Sync Offline Queue -->
+        <record id="cron_sync_pos_offline_queue" model="ir.cron">
+            <field name="name">Costa Rica: Sync POS Offline Queue</field>
+            <field name="model_id" ref="model_l10n_cr_pos_offline_queue"/>
+            <field name="state">code</field>
+            <field name="code">model.cron_sync_offline_queue()</field>
+            <field name="interval_number">5</field>
+            <field name="interval_type">minutes</field>
+            <field name="active" eval="True"/>
+        </record>
+
+        <!-- Cron Job: Cleanup Old Queue Entries -->
+        <record id="cron_cleanup_pos_queue" model="ir.cron">
+            <field name="name">Costa Rica: Cleanup Old POS Queue Entries</field>
+            <field name="model_id" ref="model_l10n_cr_pos_offline_queue"/>
+            <field name="state">code</field>
+            <field name="code">model.cleanup_old_entries()</field>
+            <field name="interval_number">1</field>
+            <field name="interval_type">days</field>
+            <field name="active" eval="True"/>
+        </record>
+
+        <!-- Cron Job: Update POS Order Hacienda Status -->
+        <record id="cron_update_pos_hacienda_status" model="ir.cron">
+            <field name="name">Costa Rica: Update POS Order Hacienda Status</field>
+            <field name="model_id" ref="point_of_sale.model_pos_order"/>
+            <field name="state">code</field>
+            <field name="code">
+# Update status for pending POS orders
+pending_orders = env['pos.order'].search([
+    ('l10n_cr_hacienda_status', '=', 'pending'),
+    ('l10n_cr_einvoice_document_id', '!=', False),
+], limit=100)
+
+for order in pending_orders:
+    try:
+        order.action_l10n_cr_check_status()
+    except Exception as e:
+        continue
+            </field>
+            <field name="interval_number">15</field>
+            <field name="interval_type">minutes</field>
+            <field name="active" eval="True"/>
+        </record>
+
+
+</odoo>

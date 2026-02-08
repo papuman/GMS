@@ -1,0 +1,296 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- PDF Report Action -->
+    <record id="action_report_einvoice" model="ir.actions.report">
+        <field name="name">Electronic Invoice</field>
+        <field name="model">l10n_cr.einvoice.document</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">l10n_cr_einvoice.report_einvoice_document</field>
+        <field name="print_report_name">'Factura-%s' % (object.clave or object.name)</field>
+        <field name="binding_model_id" ref="model_l10n_cr_einvoice_document"/>
+        <field name="binding_type">report</field>
+    </record>
+
+    <!-- Main Report Template -->
+    <template id="report_einvoice_document">
+        <t t-call="web.html_container">
+            <t t-foreach="docs" t-as="o">
+                <t t-call="web.external_layout">
+                    <div class="page">
+                        <!-- Header Section -->
+                        <div class="row mb-4">
+                            <div class="col-8">
+                                <h2 class="mb-2">
+                                    <t t-if="o.document_type == 'FE'">FACTURA ELECTRÓNICA</t>
+                                    <t t-elif="o.document_type == 'TE'">TIQUETE ELECTRÓNICO</t>
+                                    <t t-elif="o.document_type == 'NC'">NOTA DE CRÉDITO ELECTRÓNICA</t>
+                                    <t t-elif="o.document_type == 'ND'">NOTA DE DÉBITO ELECTRÓNICA</t>
+                                </h2>
+                                <div class="text-muted">
+                                    <strong>DOCUMENTO ELECTRÓNICO</strong>
+                                </div>
+                            </div>
+                            <div class="col-4 text-end">
+                                <!-- QR Code -->
+                                <t t-if="o.clave">
+                                    <t t-set="qr_code" t-value="o._get_qr_code_image()"/>
+                                    <t t-if="qr_code">
+                                        <img t-att-src="'data:image/png;base64,' + qr_code"
+                                             style="width: 150px; height: 150px;"
+                                             alt="QR Code"/>
+                                    </t>
+                                </t>
+                            </div>
+                        </div>
+
+                        <!-- Document Information -->
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                <table class="table table-sm table-borderless">
+                                    <tr>
+                                        <td style="width: 25%;"><strong>Número:</strong></td>
+                                        <td style="width: 75%;"><t t-esc="o.name"/></td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Fecha:</strong></td>
+                                        <td><t t-esc="o.invoice_date" t-options='{"widget": "date"}'/></td>
+                                    </tr>
+                                    <tr t-if="o.clave">
+                                        <td><strong>Clave Numérica:</strong></td>
+                                        <td style="font-family: monospace; font-size: 11px;">
+                                            <t t-esc="o.clave"/>
+                                        </td>
+                                    </tr>
+                                    <tr t-if="o.state == 'accepted'">
+                                        <td><strong>Estado:</strong></td>
+                                        <td>
+                                            <span class="badge bg-success">Aceptado por Hacienda</span>
+                                        </td>
+                                    </tr>
+                                    <tr t-if="o.hacienda_acceptance_date">
+                                        <td><strong>Fecha Aceptación:</strong></td>
+                                        <td><t t-esc="o.hacienda_acceptance_date" t-options='{"widget": "datetime"}'/></td>
+                                    </tr>
+                                </table>
+                            </div>
+                        </div>
+
+                        <hr/>
+
+                        <!-- Company Information -->
+                        <div class="row mb-4">
+                            <div class="col-6">
+                                <h5>Emisor</h5>
+                                <strong><t t-esc="o.company_id.name"/></strong><br/>
+                                <t t-if="o.company_id.vat">
+                                    <strong>Cédula Jurídica:</strong> <t t-esc="o.company_id.vat"/><br/>
+                                </t>
+                                <t t-if="o.company_id.street">
+                                    <t t-esc="o.company_id.street"/><br/>
+                                </t>
+                                <t t-if="o.company_id.street2">
+                                    <t t-esc="o.company_id.street2"/><br/>
+                                </t>
+                                <t t-if="o.company_id.city">
+                                    <t t-esc="o.company_id.city"/>,
+                                </t>
+                                <t t-if="o.company_id.state_id">
+                                    <t t-esc="o.company_id.state_id.name"/>
+                                </t>
+                                <t t-if="o.company_id.zip">
+                                    <t t-esc="o.company_id.zip"/>
+                                </t>
+                                <br/>
+                                <t t-if="o.company_id.phone">
+                                    <strong>Teléfono:</strong> <t t-esc="o.company_id.phone"/><br/>
+                                </t>
+                                <t t-if="o.company_id.email">
+                                    <strong>Email:</strong> <t t-esc="o.company_id.email"/><br/>
+                                </t>
+                            </div>
+
+                            <!-- Customer Information -->
+                            <div class="col-6">
+                                <h5>Receptor</h5>
+                                <strong><t t-esc="o.partner_id.name"/></strong><br/>
+                                <t t-if="o.partner_id.vat">
+                                    <strong>Cédula/ID:</strong> <t t-esc="o.partner_id.vat"/><br/>
+                                </t>
+                                <t t-if="o.partner_id.street">
+                                    <t t-esc="o.partner_id.street"/><br/>
+                                </t>
+                                <t t-if="o.partner_id.street2">
+                                    <t t-esc="o.partner_id.street2"/><br/>
+                                </t>
+                                <t t-if="o.partner_id.city">
+                                    <t t-esc="o.partner_id.city"/>,
+                                </t>
+                                <t t-if="o.partner_id.state_id">
+                                    <t t-esc="o.partner_id.state_id.name"/>
+                                </t>
+                                <t t-if="o.partner_id.zip">
+                                    <t t-esc="o.partner_id.zip"/>
+                                </t>
+                                <br/>
+                                <t t-if="o.partner_id.phone">
+                                    <strong>Teléfono:</strong> <t t-esc="o.partner_id.phone"/><br/>
+                                </t>
+                                <t t-if="o.partner_id.email">
+                                    <strong>Email:</strong> <t t-esc="o.partner_id.email"/><br/>
+                                </t>
+                            </div>
+                        </div>
+
+                        <hr/>
+
+                        <!-- Invoice Lines -->
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                <h5>Detalle de Productos/Servicios</h5>
+                                <table class="table table-sm">
+                                    <thead>
+                                        <tr>
+                                            <th class="text-start">#</th>
+                                            <th class="text-start">Descripción</th>
+                                            <th class="text-end">Cantidad</th>
+                                            <th class="text-end">Precio Unit.</th>
+                                            <th class="text-end">Descuento</th>
+                                            <th class="text-end">Impuestos</th>
+                                            <th class="text-end">Total</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <t t-set="line_index" t-value="1"/>
+                                        <t t-foreach="o.move_id.invoice_line_ids" t-as="line">
+                                            <t t-if="not line.display_type">
+                                                <tr>
+                                                    <td class="text-start">
+                                                        <t t-esc="line_index"/>
+                                                        <t t-set="line_index" t-value="line_index + 1"/>
+                                                    </td>
+                                                    <td class="text-start">
+                                                        <strong><t t-esc="line.name"/></strong>
+                                                        <t t-if="line.product_id.default_code">
+                                                            <br/><small>Código: <t t-esc="line.product_id.default_code"/></small>
+                                                        </t>
+                                                    </td>
+                                                    <td class="text-end">
+                                                        <t t-esc="line.quantity"/>
+                                                        <t t-if="line.product_uom_id">
+                                                            <t t-esc="line.product_uom_id.name"/>
+                                                        </t>
+                                                    </td>
+                                                    <td class="text-end">
+                                                        <t t-esc="line.price_unit"
+                                                           t-options='{"widget": "monetary", "display_currency": o.currency_id}'/>
+                                                    </td>
+                                                    <td class="text-end">
+                                                        <t t-if="line.discount">
+                                                            <t t-esc="line.discount"/>%
+                                                        </t>
+                                                        <t t-else="">-</t>
+                                                    </td>
+                                                    <td class="text-end">
+                                                        <t t-esc="sum(line.tax_ids.mapped('amount'))"/>%
+                                                    </td>
+                                                    <td class="text-end">
+                                                        <t t-esc="line.price_subtotal"
+                                                           t-options='{"widget": "monetary", "display_currency": o.currency_id}'/>
+                                                    </td>
+                                                </tr>
+                                            </t>
+                                        </t>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Totals Section -->
+                        <div class="row">
+                            <div class="col-7"></div>
+                            <div class="col-5">
+                                <table class="table table-sm">
+                                    <tr>
+                                        <td><strong>Subtotal:</strong></td>
+                                        <td class="text-end">
+                                            <t t-esc="o.move_id.amount_untaxed"
+                                               t-options='{"widget": "monetary", "display_currency": o.currency_id}'/>
+                                        </td>
+                                    </tr>
+
+                                    <!-- Tax Details -->
+                                    <t t-foreach="o.move_id.amount_by_group" t-as="tax_group">
+                                        <tr>
+                                            <td>
+                                                <t t-esc="tax_group[0]"/>:
+                                            </td>
+                                            <td class="text-end">
+                                                <t t-esc="tax_group[1]"
+                                                   t-options='{"widget": "monetary", "display_currency": o.currency_id}'/>
+                                            </td>
+                                        </tr>
+                                    </t>
+
+                                    <tr class="border-top">
+                                        <td><strong>TOTAL:</strong></td>
+                                        <td class="text-end">
+                                            <strong>
+                                                <t t-esc="o.move_id.amount_total"
+                                                   t-options='{"widget": "monetary", "display_currency": o.currency_id}'/>
+                                            </strong>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Payment Terms -->
+                        <t t-if="o.move_id.invoice_payment_term_id">
+                            <div class="row mt-3">
+                                <div class="col-12">
+                                    <strong>Condiciones de Pago:</strong>
+                                    <t t-esc="o.move_id.invoice_payment_term_id.name"/>
+                                </div>
+                            </div>
+                        </t>
+
+                        <!-- Notes -->
+                        <t t-if="o.move_id.narration">
+                            <div class="row mt-3">
+                                <div class="col-12">
+                                    <strong>Notas:</strong><br/>
+                                    <t t-esc="o.move_id.narration"/>
+                                </div>
+                            </div>
+                        </t>
+
+                        <!-- Footer -->
+                        <div class="row mt-5 pt-3 border-top">
+                            <div class="col-12 text-center text-muted" style="font-size: 10px;">
+                                <p>
+                                    <strong>DOCUMENTO ELECTRÓNICO</strong><br/>
+                                    Este documento electrónico ha sido autorizado mediante resolución del Ministerio de Hacienda.<br/>
+                                    Puede verificar su autenticidad en el sitio web de Hacienda usando el código QR o la clave numérica.<br/>
+                                    <t t-if="o.clave">
+                                        Clave: <span style="font-family: monospace;"><t t-esc="o.clave"/></span>
+                                    </t>
+                                </p>
+                                <p class="mb-0">
+                                    Generado por <t t-esc="o.company_id.name"/> -
+                                    Fecha de impresión: <t t-esc="context_timestamp(datetime.datetime.now()).strftime('%Y-%m-%d %H:%M:%S')"/>
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </t>
+            </t>
+        </t>
+    </template>
+
+    <!-- Alternative simplified template for tickets (TE) -->
+    <template id="report_einvoice_ticket" inherit_id="report_einvoice_document">
+        <xpath expr="//div[@class='page']" position="attributes">
+            <attribute name="style">font-size: 12px;</attribute>
+        </xpath>
+    </template>
+</odoo>

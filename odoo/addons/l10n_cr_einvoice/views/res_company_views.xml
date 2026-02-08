@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Inherit Company Form View to Add Hacienda Configuration Tab -->
+    <record id="view_company_form_einvoice" model="ir.ui.view">
+        <field name="name">res.company.form.einvoice</field>
+        <field name="model">res.company</field>
+        <field name="inherit_id" ref="base.view_company_form"/>
+        <field name="arch" type="xml">
+
+            <!-- Add Hacienda Configuration Tab -->
+            <xpath expr="//notebook" position="inside">
+                <page string="Hacienda (CR E-Invoicing)" name="hacienda_config"
+                      groups="account.group_account_manager">
+
+                    <group string="Hacienda API Configuration">
+                        <group>
+                            <field name="l10n_cr_hacienda_env" widget="radio" options="{'horizontal': true}"/>
+                            <field name="l10n_cr_hacienda_username" placeholder="cpj-xxx-xxxxxx"/>
+                            <field name="l10n_cr_hacienda_password" password="True"/>
+                        </group>
+                        <group>
+                            <field name="l10n_cr_emisor_location" placeholder="01010100"/>
+                            <div class="text-muted">
+                                8-digit location code: Provincia-Canton-Distrito-Barrio
+                                <br/>
+                                Example: 01010100 for San José, Carmen, Merced, La California
+                            </div>
+                        </group>
+                    </group>
+
+                    <separator string="Digital Certificate"/>
+                    <group>
+                        <group>
+                            <field name="l10n_cr_certificate" filename="l10n_cr_certificate_filename"/>
+                            <field name="l10n_cr_certificate_filename" readonly="1"/>
+                            <field name="l10n_cr_private_key" filename="l10n_cr_private_key_filename"/>
+                            <field name="l10n_cr_private_key_filename" readonly="1"/>
+                        </group>
+                        <group>
+                            <field name="l10n_cr_key_password" password="True" placeholder="Leave empty if not encrypted"/>
+                        </group>
+                    </group>
+
+                    <div class="alert alert-info mt-3" role="alert">
+                        <i class="fa fa-info-circle"/>
+                        <strong>Certificate Requirements:</strong>
+                        <ul class="mb-0">
+                            <li>Must be a valid X.509 certificate in PEM format</li>
+                            <li>Must be issued by a recognized Costa Rican Certificate Authority</li>
+                            <li>Must be registered with the Ministry of Finance (Hacienda)</li>
+                            <li>Private key must match the certificate</li>
+                        </ul>
+                    </div>
+
+                    <separator string="Automation Settings"/>
+                    <group>
+                        <group>
+                            <field name="l10n_cr_auto_generate_einvoice"/>
+                            <field name="l10n_cr_auto_submit_einvoice"/>
+                            <field name="l10n_cr_auto_send_email"/>
+                        </group>
+                        <group>
+                            <field name="l10n_cr_einvoice_email_template_id"
+                                   domain="[('model', '=', 'account.move')]"
+                                   context="{'default_model': 'account.move'}"/>
+                        </group>
+                    </group>
+
+                </page>
+            </xpath>
+
+        </field>
+    </record>
+
+</odoo>

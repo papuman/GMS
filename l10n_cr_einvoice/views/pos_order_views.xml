@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+
+        <!-- POS Order Form View Extension -->
+        <record id="view_pos_order_form_einvoice" model="ir.ui.view">
+            <field name="name">pos.order.form.einvoice</field>
+            <field name="model">pos.order</field>
+            <field name="inherit_id" ref="point_of_sale.view_pos_pos_form"/>
+            <field name="arch" type="xml">
+
+                <!-- Add smart button for retroactive e-invoice generation -->
+                <xpath expr="//div[@name='button_box']" position="inside">
+                    <!-- Generate E-Invoice (Retroactive) - Only for paid orders without e-invoice -->
+                    <button name="action_generate_einvoice_retroactive"
+                            type="object"
+                            class="oe_stat_button"
+                            icon="fa-plus-circle"
+                            invisible="l10n_cr_einvoice_document_id or state != 'paid'"
+                            string="Generate E-Invoice"
+                            help="Generate electronic invoice for this completed order"/>
+                </xpath>
+
+            </field>
+        </record>
+
+        <!-- TODO: Add tree and search view extensions when correct parent view references are identified -->
+
+    </data>
+</odoo>

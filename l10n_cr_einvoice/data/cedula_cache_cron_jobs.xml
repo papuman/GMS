@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo noupdate="1">
+
+    <!-- ========================================================================== -->
+    <!-- Cédula Cache Maintenance Cron Jobs                                        -->
+    <!-- ========================================================================== -->
+    <!-- These automated jobs maintain the Hacienda API cédula cache:             -->
+    <!-- 1. Refresh stale cache entries (every 6 hours)                            -->
+    <!-- 2. Purge expired cache entries (daily at 2:00 AM)                         -->
+    <!-- 3. Priority refresh for high-traffic entries (daily at 3:00 AM)           -->
+    <!--                                                                            -->
+    <!-- Configuration via System Parameters:                                       -->
+    <!-- - l10n_cr_einvoice.cache_refresh_batch_size (default: 100)                -->
+    <!-- - l10n_cr_einvoice.cache_priority_threshold (default: 10)                 -->
+    <!-- - l10n_cr_einvoice.cache_max_age_days (default: 90)                       -->
+    <!-- ========================================================================== -->
+
+    <!-- Cron Job: Refresh Stale Cache Entries (Every 6 Hours) -->
+    <record id="ir_cron_cedula_cache_refresh_stale" model="ir.cron">
+        <field name="name">Cédula Cache: Refresh Stale Entries</field>
+        <field name="model_id" ref="model_l10n_cr_cedula_cache"/>
+        <field name="state">code</field>
+        <field name="code">model._cron_refresh_stale_cache()</field>
+        <field name="interval_number">6</field>
+        <field name="interval_type">hours</field>
+        <field name="active" eval="True"/>
+        <field name="priority">10</field>
+        <field name="user_id" ref="base.user_admin"/>
+    </record>
+
+    <!-- Cron Job: Purge Expired Cache Entries (Daily at 2:00 AM) -->
+    <record id="ir_cron_cedula_cache_purge_expired" model="ir.cron">
+        <field name="name">Cédula Cache: Purge Expired Entries</field>
+        <field name="model_id" ref="model_l10n_cr_cedula_cache"/>
+        <field name="state">code</field>
+        <field name="code">model._cron_purge_expired_cache()</field>
+        <field name="interval_number">1</field>
+        <field name="interval_type">days</field>
+        <field name="active" eval="True"/>
+        <field name="priority">20</field>
+        <field name="user_id" ref="base.user_admin"/>
+        <field name="nextcall" eval="(DateTime.now() + timedelta(days=1)).replace(hour=2, minute=0, second=0)"/>
+    </record>
+
+    <!-- Cron Job: Priority Refresh for High-Access Entries (Daily at 3:00 AM) -->
+    <record id="ir_cron_cedula_cache_priority_refresh" model="ir.cron">
+        <field name="name">Cédula Cache: Priority Refresh (High Traffic)</field>
+        <field name="model_id" ref="model_l10n_cr_cedula_cache"/>
+        <field name="state">code</field>
+        <field name="code">model._cron_priority_refresh()</field>
+        <field name="interval_number">1</field>
+        <field name="interval_type">days</field>
+        <field name="active" eval="True"/>
+        <field name="priority">15</field>
+        <field name="user_id" ref="base.user_admin"/>
+        <field name="nextcall" eval="(DateTime.now() + timedelta(days=1)).replace(hour=3, minute=0, second=0)"/>
+    </record>
+
+    <!-- ========================================================================== -->
+    <!-- System Parameters for Cache Configuration                                 -->
+    <!-- ========================================================================== -->
+    <!-- These parameters control cache maintenance behavior and can be modified   -->
+    <!-- via Settings > Technical > Parameters > System Parameters                 -->
+    <!-- ========================================================================== -->
+
+    <!-- Cache Refresh Batch Size -->
+    <record id="ir_config_parameter_cache_refresh_batch_size" model="ir.config_parameter">
+        <field name="key">l10n_cr_einvoice.cache_refresh_batch_size</field>
+        <field name="value">100</field>
+    </record>
+
+    <!-- Priority Refresh Access Count Threshold -->
+    <record id="ir_config_parameter_cache_priority_threshold" model="ir.config_parameter">
+        <field name="key">l10n_cr_einvoice.cache_priority_threshold</field>
+        <field name="value">10</field>
+    </record>
+
+    <!-- Cache Maximum Age in Days -->
+    <record id="ir_config_parameter_cache_max_age_days" model="ir.config_parameter">
+        <field name="key">l10n_cr_einvoice.cache_max_age_days</field>
+        <field name="value">90</field>
+    </record>
+
+</odoo>

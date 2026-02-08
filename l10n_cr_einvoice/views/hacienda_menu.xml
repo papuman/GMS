@@ -8,58 +8,70 @@
               sequence="15"
               groups="account.group_account_invoice"/>
 
-    <!-- Sub-Menu: Electronic Invoices -->
+    <!-- E-Invoices -->
     <menuitem id="menu_hacienda_einvoices"
               name="Electronic Invoices"
               parent="menu_hacienda_root"
               action="action_einvoice_document"
-              sequence="10"/>
+              sequence="10"
+              groups="account.group_account_invoice"/>
 
-    <!-- Sub-Menu: Pending E-Invoices -->
-    <menuitem id="menu_hacienda_pending_invoices"
-              name="Pending E-Invoices"
+    <!-- Tax Reports (flat, directly under Hacienda root) -->
+    <menuitem id="menu_d150_vat_reports"
+              name="D-150 VAT Declarations"
               parent="menu_hacienda_root"
-              action="action_invoices_requiring_einvoice"
-              sequence="20"/>
+              action="l10n_cr_einvoice.action_d150_report"
+              sequence="20"
+              groups="account.group_account_manager"/>
 
-    <!-- Sub-Menu: E-Invoice Errors -->
-    <menuitem id="menu_hacienda_errors"
-              name="E-Invoice Errors"
+    <menuitem id="menu_d101_income_tax_reports"
+              name="D-101 Income Tax"
               parent="menu_hacienda_root"
-              action="action_invoices_einvoice_errors"
-              sequence="30"/>
+              action="l10n_cr_einvoice.action_d101_report"
+              sequence="30"
+              groups="account.group_account_manager"/>
 
-    <!-- Separator -->
-    <menuitem id="menu_hacienda_separator_1"
+    <menuitem id="menu_d151_informative_reports"
+              name="D-151 Informative Declarations"
               parent="menu_hacienda_root"
+              action="l10n_cr_einvoice.action_d151_report"
               sequence="40"
               groups="account.group_account_manager"/>
 
-    <!-- Sub-Menu: Dashboard (Placeholder for future implementation) -->
-    <menuitem id="menu_hacienda_dashboard"
-              name="Dashboard"
+    <menuitem id="menu_tax_report_periods"
+              name="Tax Report Periods"
               parent="menu_hacienda_root"
+              action="l10n_cr_einvoice.action_tax_report_period"
               sequence="50"
               groups="account.group_account_manager"/>
 
-    <!-- Sub-Menu: Reports (Placeholder for future implementation) -->
-    <menuitem id="menu_hacienda_reports"
-              name="Reports"
+    <!-- Configuration (flat, directly under Hacienda root) -->
+    <menuitem id="menu_ciiu_codes"
+              name="Economic Activity Codes (CIIU)"
               parent="menu_hacienda_root"
+              action="action_ciiu_code"
               sequence="60"
-              groups="account.group_account_manager"/>
+              groups="base.group_system"/>
 
-    <!-- Separator -->
-    <menuitem id="menu_hacienda_separator_2"
+    <menuitem id="menu_payment_methods"
+              name="Payment Methods"
               parent="menu_hacienda_root"
+              action="action_payment_method"
               sequence="70"
-              groups="account.group_account_manager"/>
+              groups="base.group_system"/>
 
-    <!-- Sub-Menu: Configuration -->
-    <menuitem id="menu_hacienda_configuration"
-              name="Configuration"
+    <menuitem id="menu_discount_codes"
+              name="Discount Codes"
               parent="menu_hacienda_root"
+              action="action_discount_code"
               sequence="80"
-              groups="account.group_account_manager"/>
+              groups="base.group_system"/>
+
+    <menuitem id="menu_hacienda_company_settings"
+              name="Hacienda Settings"
+              parent="menu_hacienda_root"
+              action="base.action_res_company_form"
+              sequence="90"
+              groups="base.group_system"/>
 
 </odoo>
