@@ -11,6 +11,7 @@ Classes:
     EInvoiceTestCase: Full accounting setup base class for CR e-invoicing
 """
 
+import base64
 import uuid
 from odoo.tests import TransactionCase
 
@@ -120,6 +121,7 @@ class L10nCrEInvoiceCommon(TransactionCase):
             'vat': '3999999999',
             'country_id': cls.costa_rica.id,
             'l10n_cr_emisor_location': '10101',
+            'l10n_cr_proveedor_sistemas': '3999999999',  # Required by v4.4
         })
 
         # Set activity code on company partner (required for e-invoice)
@@ -167,10 +169,20 @@ class EInvoiceTestCase(TransactionCase):
             'street': 'Avenida Central, San José',
             'currency_id': cls.env.ref('base.CRC').id,
             'l10n_cr_emisor_location': '10101',  # San José, Carmen
+            'l10n_cr_proveedor_sistemas': '3101234567',  # Required by v4.4
         })
 
         # Set activity code on company partner (required for e-invoice)
         cls.company.partner_id.l10n_cr_activity_code = '861201'
+
+        # Set dummy certificate for XML generation validation
+        # (bypasses _validate_company_certificate check in xml_generator)
+        dummy_cert = base64.b64encode(b'dummy-test-certificate-data')
+        cls.company.write({
+            'l10n_cr_certificate': dummy_cert,
+            'l10n_cr_certificate_filename': 'test.p12',
+            'l10n_cr_key_password': 'test1234',
+        })
 
         # Load Costa Rica chart of accounts if available
         # This creates all required accounts, taxes, and fiscal positions
@@ -333,13 +345,20 @@ class EInvoiceTestCase(TransactionCase):
         if name is None:
             name = f'Test Partner {vat}'
 
-        return cls.env['res.partner'].create({
+        # Get a CIIU code for FE mandatory field validation (required after Oct 6, 2025)
+        ciiu_code = cls.env['l10n_cr.ciiu.code'].search([], limit=1)
+
+        partner_vals = {
             'name': name,
             'country_id': cls.env.ref('base.cr').id,
             'vat': vat,
             'email': f'{vat}@test.example.com',
+            'phone': '22001100',
             'company_id': cls.company.id,
-        })
+        }
+        if ciiu_code:
+            partner_vals['l10n_cr_economic_activity_id'] = ciiu_code.id
+        return cls.env['res.partner'].create(partner_vals)
 
     @classmethod
     def _create_test_product(cls, name=None, price=100.0):

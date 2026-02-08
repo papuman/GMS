@@ -1074,13 +1074,18 @@ class L10nCrCedulaCache(models.Model):
                     }
                 message += '</ul>'
 
-            # Send notification to each admin
+            # Send notification via internal message (Odoo 19 compatible)
+            # user.notify_warning() does not exist in Odoo 19.
+            # Instead, post a message on the admin user's partner record
+            # which will appear in their inbox/chatter.
+            notification_title = _('Cron Job Alert: %s') % cron_name
             for user in admin_users:
                 try:
-                    user.notify_warning(
-                        message=message,
-                        title=_('Cron Job Alert: %(cron_name)s', cron_name=cron_name),
-                        sticky=True,
+                    user.partner_id.message_post(
+                        body=message,
+                        subject=notification_title,
+                        message_type='notification',
+                        subtype_xmlid='mail.mt_note',
                     )
                 except Exception as e:
                     _logger.error('Failed to notify user %s: %s', user.name, str(e))

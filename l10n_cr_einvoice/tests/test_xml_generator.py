@@ -323,7 +323,9 @@ class TestXMLGeneratorTaxCalculations(EInvoiceTestCase):
         impuesto = root.find('.//ns:Impuesto', ns)
 
         self.assertIsNotNone(impuesto, "Impuesto element must be present")
+        # v4.4: Codigo is always '01' (IVA type), CodigoTarifaIVA holds the rate code
         self.assertEqual(impuesto.find('ns:Codigo', ns).text, '01')
+        self.assertEqual(impuesto.find('ns:CodigoTarifaIVA', ns).text, '08')  # 13% = tarifa code '08'
         self.assertEqual(impuesto.find('ns:Tarifa', ns).text, '13.00')
 
     def test_tax_4_percent_calculation(self):
@@ -371,7 +373,9 @@ class TestXMLGeneratorTaxCalculations(EInvoiceTestCase):
         ns = {'ns': root.nsmap[None]}
         impuesto = root.find('.//ns:Impuesto', ns)
 
-        self.assertEqual(impuesto.find('ns:Codigo', ns).text, '02')
+        # v4.4: Codigo is always '01' (IVA type), CodigoTarifaIVA holds the rate code
+        self.assertEqual(impuesto.find('ns:Codigo', ns).text, '01')
+        self.assertEqual(impuesto.find('ns:CodigoTarifaIVA', ns).text, '04')
         self.assertEqual(impuesto.find('ns:Tarifa', ns).text, '4.00')
 
     def test_zero_tax_calculation(self):
@@ -420,7 +424,9 @@ class TestXMLGeneratorTaxCalculations(EInvoiceTestCase):
         ns = {'ns': root.nsmap[None]}
         impuesto = root.find('.//ns:Impuesto', ns)
 
-        self.assertEqual(impuesto.find('ns:Codigo', ns).text, '06')
+        # v4.4: Codigo is always '01' (IVA type), CodigoTarifaIVA holds the rate code
+        self.assertEqual(impuesto.find('ns:Codigo', ns).text, '01')
+        self.assertEqual(impuesto.find('ns:CodigoTarifaIVA', ns).text, '01')  # 0% = tarifa code '01'
         self.assertEqual(impuesto.find('ns:Tarifa', ns).text, '0.00')
 
     def test_no_tax_creates_default_impuesto(self):
@@ -448,6 +454,10 @@ class TestXMLGeneratorTaxCalculations(EInvoiceTestCase):
         impuesto = root.find('.//ns:Impuesto', ns)
 
         self.assertIsNotNone(impuesto, "Impuesto element must be present even without taxes")
+        # v4.4: Default no-tax Impuesto uses IVA type '01' and 0% tarifa code '01'
+        self.assertEqual(impuesto.find('ns:Codigo', ns).text, '01')
+        self.assertEqual(impuesto.find('ns:CodigoTarifaIVA', ns).text, '01')
+        self.assertEqual(impuesto.find('ns:Tarifa', ns).text, '0.00')
         self.assertEqual(impuesto.find('ns:Monto', ns).text, '0.00000')
 
 
@@ -597,9 +607,17 @@ class TestXMLGeneratorEdgeCases(EInvoiceTestCase):
         self.assertEqual(tipo, '02', "Company should use Cédula Jurídica (02)")
 
     def test_ubicacion_barrio_min_5_chars(self):
-        """Test that Barrio field has minimum 5 characters (v4.4 requirement)."""
-        # Set short location code
-        self.company.l10n_cr_emisor_location = '10101'
+        """Test that Barrio field has minimum 5 characters (v4.4 requirement).
+
+        v4.4 changed Barrio from numeric code to text description (min=5, max=50).
+        Barrio is OPTIONAL and only emitted when there's a meaningful text value.
+        When the location code has a numeric barrio part, the generator falls back
+        to company.street2 as the barrio text.
+        """
+        # Set location code with a numeric barrio part (position 5+) and
+        # set street2 as the text description that the generator will use
+        self.company.l10n_cr_emisor_location = '1010101'  # Provincia=1, Canton=01, Distrito=01, Barrio=01
+        self.company.street2 = 'San Pedro Centro'
 
         move = self._create_test_invoice()
         move.action_post()
@@ -618,7 +636,7 @@ class TestXMLGeneratorEdgeCases(EInvoiceTestCase):
         ns = {'ns': root.nsmap[None]}
         barrio = root.find('.//ns:Barrio', ns)
 
-        self.assertIsNotNone(barrio)
+        self.assertIsNotNone(barrio, "Barrio element should be present when street2 has a text value")
         self.assertGreaterEqual(len(barrio.text), 5, "Barrio must be at least 5 characters")
 
 
@@ -660,7 +678,7 @@ class TestXMLGeneratorReferenceDocuments(EInvoiceTestCase):
         info_ref = root.find('.//ns:InformacionReferencia', ns)
 
         self.assertIsNotNone(info_ref, "Credit note should include InformacionReferencia")
-        self.assertIsNotNone(info_ref.find('ns:TipoDoc', ns))
+        self.assertIsNotNone(info_ref.find('ns:TipoDocIR', ns))
         self.assertIsNotNone(info_ref.find('ns:Numero', ns))
 
     def test_debit_note_includes_reference(self):

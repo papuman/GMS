@@ -893,13 +893,13 @@ class L10nCRValidationRule(models.Model):
                 'sequence': 200,
                 'document_type': 'all',
                 'applies_to': 'company',
-                'field_name': 'l10n_cr_signature_certificate',
+                'field_name': 'l10n_cr_active_certificate',
                 'field_label': 'Certificado de Firma',
-                'validation_type': 'custom',
-                'validation_params': '{"expression": "record.l10n_cr_signature_certificate and record.l10n_cr_certificate_expiration >= date.today()"}',
+                'validation_type': 'required',
+                'required': True,
                 'error_message_es': (
-                    'El certificado de firma digital está vencido o no configurado.\n\n'
-                    'Por favor actualice el certificado en la configuración de la empresa.'
+                    'El certificado de firma digital no está configurado.\n\n'
+                    'Por favor cargue el certificado (.p12) en la configuración de la empresa.'
                 ),
                 'blocking': True,
                 'severity': 'error',

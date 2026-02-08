@@ -111,6 +111,21 @@
                             </div>
                         </div>
 
+                        <!-- Software Provider ID (v4.4 ProveedorSistemas) -->
+                        <div class="col-12 col-lg-6 o_setting_box">
+                            <div class="o_setting_left_pane"/>
+                            <div class="o_setting_right_pane">
+                                <label for="l10n_cr_proveedor_sistemas" string="Software Provider ID"/>
+                                <div class="text-muted mb-2">
+                                    Cedula of the software developer/provider (required by Hacienda v4.4).
+                                    If empty, the company VAT is used as fallback.
+                                </div>
+                                <div class="content-group">
+                                    <field name="l10n_cr_proveedor_sistemas" placeholder="3101XXXXXX"/>
+                                </div>
+                            </div>
+                        </div>
+
                         <!-- Email Template -->
                         <div class="col-12 col-lg-6 o_setting_box">
                             <div class="o_setting_left_pane"/>

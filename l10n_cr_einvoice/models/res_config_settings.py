@@ -60,6 +60,13 @@ class ResConfigSettings(models.TransientModel):
         string='Certificate PIN / Password',
     )
 
+    # Software Provider ID (v4.4 ProveedorSistemas)
+    l10n_cr_proveedor_sistemas = fields.Char(
+        related='company_id.l10n_cr_proveedor_sistemas',
+        readonly=False,
+        string='Software Provider ID',
+    )
+
     # Emisor Location
     l10n_cr_emisor_location = fields.Char(
         related='company_id.l10n_cr_emisor_location',

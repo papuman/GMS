@@ -126,7 +126,7 @@ class EInvoiceDocument(models.Model):
         help='Complete response from Hacienda API',
     )
 
-    hacienda_message = fields.Char(
+    hacienda_message = fields.Text(
         string='Response Message',
         readonly=True,
         tracking=True,
@@ -866,12 +866,16 @@ class EInvoiceDocument(models.Model):
             if not template:
                 raise UserError(_('Email template not found.'))
 
-            # Send email
+            # Attach PDF + signed XML (Chile pattern)
+            attachment_ids = [(4, self.pdf_attachment_id.id)]
+            if self.xml_attachment_id:
+                attachment_ids.append((4, self.xml_attachment_id.id))
+
             template.send_mail(
                 self.id,
                 force_send=True,
                 email_values={
-                    'attachment_ids': [(4, self.pdf_attachment_id.id)],
+                    'attachment_ids': attachment_ids,
                 }
             )
 
@@ -998,30 +1002,34 @@ class EInvoiceDocument(models.Model):
         """
         Generate the 50-digit Hacienda key (clave).
 
-        Format (50 digits total):
-        CCC DDMMYY CCCCCCCCCCCC CCCCCCCCCCCCCCCCCCCC SSSSSSSS V
-        506  date   cedula(12)   consecutive(20)      security  check
-         3    6       12              20                  8       1
+        Format per resolution 48-2016, Article 5 (50 digits total):
+        CCC DD MM YY CCCCCCCCCCCC CCCCCCCCCCCCCCCCCCCC S CCCCCCCC
+        506 day mo yr cedula(12)   consecutive(20)      sit security
+         3   2  2  2    12              20               1    8    = 50
         """
         import random
 
-        move = self.move_id
         company = self.company_id
 
         # Country code (3 digits)
         country = '506'
 
         # Date DDMMYY (6 digits, 2-digit year)
-        invoice_date = move.invoice_date or fields.Date.today()
+        if self.move_id and self.move_id.invoice_date:
+            invoice_date = self.move_id.invoice_date
+        elif self.pos_order_id and self.pos_order_id.date_order:
+            invoice_date = self.pos_order_id.date_order.date()
+        else:
+            invoice_date = fields.Date.today()
         date_str = invoice_date.strftime('%d%m%y')
 
         # Cedula juridica (12 digits, zero-padded)
         cedula = (company.vat or '').replace('-', '').replace(' ', '').zfill(12)[:12]
 
         # Consecutive number (20 digits)
-        # Format: EEE-TT-DD-SSSSSSSSSSSS
-        # EEE = emisor sucursal (3 digits), TT = terminal (2),
-        # DD = doc type (2), SSSSSSSSSSSS = sequence (13)
+        # Format per Hacienda v4.4 Article 4: SSS + TTTTT + DD + NNNNNNNNNN
+        # SSS = Sucursal (3 digits), TTTTT = Terminal (5 digits),
+        # DD = DocType (2 digits), NNNNNNNNNN = Sequence (10 digits)
         doc_type_codes = {
             'FE': '01',
             'ND': '02',
@@ -1031,16 +1039,14 @@ class EInvoiceDocument(models.Model):
         doc_type = doc_type_codes.get(self.document_type, '01')
         consecutive = '001' + '00001' + doc_type + str(self.id).zfill(10)  # 3+5+2+10 = 20
 
+        # Situación del comprobante (1 digit): 1=Normal, 2=Contingencia, 3=Sin internet
+        situacion = '1'
+
         # Security code (8 random digits)
         security_code = str(random.randint(10000000, 99999999))
 
-        # Build clave without verification digit (49 digits)
-        clave_without_check = country + date_str + cedula + consecutive + security_code
-
-        # Calculate verification digit (1 digit)
-        check_digit = self._calculate_check_digit(clave_without_check)
-
-        clave = clave_without_check + check_digit
+        # Build clave (50 digits)
+        clave = country + date_str + cedula + consecutive + situacion + security_code
 
         if len(clave) != 50:
             raise ValidationError(_('Invalid clave length: %s (expected 50)') % len(clave))
@@ -1125,6 +1131,59 @@ class EInvoiceDocument(models.Model):
 
         return attachment
 
+    def _parse_mensaje_hacienda_xml(self, xml_content):
+        """Parse MensajeHacienda XML and extract key fields.
+
+        The Hacienda API returns a base64-encoded MensajeHacienda XML in the
+        ``respuesta-xml`` field. This method decodes and extracts the human-readable
+        fields such as DetalleMensaje (rejection reason), Mensaje, etc.
+
+        Args:
+            xml_content: Base64 string or raw bytes/string of the MensajeHacienda XML.
+
+        Returns:
+            dict: Extracted fields (DetalleMensaje, Mensaje, EstadoMensaje, etc.)
+                  Empty dict if parsing fails.
+        """
+        try:
+            # Decode base64 if needed
+            if isinstance(xml_content, str):
+                try:
+                    xml_bytes = base64.b64decode(xml_content)
+                except Exception:
+                    xml_bytes = xml_content.encode('utf-8')
+            else:
+                xml_bytes = xml_content
+
+            root = etree.fromstring(xml_bytes)
+
+            # MensajeHacienda namespace for v4.4
+            ns = {'mh': 'https://cdn.comprobanteselectronicos.go.cr/xml-schemas/v4.4/mensajeHacienda'}
+
+            result = {}
+            fields_to_extract = [
+                'DetalleMensaje', 'Mensaje', 'EstadoMensaje',
+                'TotalFactura', 'MontoTotalImpuesto', 'Clave',
+            ]
+
+            # Try with namespace first, then without
+            for use_ns in [True, False]:
+                for field_name in fields_to_extract:
+                    if use_ns:
+                        elem = root.find(f'mh:{field_name}', ns)
+                    else:
+                        elem = root.find(field_name)
+                    if elem is not None and elem.text:
+                        result[field_name] = elem.text
+
+                if result:
+                    break
+
+            return result
+        except Exception as e:
+            _logger.warning("Failed to parse MensajeHacienda XML: %s", str(e))
+            return {}
+
     def _process_hacienda_response(self, response):
         """
         Process the response from Hacienda API.
@@ -1143,12 +1202,30 @@ class EInvoiceDocument(models.Model):
         # Use decoded message if available, otherwise use base64
         message = response.get('respuesta-xml-decoded') or response.get('respuesta-xml', '')
 
+        # Parse the MensajeHacienda XML to extract human-readable fields
+        parsed_xml = {}
+        respuesta_xml = response.get('respuesta-xml')
+        if respuesta_xml:
+            parsed_xml = self._parse_mensaje_hacienda_xml(respuesta_xml)
+            if parsed_xml:
+                _logger.info(
+                    'Parsed MensajeHacienda for %s: EstadoMensaje=%s, DetalleMensaje=%s',
+                    self.name,
+                    parsed_xml.get('EstadoMensaje', 'N/A'),
+                    (parsed_xml.get('DetalleMensaje', 'N/A'))[:200],
+                )
+
+        # Use DetalleMensaje as the human-readable message when available
+        detalle_mensaje = parsed_xml.get('DetalleMensaje', '')
+        if detalle_mensaje:
+            message = detalle_mensaje
+
         # Extract error details if present
         error_info = response.get('error_details', '')
 
         vals = {
             'hacienda_response': str(response),
-            'hacienda_message': message[:500] if message else '',  # Limit message length
+            'hacienda_message': message or '',
             'hacienda_submission_date': fields.Datetime.now(),
         }
 
@@ -1170,11 +1247,20 @@ class EInvoiceDocument(models.Model):
             return
 
         elif status == 'rechazado':
+            # Build descriptive rejection message
+            rejection_detail = detalle_mensaje or error_info or message
+            rejection_msg = _('Rejected by Hacienda')
+            if rejection_detail:
+                rejection_msg = _('Rejected by Hacienda: %s') % rejection_detail
+
             vals.update({
                 'state': 'rejected',
-                'error_message': error_info or message,
+                'error_message': rejection_msg,
             })
-            _logger.warning(f'Document {self.name} rejected by Hacienda: {error_info or message}')
+            _logger.warning(
+                'Document %s rejected by Hacienda: %s',
+                self.name, rejection_detail or 'No detail provided'
+            )
 
         elif status in ['procesando', 'recibido']:
             vals.update({
@@ -1182,13 +1268,31 @@ class EInvoiceDocument(models.Model):
             })
             _logger.info(f'Document {self.name} submitted, status: {status}')
 
-        else:
-            # Unknown or error status
+        elif status == 'error':
+            # Explicit error status from Hacienda
+            error_detail = detalle_mensaje or error_info or message
             vals.update({
                 'state': 'error',
-                'error_message': f'Unknown status: {status}. {error_info or message}',
+                'error_message': _('Hacienda returned error: %s') % (error_detail or _('No details provided')),
             })
-            _logger.error(f'Document {self.name} unknown status: {status}')
+            _logger.error(
+                'Document %s received error status from Hacienda: %s',
+                self.name, error_detail or 'No details'
+            )
+
+        else:
+            # Unknown status
+            error_detail = detalle_mensaje or error_info or message
+            vals.update({
+                'state': 'error',
+                'error_message': _(
+                    'Unknown Hacienda status: "%(status)s". %(detail)s'
+                ) % {'status': status, 'detail': error_detail or ''},
+            })
+            _logger.error(
+                'Document %s unknown status from Hacienda: "%s". Detail: %s',
+                self.name, status, error_detail or 'None'
+            )
 
         self.write(vals)
 

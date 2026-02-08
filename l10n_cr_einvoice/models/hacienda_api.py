@@ -16,6 +16,9 @@ MAX_RETRY_ATTEMPTS = 3
 INITIAL_RETRY_DELAY = 2  # seconds
 RETRY_BACKOFF_FACTOR = 2  # exponential backoff multiplier
 
+# Token cache: {company_id: {'access_token': str, 'refresh_token': str, 'expires_at': float, 'refresh_expires_at': float}}
+_TOKEN_CACHE = {}
+
 
 class HaciendaAPI(models.AbstractModel):
     _name = 'l10n_cr.hacienda.api'
@@ -23,7 +26,7 @@ class HaciendaAPI(models.AbstractModel):
 
     # API Endpoints
     PRODUCTION_URL = 'https://api.comprobanteselectronicos.go.cr/recepcion/v1'
-    SANDBOX_URL = 'https://api-sandbox.comprobanteselectronicos.go.cr/recepcion/v1'
+    SANDBOX_URL = 'https://api.comprobanteselectronicos.go.cr/recepcion-sandbox/v1'
 
     # OAuth2 / IDP Endpoints (Keycloak)
     IDP_SANDBOX_URL = 'https://idp.comprobanteselectronicos.go.cr/auth/realms/rut-stag/protocol/openid-connect/token'
@@ -59,9 +62,15 @@ class HaciendaAPI(models.AbstractModel):
         return self.IDP_CLIENT_ID_SANDBOX
 
     @api.model
-    def _obtain_token(self):
+    def _obtain_token(self, force_refresh=False):
         """
-        Obtain an OAuth2 bearer token from the Hacienda IDP.
+        Obtain an OAuth2 bearer token from the Hacienda IDP with caching and refresh support.
+
+        Uses a module-level cache keyed by company ID to avoid requesting a new token
+        on every API call. Supports refresh_token grant when the access token expires.
+
+        Args:
+            force_refresh (bool): If True, ignore cached token and obtain a fresh one.
 
         Returns:
             str: Access token
@@ -70,10 +79,35 @@ class HaciendaAPI(models.AbstractModel):
             UserError: On authentication failure
         """
         company = self.env.company
+        company_id = company.id
 
         if not company.l10n_cr_active_username or not company.l10n_cr_active_password:
             raise UserError(_('Hacienda API credentials not configured. Please check company settings.'))
 
+        now = time.time()
+
+        # Check cached token (unless forced refresh)
+        if not force_refresh and company_id in _TOKEN_CACHE:
+            cached = _TOKEN_CACHE[company_id]
+            # Return cached access token if still valid
+            if cached.get('expires_at', 0) > now:
+                return cached['access_token']
+
+            # Try refresh token grant if refresh token is still valid
+            if cached.get('refresh_token') and cached.get('refresh_expires_at', 0) > now:
+                try:
+                    return self._refresh_token(cached['refresh_token'])
+                except Exception:
+                    _logger.info('Refresh token grant failed, falling back to password grant')
+                    # Fall through to full password grant
+
+        # Full password grant
+        return self._password_grant()
+
+    @api.model
+    def _password_grant(self):
+        """Obtain token using password grant and cache the result."""
+        company = self.env.company
         idp_url = self._get_idp_url()
         client_id = self._get_idp_client_id()
 
@@ -93,6 +127,7 @@ class HaciendaAPI(models.AbstractModel):
 
         if response.status_code == 200:
             token_data = response.json()
+            self._cache_token(company.id, token_data)
             return token_data['access_token']
         elif response.status_code == 401:
             raise UserError(_('Authentication failed - Invalid username or password.'))
@@ -107,6 +142,53 @@ class HaciendaAPI(models.AbstractModel):
             )
 
     @api.model
+    def _refresh_token(self, refresh_token):
+        """Obtain a new access token using refresh_token grant."""
+        company = self.env.company
+        idp_url = self._get_idp_url()
+        client_id = self._get_idp_client_id()
+
+        data = {
+            'grant_type': 'refresh_token',
+            'client_id': client_id,
+            'refresh_token': refresh_token,
+        }
+
+        response = requests.post(idp_url, data=data, timeout=15)
+
+        if response.status_code == 200:
+            token_data = response.json()
+            self._cache_token(company.id, token_data)
+            _logger.debug('Token refreshed successfully for company %s', company.id)
+            return token_data['access_token']
+        else:
+            # Clear stale cache on refresh failure
+            _TOKEN_CACHE.pop(company.id, None)
+            raise Exception('Refresh token grant failed (HTTP %s)' % response.status_code)
+
+    @api.model
+    def _cache_token(self, company_id, token_data):
+        """Cache token data with computed expiration timestamps."""
+        now = time.time()
+        expires_in = token_data.get('expires_in', 300)
+        refresh_expires_in = token_data.get('refresh_expires_in', 1800)
+
+        _TOKEN_CACHE[company_id] = {
+            'access_token': token_data['access_token'],
+            'refresh_token': token_data.get('refresh_token', ''),
+            'expires_at': now + expires_in - 30,  # 30 second safety margin
+            'refresh_expires_at': now + refresh_expires_in - 30,
+        }
+
+    @api.model
+    def _clear_token_cache(self, company_id=None):
+        """Clear token cache for a specific company or all companies."""
+        if company_id:
+            _TOKEN_CACHE.pop(company_id, None)
+        else:
+            _TOKEN_CACHE.clear()
+
+    @api.model
     def _get_auth_headers(self):
         """Get authentication headers for API requests using OAuth2 bearer token."""
         token = self._obtain_token()
@@ -119,7 +201,7 @@ class HaciendaAPI(models.AbstractModel):
         return headers
 
     @api.model
-    def submit_invoice(self, clave, xml_content, sender_id, receiver_id):
+    def submit_invoice(self, clave, xml_content, sender_id, receiver_id, fecha=None):
         """
         Submit an electronic invoice to Hacienda with retry logic.
 
@@ -128,6 +210,7 @@ class HaciendaAPI(models.AbstractModel):
             xml_content (str): Signed XML content
             sender_id (str): Sender's cedula/identification
             receiver_id (str): Receiver's cedula/identification
+            fecha (datetime, optional): Document date. If not provided, uses current time.
 
         Returns:
             dict: Response from Hacienda API with structure:
@@ -145,20 +228,30 @@ class HaciendaAPI(models.AbstractModel):
         sender_clean = (sender_id or '').replace('-', '').replace(' ', '')
         receiver_clean = (receiver_id or '').replace('-', '').replace(' ', '') if receiver_id else ''
 
+        # Use provided date or current time for the submission timestamp
+        if fecha:
+            fecha_str = fecha.strftime('%Y-%m-%dT%H:%M:%S-06:00')
+        else:
+            fecha_str = datetime.now().strftime('%Y-%m-%dT%H:%M:%S-06:00')
+
         # Prepare payload according to Hacienda API specification
         payload = {
             'clave': clave,
-            'fecha': datetime.now().strftime('%Y-%m-%dT%H:%M:%S-06:00'),  # Costa Rica timezone
+            'fecha': fecha_str,
             'emisor': {
                 'tipoIdentificacion': self.get_id_type(sender_clean),
                 'numeroIdentificacion': sender_clean,
             },
-            'receptor': {
-                'tipoIdentificacion': self.get_id_type(receiver_clean) if receiver_clean else '05',
-                'numeroIdentificacion': receiver_clean or '000000000000',
-            },
             'comprobanteXml': xml_base64,
         }
+
+        # Only include receptor if there is a real receiver identification
+        # TE (Tiquete Electrónico) documents may not have a receptor
+        if receiver_clean:
+            payload['receptor'] = {
+                'tipoIdentificacion': self.get_id_type(receiver_clean),
+                'numeroIdentificacion': receiver_clean,
+            }
 
         # Submit with retry logic
         return self._make_request_with_retry(
@@ -399,6 +492,20 @@ class HaciendaAPI(models.AbstractModel):
         """
         estado = response.get('ind-estado', '').lower()
         return estado in ['procesando', 'recibido']
+
+    @api.model
+    def is_error(self, response):
+        """
+        Check if a response indicates an error state from Hacienda.
+
+        Args:
+            response (dict): API response
+
+        Returns:
+            bool: True if document is in error state
+        """
+        estado = response.get('ind-estado', '').lower()
+        return estado == 'error'
 
     @api.model
     def test_connection(self):
@@ -789,13 +896,16 @@ class HaciendaAPI(models.AbstractModel):
             base_url = self._get_base_url()
 
         url = f"{base_url}{endpoint}"
-        headers = self._get_auth_headers()
 
         last_error = None
         retry_delay = INITIAL_RETRY_DELAY
+        token_refreshed_this_cycle = False
 
         for attempt in range(1, MAX_RETRY_ATTEMPTS + 1):
             try:
+                # Refresh auth headers on each retry attempt (FIX 6: stale token across retries)
+                headers = self._get_auth_headers()
+
                 _logger.info(f'Attempt {attempt}/{MAX_RETRY_ATTEMPTS}: {operation}')
 
                 # Make HTTP request
@@ -806,10 +916,18 @@ class HaciendaAPI(models.AbstractModel):
                 else:
                     raise UserError(_('Unsupported HTTP method: %s') % method)
 
-                # Log request details
-                _logger.debug(f'Request URL: {url}')
-                _logger.debug(f'Response status: {response.status_code}')
-                _logger.debug(f'Response body: {response.text[:500]}...')
+                # Log request details (avoid logging full response body in production)
+                _logger.debug('Request URL: %s', url)
+                _logger.debug('Response status: %s', response.status_code)
+
+                # Check rate limit headers on every response
+                remaining = response.headers.get('X-Ratelimit-Remaining')
+                if remaining is not None:
+                    try:
+                        if int(remaining) < 5:
+                            _logger.warning('Hacienda API rate limit low: %s remaining', remaining)
+                    except (ValueError, TypeError):
+                        pass
 
                 # Handle different status codes
                 if response.status_code in [200, 201, 202]:
@@ -827,12 +945,22 @@ class HaciendaAPI(models.AbstractModel):
                 elif response.status_code == 400:
                     # Bad Request - validation error, don't retry
                     error_msg = self._parse_error(response)
+                    error_cause = response.headers.get('X-Error-Cause', '')
+                    if error_cause:
+                        error_msg = f'{error_msg} (Causa: {error_cause})'
                     _logger.error(f'Validation error for {operation}: {error_msg}')
                     raise UserError(_('Error de validación: %s') % error_msg)
 
                 elif response.status_code == 401:
-                    # Unauthorized - authentication error, don't retry
-                    _logger.error(f'Authentication failed for {operation}')
+                    # Unauthorized - clear token cache and retry once with fresh token
+                    if not token_refreshed_this_cycle:
+                        _logger.warning(f'Got 401 for {operation}, clearing token cache and retrying')
+                        self._clear_token_cache(self.env.company.id)
+                        token_refreshed_this_cycle = True
+                        last_error = 'Token expirado, reintentando con token nuevo'
+                        continue  # Retry immediately without delay
+                    # Already retried with fresh token - credentials are truly invalid
+                    _logger.error(f'Authentication failed for {operation} after token refresh')
                     raise UserError(_('Error de autenticación. Verifique las credenciales del API.'))
 
                 elif response.status_code == 403:
@@ -847,10 +975,22 @@ class HaciendaAPI(models.AbstractModel):
                     raise UserError(_('Documento no encontrado en el sistema de Hacienda.'))
 
                 elif response.status_code == 429:
-                    # Rate limiting - retry with longer delay
-                    _logger.warning(f'Rate limited on attempt {attempt} for {operation}')
+                    # Rate limiting - use server-provided reset time if available
+                    reset_seconds = response.headers.get('X-Ratelimit-Reset')
+                    if reset_seconds:
+                        try:
+                            retry_delay = max(int(reset_seconds), 1)
+                            _logger.warning(
+                                'Rate limited on attempt %d for %s, server says wait %ds',
+                                attempt, operation, retry_delay
+                            )
+                        except (ValueError, TypeError):
+                            retry_delay = retry_delay * 2
+                            _logger.warning(f'Rate limited on attempt {attempt} for {operation}')
+                    else:
+                        retry_delay = retry_delay * 2  # Double the delay for rate limits
+                        _logger.warning(f'Rate limited on attempt {attempt} for {operation}')
                     last_error = 'Límite de tasa excedido'
-                    retry_delay = retry_delay * 2  # Double the delay for rate limits
 
                 elif response.status_code >= 500:
                     # Server error - retry
