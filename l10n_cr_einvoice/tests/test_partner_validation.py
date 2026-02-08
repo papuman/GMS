@@ -45,7 +45,6 @@ class TestPartnerEInvoiceReadiness(EInvoiceTestCase):
             'country_id': self.cr_country.id,
             'email': 'complete@example.com',
             'phone': '22001100',
-            'l10n_latam_identification_type_id': self.env.ref('l10n_latam_base.it_vat').id,
             'l10n_cr_hacienda_verified': True,
             'l10n_cr_tax_status': 'inscrito',
             'l10n_cr_hacienda_last_sync': fields.Datetime.to_string(now),
@@ -60,7 +59,7 @@ class TestPartnerEInvoiceReadiness(EInvoiceTestCase):
         # Partner should be ready for FE
         self.assertTrue(partner.email, "Partner should have email")
         self.assertTrue(partner.vat, "Partner should have VAT")
-        self.assertTrue(partner.l10n_latam_identification_type_id, "Partner should have ID type")
+        self.assertTrue(partner.l10n_cr_hacienda_verified, "Partner should be verified")
 
     def test_partner_ready_for_te_minimal_fields(self):
         """Partner with minimal fields should be ready for TE."""
@@ -81,7 +80,6 @@ class TestPartnerEInvoiceReadiness(EInvoiceTestCase):
             'name': 'No Email Partner',
             'vat': '3101234567',
             'country_id': self.cr_country.id,
-            'l10n_latam_identification_type_id': self.env.ref('l10n_latam_base.it_vat').id,
             # Missing email
         })
 
@@ -107,7 +105,6 @@ class TestPartnerEInvoiceReadiness(EInvoiceTestCase):
             'vat': '3101234567',
             'country_id': self.cr_country.id,
             'email': 'unverified@example.com',
-            'l10n_latam_identification_type_id': self.env.ref('l10n_latam_base.it_vat').id,
             'l10n_cr_hacienda_verified': False,  # Not verified
         })
 
@@ -151,31 +148,32 @@ class TestMissingFieldDetection(EInvoiceTestCase):
         self.assertFalse(partner.phone)
 
     def test_detect_missing_ciiu(self):
-        """Should detect missing CIIU code."""
+        """Should detect missing CIIU code for company partners."""
         partner = self.partner_model.create({
-            'name': 'Test Partner',
+            'name': 'Test Company Partner',
             'vat': '3101234567',
             'country_id': self.cr_country.id,
             'email': 'test@example.com',
+            'is_company': True,
             # Missing CIIU
         })
 
-        # Check computed field
+        # Check computed field (only flagged for company partners)
         self.assertTrue(partner.l10n_cr_missing_ciiu,
-                       "Partner should be flagged as missing CIIU")
+                       "Company partner should be flagged as missing CIIU")
 
-    def test_detect_missing_id_type(self):
-        """Should detect missing identification type."""
+    def test_detect_unverified_hacienda(self):
+        """Should detect unverified Hacienda status."""
         partner = self.partner_model.create({
             'name': 'Test Partner',
             'vat': '3101234567',
             'country_id': self.cr_country.id,
             'email': 'test@example.com',
-            # Missing ID type
+            # Not verified with Hacienda
         })
 
-        # Verify ID type is missing
-        self.assertFalse(partner.l10n_latam_identification_type_id)
+        # Verify Hacienda verification is missing
+        self.assertFalse(partner.l10n_cr_hacienda_verified)
 
     def test_enumerate_all_missing_fields(self):
         """Should enumerate all missing required fields for FE."""
@@ -192,8 +190,6 @@ class TestMissingFieldDetection(EInvoiceTestCase):
             missing_fields.append('email')
         if not partner.phone:
             missing_fields.append('phone')
-        if not partner.l10n_latam_identification_type_id:
-            missing_fields.append('id_type')
         if not partner.l10n_cr_economic_activity_id:
             missing_fields.append('ciiu')
         if not partner.l10n_cr_hacienda_verified:
@@ -278,7 +274,6 @@ class TestSmartButtonStatusUpdates(EInvoiceTestCase):
             'vat': '3101234567',
             'country_id': self.cr_country.id,
             'email': 'ready@example.com',
-            'l10n_latam_identification_type_id': self.env.ref('l10n_latam_base.it_vat').id,
             'l10n_cr_hacienda_verified': True,
             'l10n_cr_tax_status': 'inscrito',
             'l10n_cr_hacienda_last_sync': fields.Datetime.to_string(now),
@@ -296,7 +291,7 @@ class TestSmartButtonStatusUpdates(EInvoiceTestCase):
             'vat': '3101234567',
             'country_id': self.cr_country.id,
             'email': 'warning@example.com',
-            'l10n_latam_identification_type_id': self.env.ref('l10n_latam_base.it_vat').id,
+            'is_company': True,
             'l10n_cr_hacienda_verified': True,
             'l10n_cr_tax_status': 'inscrito',
             'l10n_cr_hacienda_last_sync': fields.Datetime.to_string(now),

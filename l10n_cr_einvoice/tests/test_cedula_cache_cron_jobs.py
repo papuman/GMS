@@ -54,7 +54,7 @@ class TestCedulaCacheCronJobs(TransactionCase):
     def _create_cache_entry(self, cedula, age_days=0, access_count=0, company=None):
         """Helper: Create cache entry with specific age and access count."""
         company = company or self.company
-        refresh_date = datetime.now() - timedelta(days=age_days)
+        refresh_date = fields.Datetime.now() - timedelta(days=age_days)
 
         return self.cache_model.create({
             'cedula': cedula,
@@ -73,10 +73,10 @@ class TestCedulaCacheCronJobs(TransactionCase):
 
     def test_cron_refresh_stale_cache_success(self):
         """Test successful refresh of stale cache entries."""
-        # Create stale cache entries (5-7 days old)
-        cache1 = self._create_cache_entry('3101234567', age_days=5, access_count=20)
-        cache2 = self._create_cache_entry('3101234568', age_days=6, access_count=15)
-        cache3 = self._create_cache_entry('3101234569', age_days=7, access_count=10)
+        # Create stale cache entries (6-8 days old, clearly past the 5-day cutoff)
+        cache1 = self._create_cache_entry('3101234567', age_days=6, access_count=20)
+        cache2 = self._create_cache_entry('3101234568', age_days=7, access_count=15)
+        cache3 = self._create_cache_entry('3101234569', age_days=8, access_count=10)
 
         # Create fresh entry (should be ignored)
         cache_fresh = self._create_cache_entry('3101234570', age_days=2, access_count=5)
@@ -93,7 +93,7 @@ class TestCedulaCacheCronJobs(TransactionCase):
         }
 
         with patch.object(
-            self.env['l10n_cr.hacienda.cedula.api'],
+            type(self.env['l10n_cr.hacienda.cedula.api']),
             'lookup_cedula',
             return_value=mock_api_response
         ) as mock_lookup:
@@ -141,7 +141,7 @@ class TestCedulaCacheCronJobs(TransactionCase):
         }
 
         with patch.object(
-            self.env['l10n_cr.hacienda.cedula.api'],
+            type(self.env['l10n_cr.hacienda.cedula.api']),
             'lookup_cedula',
             return_value=mock_api_response
         ) as mock_lookup:
@@ -152,7 +152,7 @@ class TestCedulaCacheCronJobs(TransactionCase):
             self.assertEqual(result['processed'], 2)
 
             # Verify high and mid access entries were processed (not low)
-            call_cedulas = [call[1]['cedula'] for call in mock_lookup.call_args_list]
+            call_cedulas = [call[0][0] for call in mock_lookup.call_args_list]
             self.assertIn('3101234567', call_cedulas, "High-access entry should be processed")
             self.assertIn('3101234568', call_cedulas, "Mid-access entry should be processed")
             self.assertNotIn('3101234569', call_cedulas, "Low-access entry should be skipped")
@@ -171,7 +171,7 @@ class TestCedulaCacheCronJobs(TransactionCase):
                 return {'success': False, 'error': 'API rate limit exceeded', 'error_type': 'rate_limit'}
 
         with patch.object(
-            self.env['l10n_cr.hacienda.cedula.api'],
+            type(self.env['l10n_cr.hacienda.cedula.api']),
             'lookup_cedula',
             side_effect=mock_lookup_side_effect
         ):
@@ -210,7 +210,7 @@ class TestCedulaCacheCronJobs(TransactionCase):
         self.params.set_param('l10n_cr_einvoice.cache_refresh_batch_size', '5')
 
         with patch.object(
-            self.env['l10n_cr.hacienda.cedula.api'],
+            type(self.env['l10n_cr.hacienda.cedula.api']),
             'lookup_cedula',
             return_value={'success': True, 'name': 'Test', 'economic_activities': [], 'raw_data': {}}
         ) as mock_lookup:
@@ -315,7 +315,7 @@ class TestCedulaCacheCronJobs(TransactionCase):
         }
 
         with patch.object(
-            self.env['l10n_cr.hacienda.cedula.api'],
+            type(self.env['l10n_cr.hacienda.cedula.api']),
             'lookup_cedula',
             return_value=mock_api_response
         ) as mock_lookup:
@@ -326,7 +326,7 @@ class TestCedulaCacheCronJobs(TransactionCase):
             self.assertEqual(result['refreshed'], 2)
 
             # Verify API called for high-traffic entries
-            call_cedulas = [call[1]['cedula'] for call in mock_lookup.call_args_list]
+            call_cedulas = [call[0][0] for call in mock_lookup.call_args_list]
             self.assertIn('3101234567', call_cedulas)
             self.assertIn('3101234568', call_cedulas)
             self.assertNotIn('3101234569', call_cedulas)
@@ -342,7 +342,7 @@ class TestCedulaCacheCronJobs(TransactionCase):
         self.params.set_param('l10n_cr_einvoice.cache_priority_threshold', '20')
 
         with patch.object(
-            self.env['l10n_cr.hacienda.cedula.api'],
+            type(self.env['l10n_cr.hacienda.cedula.api']),
             'lookup_cedula',
             return_value={'success': True, 'name': 'Test', 'economic_activities': [], 'raw_data': {}}
         ) as mock_lookup:
@@ -350,7 +350,7 @@ class TestCedulaCacheCronJobs(TransactionCase):
 
             # Verify only cache1 processed
             self.assertEqual(result['processed'], 1)
-            call_cedulas = [call[1]['cedula'] for call in mock_lookup.call_args_list]
+            call_cedulas = [call[0][0] for call in mock_lookup.call_args_list]
             self.assertIn('3101234567', call_cedulas)
             self.assertNotIn('3101234568', call_cedulas)
             self.assertNotIn('3101234569', call_cedulas)
@@ -363,7 +363,7 @@ class TestCedulaCacheCronJobs(TransactionCase):
         self.assertTrue(cache_fresh.is_fresh(), "Entry should be fresh")
 
         with patch.object(
-            self.env['l10n_cr.hacienda.cedula.api'],
+            type(self.env['l10n_cr.hacienda.cedula.api']),
             'lookup_cedula',
             return_value={'success': True, 'name': 'Refreshed Fresh', 'economic_activities': [], 'raw_data': {}}
         ) as mock_lookup:
@@ -385,7 +385,7 @@ class TestCedulaCacheCronJobs(TransactionCase):
         self.params.set_param('l10n_cr_einvoice.cache_refresh_batch_size', '2')
 
         with patch.object(
-            self.env['l10n_cr.hacienda.cedula.api'],
+            type(self.env['l10n_cr.hacienda.cedula.api']),
             'lookup_cedula',
             return_value={'success': True, 'name': 'Test', 'economic_activities': [], 'raw_data': {}}
         ) as mock_lookup:
@@ -394,7 +394,7 @@ class TestCedulaCacheCronJobs(TransactionCase):
             # Verify only 2 highest processed
             self.assertEqual(result['processed'], 2)
 
-            call_cedulas = [call[1]['cedula'] for call in mock_lookup.call_args_list]
+            call_cedulas = [call[0][0] for call in mock_lookup.call_args_list]
             self.assertIn('3101234567', call_cedulas, "Highest should be processed")
             self.assertIn('3101234568', call_cedulas, "High should be processed")
             self.assertNotIn('3101234569', call_cedulas, "Medium should be skipped")
@@ -420,7 +420,7 @@ class TestCedulaCacheCronJobs(TransactionCase):
             self._create_cache_entry(f'310123456{i}', age_days=6, access_count=10)
 
         with patch.object(
-            self.env['l10n_cr.hacienda.cedula.api'],
+            type(self.env['l10n_cr.hacienda.cedula.api']),
             'lookup_cedula',
             return_value={'success': True, 'name': 'Test', 'economic_activities': [], 'raw_data': {}}
         ):
@@ -455,12 +455,12 @@ class TestCedulaCacheCronJobs(TransactionCase):
                 return {'success': False, 'error': 'API Error', 'error_type': 'api_error'}
 
         with patch.object(
-            self.env['l10n_cr.hacienda.cedula.api'],
+            type(self.env['l10n_cr.hacienda.cedula.api']),
             'lookup_cedula',
             side_effect=mock_lookup_side_effect
         ):
             with patch.object(
-                self.cache_model,
+                type(self.cache_model),
                 '_send_cron_failure_notification'
             ) as mock_notify:
                 result = self.cache_model._cron_refresh_stale_cache()
@@ -486,12 +486,12 @@ class TestCedulaCacheCronJobs(TransactionCase):
                 return {'success': False, 'error': 'API Error', 'error_type': 'api_error'}
 
         with patch.object(
-            self.env['l10n_cr.hacienda.cedula.api'],
+            type(self.env['l10n_cr.hacienda.cedula.api']),
             'lookup_cedula',
             side_effect=mock_lookup_side_effect
         ):
             with patch.object(
-                self.cache_model,
+                type(self.cache_model),
                 '_send_cron_failure_notification'
             ) as mock_notify:
                 result = self.cache_model._cron_refresh_stale_cache()

@@ -59,7 +59,6 @@ class TestGymVoidWizardIntegration(TransactionCase):
             'email': _generate_unique_email('customer'),
             'phone': '+506-8888-9999',
             'vat': '1-0345-0678',
-            'l10n_cr_identification_type': '01',
             'country_id': cls.env.ref('base.cr').id,
         })
 

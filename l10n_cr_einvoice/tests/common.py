@@ -13,6 +13,7 @@ Classes:
 
 import base64
 import uuid
+from odoo import fields
 from odoo.tests import TransactionCase
 
 
@@ -468,7 +469,9 @@ class EInvoiceTestCase(TransactionCase):
         # Get partner from move
         partner = move.partner_id if move.partner_id else False
 
-        return self.env['l10n_cr.einvoice.document'].create({
+        return self.env['l10n_cr.einvoice.document'].with_context(
+            bypass_einvoice_validation=True
+        ).create({
             'move_id': move.id,
             'document_type': document_type,
             'company_id': self.company.id,

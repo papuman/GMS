@@ -21,11 +21,11 @@ class AccountMove(models.Model):
     _inherit = 'account.move'
 
     # TiloPay Payment Fields
-    payment_transaction_ids = fields.One2many(
-        'payment.transaction',
-        'invoice_id',
+    # NOTE: Odoo 19 defines transaction_ids on account.move via account_payment module.
+    # payment_transaction_ids is kept as an alias for backward compatibility within this module.
+    payment_transaction_ids = fields.Many2many(
+        related='transaction_ids',
         string='Payment Transactions',
-        help="Online payment transactions for this invoice"
     )
 
     has_tilopay_payment = fields.Boolean(
@@ -46,7 +46,7 @@ class AccountMove(models.Model):
         help="Invoice is eligible for online payment"
     )
 
-    @api.depends('payment_transaction_ids', 'payment_transaction_ids.provider_code')
+    @api.depends('transaction_ids', 'transaction_ids.provider_code')
     def _compute_has_tilopay_payment(self):
         """Check if invoice has any TiloPay payment transactions."""
         for move in self:
@@ -55,8 +55,7 @@ class AccountMove(models.Model):
                 for tx in move.payment_transaction_ids
             )
 
-    @api.depends('payment_transaction_ids', 'payment_transaction_ids.state',
-                 'payment_transaction_ids.tilopay_payment_url')
+    @api.depends('transaction_ids', 'transaction_ids.state')
     def _compute_tilopay_payment_url(self):
         """Get active TiloPay payment URL if available."""
         for move in self:

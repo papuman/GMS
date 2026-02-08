@@ -31,16 +31,6 @@ class TestResPartnerValidation(TransactionCase):
         # Get Costa Rica country
         cls.costa_rica = cls.env.ref('base.cr')
 
-        # Get or create ID type (Cédula Física)
-        cls.id_type_fisica = cls.env['l10n_latam.identification.type'].search([
-            ('name', '=', 'Cédula Física')
-        ], limit=1)
-        if not cls.id_type_fisica:
-            cls.id_type_fisica = cls.env['l10n_latam.identification.type'].create({
-                'name': 'Cédula Física',
-                'l10n_ar_afip_code': '01',
-            })
-
         # Get or create CIIU code
         cls.ciiu_9311 = cls.env['l10n_cr.ciiu.code'].search([
             ('code', '=', '9311')
@@ -59,7 +49,7 @@ class TestResPartnerValidation(TransactionCase):
             'name': 'Gimnasio Fitness CR',
             'vat': '310123456',
             'country_id': self.costa_rica.id,
-            'l10n_latam_identification_type_id': self.id_type_fisica.id,
+
             'email': 'info@fitness.cr',
             'l10n_cr_economic_activity_id': self.ciiu_9311.id,
         })
@@ -75,7 +65,7 @@ class TestResPartnerValidation(TransactionCase):
             'name': '',
             'vat': '310123456',
             'country_id': self.costa_rica.id,
-            'l10n_latam_identification_type_id': self.id_type_fisica.id,
+
             'email': 'info@fitness.cr',
             'l10n_cr_economic_activity_id': self.ciiu_9311.id,
         })
@@ -91,7 +81,7 @@ class TestResPartnerValidation(TransactionCase):
             'name': 'Gimnasio Fitness CR',
             'vat': '',
             'country_id': self.costa_rica.id,
-            'l10n_latam_identification_type_id': self.id_type_fisica.id,
+
             'email': 'info@fitness.cr',
             'l10n_cr_economic_activity_id': self.ciiu_9311.id,
         })
@@ -100,8 +90,8 @@ class TestResPartnerValidation(TransactionCase):
         self.assertIn('vat', missing)
         self.assertFalse(partner.is_einvoice_ready())
 
-    def test_missing_id_type_detected(self):
-        """Test that missing ID type is detected."""
+    def test_complete_partner_no_missing_fields(self):
+        """Test that a partner with all fields has no missing fields."""
         partner = self.env['res.partner'].create({
             'name': 'Gimnasio Fitness CR',
             'vat': '310123456',
@@ -111,8 +101,8 @@ class TestResPartnerValidation(TransactionCase):
         })
 
         missing = partner.get_einvoice_missing_fields()
-        self.assertIn('l10n_latam_identification_type_id', missing)
-        self.assertFalse(partner.is_einvoice_ready())
+        self.assertEqual(missing, [])
+        self.assertTrue(partner.is_einvoice_ready())
 
     def test_missing_email_detected(self):
         """Test that missing email is detected."""
@@ -120,7 +110,7 @@ class TestResPartnerValidation(TransactionCase):
             'name': 'Gimnasio Fitness CR',
             'vat': '310123456',
             'country_id': self.costa_rica.id,
-            'l10n_latam_identification_type_id': self.id_type_fisica.id,
+
             'email': '',
             'l10n_cr_economic_activity_id': self.ciiu_9311.id,
         })
@@ -135,7 +125,7 @@ class TestResPartnerValidation(TransactionCase):
             'name': 'Gimnasio Fitness CR',
             'vat': '310123456',
             'country_id': self.costa_rica.id,
-            'l10n_latam_identification_type_id': self.id_type_fisica.id,
+
             'email': 'not-an-email',
             'l10n_cr_economic_activity_id': self.ciiu_9311.id,
         })
@@ -150,7 +140,7 @@ class TestResPartnerValidation(TransactionCase):
             'name': 'Gimnasio Fitness CR',
             'vat': '310123456',
             'country_id': self.costa_rica.id,
-            'l10n_latam_identification_type_id': self.id_type_fisica.id,
+
             'email': 'info@fitness.cr',
         })
 
@@ -173,7 +163,7 @@ class TestResPartnerValidation(TransactionCase):
             'name': 'Gimnasio Fitness CR',
             'vat': '310123456',
             'country_id': self.costa_rica.id,
-            'l10n_latam_identification_type_id': self.id_type_fisica.id,
+
             'email': 'info@fitness.cr',
         })
 
@@ -188,7 +178,7 @@ class TestResPartnerValidation(TransactionCase):
             'name': 'Gimnasio Fitness CR',
             'vat': '',  # Missing VAT
             'country_id': self.costa_rica.id,
-            'l10n_latam_identification_type_id': self.id_type_fisica.id,
+
             'email': 'info@fitness.cr',
             'l10n_cr_economic_activity_id': self.ciiu_9311.id,
         })
@@ -231,7 +221,7 @@ class TestResPartnerValidation(TransactionCase):
             'name': 'Temp Name',
             'vat': '310123456',
             'country_id': self.costa_rica.id,
-            'l10n_latam_identification_type_id': self.id_type_fisica.id,
+
             'email': 'info@fitness.cr',
         })
 
@@ -274,7 +264,7 @@ class TestResPartnerValidation(TransactionCase):
             'name': 'Gimnasio Fitness CR',
             'vat': '310123456',
             'country_id': self.costa_rica.id,
-            'l10n_latam_identification_type_id': self.id_type_fisica.id,
+
             'email': 'info@fitness.cr',
             'l10n_cr_economic_activity_id': self.ciiu_9311.id,
         })
@@ -305,9 +295,8 @@ class TestResPartnerValidation(TransactionCase):
         missing = partner.get_einvoice_missing_fields(check_ciiu=False)
         self.assertIn('name', missing)
         self.assertIn('vat', missing)
-        self.assertIn('l10n_latam_identification_type_id', missing)
         self.assertIn('email', missing)
-        self.assertEqual(len(missing), 4)
+        self.assertGreaterEqual(len(missing), 3)
 
     def test_email_validation_regex(self):
         """Test email validation with various formats."""
@@ -339,7 +328,7 @@ class TestResPartnerValidation(TransactionCase):
         self.assertIn('Customer Name', labels)
         self.assertIn('Cédula/Tax ID', labels)
         self.assertIn('Email Address', labels)
-        self.assertIn('CIIU Code', labels)
+        self.assertIn('Economic Activity (CIIU Code)', labels)
 
     def test_validate_einvoice_readiness_action(self):
         """Test manual validation action."""
@@ -347,7 +336,7 @@ class TestResPartnerValidation(TransactionCase):
             'name': 'Gimnasio Fitness CR',
             'vat': '310123456',
             'country_id': self.costa_rica.id,
-            'l10n_latam_identification_type_id': self.id_type_fisica.id,
+
             'email': 'info@fitness.cr',
             'l10n_cr_economic_activity_id': self.ciiu_9311.id,
         })

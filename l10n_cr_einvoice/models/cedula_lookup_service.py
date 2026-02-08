@@ -861,7 +861,7 @@ class CedulaLookupService(models.AbstractModel):
 
         if not result['success']:
             from odoo.exceptions import UserError
-            error_msg = result.get('error_message', 'Lookup failed')
+            error_msg = result.get('error', result.get('user_message', 'Lookup failed'))
             raise UserError(error_msg)
 
         data = result['data']
@@ -908,11 +908,11 @@ class CedulaLookupService(models.AbstractModel):
         Returns:
             dict: {cedula: result_dict} for each cédula
         """
-        results = self.batch_lookup(cedulas, max_concurrent=max_concurrent)
+        batch_result = self.batch_lookup(cedulas, max_concurrent=max_concurrent)
 
         # Convert to test-compatible format
         output = {}
-        for cedula, result in results.items():
+        for cedula, result in batch_result.get('results', {}).items():
             if result['success']:
                 data = result['data']
                 output[cedula] = {
@@ -922,7 +922,7 @@ class CedulaLookupService(models.AbstractModel):
                 }
             else:
                 output[cedula] = {
-                    'error': result.get('error_message', 'Lookup failed'),
+                    'error': result.get('error', result.get('user_message', 'Lookup failed')),
                 }
 
         return output

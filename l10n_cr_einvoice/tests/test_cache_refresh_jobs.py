@@ -88,25 +88,30 @@ class TestStaleCacheRefreshCron(EInvoiceTestCase):
                 'company_id': self.company.id,
             })
 
-        # Mock API
-        mock_response = Mock()
-        mock_response.status_code = 200
-        mock_response.json.return_value = {
-            'nombre': 'Refreshed Company',
-            'tipoIdentificacion': '02',
-            'regimen': {'descripcion': 'General'},
-            'situacion': 'INSCRITO',
+        # Mock model method instead of requests.post
+        mock_api_response = {
+            'success': True,
+            'name': 'Refreshed Company',
+            'tax_regime': 'General',
+            'economic_activities': [],
+            'raw_data': {'nombre': 'Refreshed Company'},
         }
 
-        with patch('requests.post', return_value=mock_response):
+        with patch.object(
+            type(self.env['l10n_cr.hacienda.cedula.api']),
+            'lookup_cedula',
+            return_value=mock_api_response
+        ):
             # Run cron
             self.cache_model._cron_refresh_stale_cache()
 
             # Verify caches were refreshed
             for i in range(5):
                 cache = self.cache_model.search([('cedula', '=', f'200000000{i}')])
-                cache_age = (datetime.now(timezone.utc) -
-                           fields.Datetime.from_string(cache.refreshed_at)).days
+                refreshed = fields.Datetime.from_string(cache.refreshed_at)
+                if refreshed and not refreshed.tzinfo:
+                    refreshed = refreshed.replace(tzinfo=timezone.utc)
+                cache_age = (datetime.now(timezone.utc) - refreshed).days
                 self.assertLessEqual(cache_age, 1, f"Cache {i} should be refreshed")
 
     def test_03_cron_respects_batch_size_limit(self):
@@ -184,25 +189,20 @@ class TestStaleCacheRefreshCron(EInvoiceTestCase):
                 'company_id': self.company.id,
             })
 
-        # Mock API: first fails, others succeed
-        def mock_post_side_effect(*args, **kwargs):
-            response = Mock()
-            if mock_post_side_effect.call_count == 1:
-                response.status_code = 500
+        # Mock model method: first fails, others succeed
+        call_count = [0]
+        def mock_lookup_side_effect(cedula):
+            call_count[0] += 1
+            if call_count[0] == 1:
+                return {'success': False, 'error': 'API Error', 'error_type': 'api_error'}
             else:
-                response.status_code = 200
-                response.json.return_value = {
-                    'nombre': 'Success',
-                    'tipoIdentificacion': '02',
-                    'regimen': {'descripcion': 'General'},
-                    'situacion': 'INSCRITO',
-                }
-            mock_post_side_effect.call_count += 1
-            return response
+                return {'success': True, 'name': 'Success', 'economic_activities': [], 'raw_data': {}}
 
-        mock_post_side_effect.call_count = 0
-
-        with patch('requests.post', side_effect=mock_post_side_effect):
+        with patch.object(
+            type(self.env['l10n_cr.hacienda.cedula.api']),
+            'lookup_cedula',
+            side_effect=mock_lookup_side_effect
+        ):
             # Cron should not crash
             self.cache_model._cron_refresh_stale_cache()
 
@@ -318,7 +318,7 @@ class TestExpiredCachePurgeCron(EInvoiceTestCase):
         # Find purge cron job
         cron = self.env['ir.cron'].search([
             ('model_id.model', '=', 'l10n_cr.cedula.cache'),
-            ('function', '=', '_cron_purge_expired_cache'),
+            ('code', 'ilike', '_cron_purge_expired_cache'),
         ])
 
         # If cron exists, verify schedule
@@ -445,17 +445,19 @@ class TestCronRateLimiting(EInvoiceTestCase):
                 'company_id': self.company.id,
             })
 
-        # Mock API
-        mock_response = Mock()
-        mock_response.status_code = 200
-        mock_response.json.return_value = {
-            'nombre': 'Test',
-            'tipoIdentificacion': '02',
-            'regimen': {'descripcion': 'General'},
-            'situacion': 'INSCRITO',
+        # Mock model method instead of requests.post
+        mock_api_response = {
+            'success': True,
+            'name': 'Test',
+            'economic_activities': [],
+            'raw_data': {},
         }
 
-        with patch('requests.post', return_value=mock_response):
+        with patch.object(
+            type(self.env['l10n_cr.hacienda.cedula.api']),
+            'lookup_cedula',
+            return_value=mock_api_response
+        ):
             # Cron should process up to burst capacity (20)
             # without hitting rate limit errors
             # (Implementation may batch or throttle requests)
@@ -506,15 +508,22 @@ class TestCronErrorHandlingAndLogging(EInvoiceTestCase):
             'company_id': self.company.id,
         })
 
-        # Mock API failure
-        mock_response = Mock()
-        mock_response.status_code = 500
+        # Mock model method failure
+        mock_api_response = {
+            'success': False,
+            'error': 'API Error',
+            'error_type': 'api_error',
+        }
 
-        with patch('requests.post', return_value=mock_response):
+        with patch.object(
+            type(self.env['l10n_cr.hacienda.cedula.api']),
+            'lookup_cedula',
+            return_value=mock_api_response
+        ):
             self.cache_model._cron_refresh_stale_cache()
 
             # Error should be logged in cache
-            cache.refresh()
+            cache.invalidate_recordset()
             self.assertTrue(cache.error_message)
 
     def test_02_cron_continues_on_partial_failures(self):
@@ -534,26 +543,21 @@ class TestCronErrorHandlingAndLogging(EInvoiceTestCase):
                 'company_id': self.company.id,
             })
 
-        # Mock: some succeed, some fail
-        def mock_post_side_effect(*args, **kwargs):
-            response = Mock()
+        # Mock model method: some succeed, some fail
+        call_count = [0]
+        def mock_lookup_side_effect(cedula):
+            call_count[0] += 1
             # Fail every other request
-            if mock_post_side_effect.call_count % 2 == 0:
-                response.status_code = 500
+            if call_count[0] % 2 == 0:
+                return {'success': False, 'error': 'API Error', 'error_type': 'api_error'}
             else:
-                response.status_code = 200
-                response.json.return_value = {
-                    'nombre': 'Success',
-                    'tipoIdentificacion': '02',
-                    'regimen': {'descripcion': 'General'},
-                    'situacion': 'INSCRITO',
-                }
-            mock_post_side_effect.call_count += 1
-            return response
+                return {'success': True, 'name': 'Success', 'economic_activities': [], 'raw_data': {}}
 
-        mock_post_side_effect.call_count = 0
-
-        with patch('requests.post', side_effect=mock_post_side_effect):
+        with patch.object(
+            type(self.env['l10n_cr.hacienda.cedula.api']),
+            'lookup_cedula',
+            side_effect=mock_lookup_side_effect
+        ):
             # Should not crash
             self.cache_model._cron_refresh_stale_cache()
 
