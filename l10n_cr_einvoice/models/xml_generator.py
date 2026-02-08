@@ -643,13 +643,24 @@ class XMLGenerator(models.AbstractModel):
             if line.discount > 0:
                 descuento = etree.SubElement(linea_detalle, 'Descuento')
                 etree.SubElement(descuento, 'MontoDescuento').text = '%.5f' % ld['discount_amount']
-                # v4.4: NaturalezaDescuento replaced by CodigoDescuento
-                # Codes: 01=Comercial, 02=Empleado, 03=Volumen, ..., 99=Otros
+                # v4.4: CodigoDescuento codes
+                # 01=Trueque, 02=Cortesia, 03=Detalles, 04=Condicion especial,
+                # 05=Descuento por campaña, 06=Descuento otros departamentos,
+                # 07=Descuento comercial, 08=Descuento por frecuencia,
+                # 09=Descuento sostenido, 99=Otros
                 if source_doc._name == 'account.move' and hasattr(line, '_get_discount_code_for_xml'):
                     discount_code = line._get_discount_code_for_xml()
                 else:
-                    discount_code = '99'  # "Otros" for POS
+                    discount_code = '07'  # Descuento Comercial (safe default)
                 etree.SubElement(descuento, 'CodigoDescuento').text = discount_code
+                # When code is '99' (Otros), NaturalezaDescuento and
+                # CodigoDescuentoOTRO are mandatory per Hacienda v4.4
+                if discount_code == '99':
+                    desc_nature = 'Descuento aplicado'
+                    if hasattr(line, 'l10n_cr_discount_nature') and line.l10n_cr_discount_nature:
+                        desc_nature = line.l10n_cr_discount_nature
+                    etree.SubElement(descuento, 'CodigoDescuentoOTRO').text = desc_nature
+                    etree.SubElement(descuento, 'NaturalezaDescuento').text = desc_nature
 
             # Subtotal after discount
             etree.SubElement(linea_detalle, 'SubTotal').text = '%.5f' % ld['subtotal_after_discount']
@@ -779,10 +790,12 @@ class XMLGenerator(models.AbstractModel):
     def _is_service_line(self, line_data):
         """Determine if a line represents a service (vs merchandise).
 
-        A line is considered a service if:
-        - The product has type == 'service', OR
-        - The CABYS code starts with '96' through '99' (service categories), OR
-        - There is no product (default to service for gym business)
+        Classification is based on the CABYS code that will actually be emitted
+        in the XML, ensuring consistency between DetalleServicio and ResumenFactura.
+
+        CABYS codes starting with '96'-'99' are service categories per Hacienda.
+        When no CABYS code is configured, the default fallback is '9652000009900'
+        (Sports/recreation facility services), which is a service category.
 
         Args:
             line_data: dict from _compute_line_amounts()
@@ -793,22 +806,20 @@ class XMLGenerator(models.AbstractModel):
         line = line_data['line']
         product = line.product_id if hasattr(line, 'product_id') else None
 
-        if product:
-            # Check product type
-            if hasattr(product, 'type') and product.type == 'service':
-                return True
-            # Check CABYS code prefix for service categories
-            cabys_code = getattr(line, 'l10n_cr_product_code', '') or ''
-            if not cabys_code and product:
-                cabys_code = getattr(product.product_tmpl_id, 'l10n_cr_cabys_code', '') or ''
-            if cabys_code and cabys_code[:2] in ('96', '97', '98', '99'):
-                return True
-            # Product exists and is not a service type
-            if hasattr(product, 'type') and product.type in ('consu', 'product'):
-                return False
+        # Resolve the CABYS code exactly as _add_detalle_servicio does
+        cabys_code = getattr(line, 'l10n_cr_product_code', '') or ''
+        if not cabys_code and product:
+            cabys_code = getattr(product.product_tmpl_id, 'l10n_cr_cabys_code', '') or ''
+        if not cabys_code:
+            # Same default as _add_detalle_servicio line ~619
+            cabys_code = '9652000009900'
 
-        # Default: treat as service (gym business - memberships, classes, etc.)
-        return True
+        # CABYS prefixes 96-99 are service categories per Hacienda classification
+        if cabys_code[:2] in ('96', '97', '98', '99'):
+            return True
+
+        # All other CABYS prefixes are merchandise/goods
+        return False
 
     def _add_resumen_factura(self, root, source_doc, lines_data=None):
         """Add ResumenFactura (invoice summary).
