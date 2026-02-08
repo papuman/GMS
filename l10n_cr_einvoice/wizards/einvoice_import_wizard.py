@@ -361,7 +361,8 @@ class EInvoiceImportWizard(models.TransientModel):
             partner_vals = {
                 'name': receptor.get('name', 'Unknown'),
                 'vat': vat,
-                'l10n_latam_identification_type_id': self._get_identification_type(receptor.get('id_type')),
+                # ID type is auto-detected from VAT format by xml_generator._get_partner_id_type()
+                # l10n_latam_base is not installed, so l10n_latam_identification_type_id doesn't exist
                 'email': receptor.get('email'),
                 'phone': receptor.get('phone'),
                 'company_id': self.env.company.id,

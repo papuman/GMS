@@ -256,15 +256,8 @@ class AccountMove(models.Model):
 
         einvoice = self.l10n_cr_einvoice_id
 
-        # Prepare email
-        template = self.env.ref('l10n_cr_einvoice.email_template_einvoice', raise_if_not_found=False)
-
-        if template:
-            template.send_mail(self.id, force_send=True)
-
-            einvoice.write({
-                'email_sent': True,
-                'email_sent_date': fields.Datetime.now(),
-            })
-
+        # Delegate to the einvoice document's own send method
+        # which handles PDF + XML attachments correctly
+        if einvoice.state == 'accepted':
+            einvoice.action_send_email()
             _logger.info(f'Sent e-invoice email for {self.name}')

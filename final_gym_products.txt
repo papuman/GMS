@@ -1,1 +1,0 @@
-This file will be populated via docker exec with real gym products

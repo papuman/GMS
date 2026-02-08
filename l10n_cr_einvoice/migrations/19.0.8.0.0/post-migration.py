@@ -427,13 +427,16 @@ def _populate_default_validation_rules(cr):
             'enforcement_date': None,
             'sequence': 20,
         },
-        {
-            'field_name': 'l10n_latam_identification_type_id',
-            'validation_type': 'mandatory',
-            'error_message': 'Customer ID type (01-05) is required for Factura Electrónica (FE)',
-            'enforcement_date': None,
-            'sequence': 30,
-        },
+        # ID type is auto-detected from VAT format by xml_generator._get_partner_id_type()
+        # l10n_latam_base is not installed, so l10n_latam_identification_type_id doesn't exist.
+        # This rule was removed because the field is a phantom field.
+        # {
+        #     'field_name': 'l10n_latam_identification_type_id',
+        #     'validation_type': 'mandatory',
+        #     'error_message': 'Customer ID type (01-05) is required for Factura Electrónica (FE)',
+        #     'enforcement_date': None,
+        #     'sequence': 30,
+        # },
         {
             'field_name': 'email',
             'validation_type': 'mandatory',

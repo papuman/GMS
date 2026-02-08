@@ -44,6 +44,10 @@ class TestHaciendaAPIIntegration(EInvoiceTestCase):
     def setUp(self):
         super(TestHaciendaAPIIntegration, self).setUp()
 
+        # Clear token cache to prevent test pollution between test methods
+        from odoo.addons.l10n_cr_einvoice.models.hacienda_api import _TOKEN_CACHE
+        _TOKEN_CACHE.clear()
+
         # Update company with Hacienda credentials (sandbox)
         # (Base class already created company, journals, partner, product)
         self.company.write({
@@ -218,6 +222,8 @@ class TestHaciendaAPIIntegration(EInvoiceTestCase):
         mock_response.json.return_value = {'access_token': 'test_token'}
         mock_post.return_value = mock_response
 
+        from odoo.addons.l10n_cr_einvoice.models.hacienda_api import _TOKEN_CACHE
+
         # Test sandbox endpoint
         self.company.l10n_cr_hacienda_env = 'sandbox'
         self.company.l10n_cr_active_username = 'test@stag.example.com'
@@ -225,6 +231,9 @@ class TestHaciendaAPIIntegration(EInvoiceTestCase):
         self.api._obtain_token()
         sandbox_url = mock_post.call_args[0][0]
         self.assertIn('rut-stag', sandbox_url)
+
+        # Clear cache before switching environment (cache is keyed by company_id)
+        _TOKEN_CACHE.clear()
 
         # Test production endpoint
         self.company.l10n_cr_hacienda_env = 'production'
@@ -249,7 +258,7 @@ class TestHaciendaAPIIntegration(EInvoiceTestCase):
         mock_token_response.text = '{"access_token": "test_token"}'
         mock_token_response.json.return_value = {'access_token': 'test_token'}
 
-        # Mock invoice submission response
+        # Mock invoice submission response (with proper headers)
         mock_submit_response = Mock()
         mock_submit_response.status_code = 200
         mock_submit_response.text = '{"clave": "' + self.sample_clave + '", "ind-estado": "aceptado"}'
@@ -259,6 +268,7 @@ class TestHaciendaAPIIntegration(EInvoiceTestCase):
             'ind-estado': 'aceptado',
             'respuesta-xml': base64.b64encode(b'<Respuesta>Aceptado</Respuesta>').decode()
         }
+        mock_submit_response.headers = {}
 
         # Return different responses for token and submission
         mock_post.side_effect = [mock_token_response, mock_submit_response]
@@ -293,6 +303,7 @@ class TestHaciendaAPIIntegration(EInvoiceTestCase):
         mock_submit_response = Mock()
         mock_submit_response.status_code = 202
         mock_submit_response.text = ''  # Empty body for 202
+        mock_submit_response.headers = {}
 
         mock_post.side_effect = [mock_token_response, mock_submit_response]
 
@@ -317,7 +328,7 @@ class TestHaciendaAPIIntegration(EInvoiceTestCase):
         mock_token_response.text = '{"access_token": "test_token"}'
         mock_token_response.json.return_value = {'access_token': 'test_token'}
 
-        # Mock validation error
+        # Mock validation error with proper headers
         mock_submit_response = Mock()
         mock_submit_response.status_code = 400
         mock_submit_response.text = '{"error": "XML inválido", "mensaje": "El elemento ResumenFactura es obligatorio"}'
@@ -325,6 +336,7 @@ class TestHaciendaAPIIntegration(EInvoiceTestCase):
             'error': 'XML inválido',
             'mensaje': 'El elemento ResumenFactura es obligatorio'
         }
+        mock_submit_response.headers = {'X-Error-Cause': 'ResumenFactura obligatorio'}
 
         mock_post.side_effect = [mock_token_response, mock_submit_response]
 
@@ -359,7 +371,14 @@ class TestHaciendaAPIIntegration(EInvoiceTestCase):
             'error_description': 'Token has expired'
         }
 
-        mock_post.side_effect = [mock_token_response, mock_submit_response]
+        # 401 handling: clears cache + retries once with fresh token, then fails
+        # Flow: token → 401 → clear cache → re-obtain token → 401 again → raise UserError
+        mock_post.side_effect = [
+            mock_token_response,   # 1st: obtain initial token
+            mock_submit_response,  # 2nd: 401 from API (triggers cache clear + retry)
+            mock_token_response,   # 3rd: obtain fresh token for retry
+            mock_submit_response,  # 4th: 401 again → raise UserError
+        ]
 
         # Should raise UserError
         with self.assertRaises(UserError) as cm:
@@ -374,8 +393,9 @@ class TestHaciendaAPIIntegration(EInvoiceTestCase):
         self.assertIn('autenticación', error_message.lower())
 
     # Priority: P0
+    @patch('odoo.addons.l10n_cr_einvoice.models.hacienda_api.time.sleep')
     @patch('odoo.addons.l10n_cr_einvoice.models.hacienda_api.requests.post')
-    def test_submit_invoice_429_rate_limit(self, mock_post):
+    def test_submit_invoice_429_rate_limit(self, mock_post, mock_sleep):
         """P0: Test invoice submission with rate limiting (HTTP 429)."""
         # Mock OAuth token
         mock_token_response = Mock()
@@ -383,7 +403,7 @@ class TestHaciendaAPIIntegration(EInvoiceTestCase):
         mock_token_response.text = '{"access_token": "test_token"}'
         mock_token_response.json.return_value = {'access_token': 'test_token'}
 
-        # Mock rate limit error (all 3 retries)
+        # Mock rate limit error (all 3 retries) with proper headers
         mock_rate_limit_response = Mock()
         mock_rate_limit_response.status_code = 429
         mock_rate_limit_response.text = '{"error": "rate_limit_exceeded", "message": "Too many requests"}'
@@ -391,6 +411,7 @@ class TestHaciendaAPIIntegration(EInvoiceTestCase):
             'error': 'rate_limit_exceeded',
             'message': 'Too many requests'
         }
+        mock_rate_limit_response.headers = {}
 
         # Return token once, then rate limit 3 times (should exhaust retries)
         mock_post.side_effect = [
@@ -423,7 +444,7 @@ class TestHaciendaAPIIntegration(EInvoiceTestCase):
         mock_token_response.text = '{"access_token": "test_token"}'
         mock_token_response.json.return_value = {'access_token': 'test_token'}
 
-        # Mock server error then success
+        # Mock server error then success (with proper headers)
         mock_error_response = Mock()
         mock_error_response.status_code = 500
         mock_error_response.text = '{"error": "internal_server_error", "message": "Database connection error"}'
@@ -431,6 +452,7 @@ class TestHaciendaAPIIntegration(EInvoiceTestCase):
             'error': 'internal_server_error',
             'message': 'Database connection error'
         }
+        mock_error_response.headers = {}
 
         mock_success_response = Mock()
         mock_success_response.status_code = 200
@@ -440,6 +462,7 @@ class TestHaciendaAPIIntegration(EInvoiceTestCase):
             'ind-estado': 'aceptado',
             'respuesta-xml': base64.b64encode(b'<Respuesta>OK</Respuesta>').decode()
         }
+        mock_success_response.headers = {}
 
         # Token, error, success
         mock_post.side_effect = [
@@ -463,8 +486,9 @@ class TestHaciendaAPIIntegration(EInvoiceTestCase):
         mock_sleep.assert_called()
 
     # Priority: P1
+    @patch('odoo.addons.l10n_cr_einvoice.models.hacienda_api.time.sleep')
     @patch('odoo.addons.l10n_cr_einvoice.models.hacienda_api.requests.post')
-    def test_submit_invoice_timeout_handling(self, mock_post):
+    def test_submit_invoice_timeout_handling(self, mock_post, mock_sleep):
         """P1: Test invoice submission timeout handling (<30s)."""
         # Mock OAuth token
         mock_token_response = Mock()
@@ -741,11 +765,12 @@ class TestHaciendaAPIIntegration(EInvoiceTestCase):
         mock_token_response.text = '{"access_token": "test_token"}'
         mock_token_response.json.return_value = {'access_token': 'test_token'}
 
-        # Mock server errors
+        # Mock server errors (with proper headers)
         mock_error_response = Mock()
         mock_error_response.status_code = 500
         mock_error_response.text = '{"error": "server error"}'
         mock_error_response.json.return_value = {'error': 'server error'}
+        mock_error_response.headers = {}
 
         # All calls fail (token + 3 retries)
         mock_post.side_effect = [
@@ -784,11 +809,12 @@ class TestHaciendaAPIIntegration(EInvoiceTestCase):
         mock_token_response.text = '{"access_token": "test_token"}'
         mock_token_response.json.return_value = {'access_token': 'test_token'}
 
-        # Mock consistent failures
+        # Mock consistent failures (with proper headers)
         mock_error_response = Mock()
         mock_error_response.status_code = 503
         mock_error_response.text = '{"error": "service unavailable"}'
         mock_error_response.json.return_value = {'error': 'service unavailable'}
+        mock_error_response.headers = {}
 
         # Token + 3 failed attempts
         mock_post.side_effect = [
@@ -820,11 +846,12 @@ class TestHaciendaAPIIntegration(EInvoiceTestCase):
         mock_token_response.text = '{"access_token": "test_token"}'
         mock_token_response.json.return_value = {'access_token': 'test_token'}
 
-        # Mock validation error
+        # Mock validation error with proper headers
         mock_error_response = Mock()
         mock_error_response.status_code = 400
         mock_error_response.text = '{"error": "XML inválido"}'
         mock_error_response.json.return_value = {'error': 'XML inválido'}
+        mock_error_response.headers = {}
 
         # Token + validation error (should not retry)
         mock_post.side_effect = [mock_token_response, mock_error_response]
@@ -844,7 +871,11 @@ class TestHaciendaAPIIntegration(EInvoiceTestCase):
     # Priority: P1
     @patch('odoo.addons.l10n_cr_einvoice.models.hacienda_api.requests.post')
     def test_retry_no_retry_on_401_auth_error(self, mock_post):
-        """P1: Test no retry on authentication errors (401)."""
+        """P1: Test limited retry on authentication errors (401).
+
+        The 401 handler clears the token cache and retries ONCE with a fresh token.
+        If the retry also returns 401, it raises UserError immediately.
+        """
         # Mock OAuth token
         mock_token_response = Mock()
         mock_token_response.status_code = 200
@@ -857,10 +888,15 @@ class TestHaciendaAPIIntegration(EInvoiceTestCase):
         mock_error_response.text = '{"error": "invalid_token"}'
         mock_error_response.json.return_value = {'error': 'invalid_token'}
 
-        # Token + auth error (should not retry)
-        mock_post.side_effect = [mock_token_response, mock_error_response]
+        # Flow: token → 401 → clear cache → re-obtain token → 401 → raise UserError
+        mock_post.side_effect = [
+            mock_token_response,  # 1st: initial token
+            mock_error_response,  # 2nd: 401 from API
+            mock_token_response,  # 3rd: fresh token after cache clear
+            mock_error_response,  # 4th: 401 again → fail
+        ]
 
-        # Should fail immediately
+        # Should fail after one retry with fresh token
         with self.assertRaises(UserError):
             self.api.submit_invoice(
                 clave=self.sample_clave,
@@ -869,8 +905,8 @@ class TestHaciendaAPIIntegration(EInvoiceTestCase):
                 receiver_id='101234567'
             )
 
-        # Should have only 2 calls (no retries on 401)
-        self.assertEqual(mock_post.call_count, 2)
+        # 4 calls: 2 token acquisitions + 2 API attempts (one retry allowed for 401)
+        self.assertEqual(mock_post.call_count, 4)
 
     # =========================================================================
     # HELPER METHOD TESTS

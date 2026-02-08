@@ -482,10 +482,8 @@ class PartnerCedulaLookupWizard(models.TransientModel):
         if self.mobile:
             vals['mobile'] = self.mobile
 
-        # Try to auto-detect ID type from cedula format
-        id_type = self._detect_id_type(cedula_clean)
-        if id_type:
-            vals['l10n_latam_identification_type_id'] = id_type.id
+        # ID type is auto-detected from VAT format by xml_generator._get_partner_id_type()
+        # l10n_latam_base is not installed, so l10n_latam_identification_type_id doesn't exist
 
         return vals
 

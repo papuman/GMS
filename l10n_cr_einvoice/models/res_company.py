@@ -192,6 +192,14 @@ class ResCompany(models.Model):
                 bool(filename) and not filename.endswith(('.p12', '.pfx'))
             )
 
+    # Software Provider ID (v4.4 mandatory ProveedorSistemas element)
+    l10n_cr_proveedor_sistemas = fields.Char(
+        string='Software Provider ID',
+        size=20,
+        help='Developer/provider cedula for Hacienda v4.4 ProveedorSistemas. '
+             'If empty, company VAT is used as fallback (self-developed system).',
+    )
+
     # Emisor Location (for clave generation)
     l10n_cr_emisor_location = fields.Char(
         string='Emisor Location Code',
