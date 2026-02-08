@@ -1,19 +1,14 @@
-# -*- coding: utf-8 -*-
+# Part of Odoo. See LICENSE file for full copyright and licensing details.
 
-from . import models
 from . import controllers
+from . import models
 
-def _post_init_hook(env):
-    """
-    Post-initialization hook to set up TiloPay payment provider.
-    Creates or updates the TiloPay payment provider record.
-    """
-    # Create TiloPay provider if it doesn't exist
-    provider = env['payment.provider'].search([('code', '=', 'tilopay')], limit=1)
-    if not provider:
-        env['payment.provider'].create({
-            'name': 'TiloPay',
-            'code': 'tilopay',
-            'state': 'disabled',  # Admin must configure and enable
-            'is_published': False,
-        })
+import odoo.addons.payment as payment  # prevent circular import error with payment
+
+
+def post_init_hook(env):
+    payment.setup_provider(env, 'tilopay')
+
+
+def uninstall_hook(env):
+    payment.reset_payment_provider(env, 'tilopay')
