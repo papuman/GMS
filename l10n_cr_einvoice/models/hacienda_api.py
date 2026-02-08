@@ -26,7 +26,7 @@ class HaciendaAPI(models.AbstractModel):
 
     # API Endpoints
     PRODUCTION_URL = 'https://api.comprobanteselectronicos.go.cr/recepcion/v1'
-    SANDBOX_URL = 'https://api.comprobanteselectronicos.go.cr/recepcion-sandbox/v1'
+    SANDBOX_URL = 'https://api-sandbox.comprobanteselectronicos.go.cr/recepcion/v1'
 
     # OAuth2 / IDP Endpoints (Keycloak)
     IDP_SANDBOX_URL = 'https://idp.comprobanteselectronicos.go.cr/auth/realms/rut-stag/protocol/openid-connect/token'

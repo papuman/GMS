@@ -170,27 +170,30 @@ class TestCorporateBilling(TransactionCase):
         einvoice = invoice.l10n_cr_einvoice_id
 
         # Set required clave and consecutive for XML generation
+        # Use doc type 01 (FE) so XML includes Receptor element
         import random
         company_cedula = (self.company.vat or '').replace('-', '').ljust(12, '0')[:12]
         date_part = '040225'  # DDMMYY for invoice_date
-        consecutive = '00100001040000000001'
+        consecutive = '00100001010000000001'  # doc type 01 = FE
         security = '%08d' % random.randint(0, 99999999)
         clave = '506' + date_part + company_cedula + consecutive + '1' + security
         einvoice.write({
             'clave': clave,
             'name': consecutive,
+            'document_type': 'FE',
         })
 
         # Generate XML
         xml_generator = self.env['l10n_cr.xml.generator']
         xml_content = xml_generator.generate_invoice_xml(einvoice)
 
-        # Parse XML
+        # Parse XML and detect namespace dynamically
         root = etree.fromstring(xml_content.encode('utf-8'))
+        default_ns = root.nsmap.get(None, '')
+        ns = {'fe': default_ns} if default_ns else {}
 
         # Find Receptor section
-        ns = {'fe': 'https://cdn.comprobanteselectronicos.go.cr/xml-schemas/v4.4/facturaElectronica'}
-        receptor = root.find('.//fe:Receptor', ns)
+        receptor = root.find('.//fe:Receptor', ns) if ns else root.find('.//Receptor')
 
         self.assertIsNotNone(receptor, "Receptor section should exist in XML")
 

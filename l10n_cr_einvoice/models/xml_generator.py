@@ -846,45 +846,70 @@ class XMLGenerator(models.AbstractModel):
         total_descuentos = sum(ld['discount_amount'] for ld in lines_data)
         amount_tax = sum(ld['tax_amount'] for ld in lines_data)
 
-        # Classify lines into service vs merchandise, taxed vs exempt
+        # Classify lines into service vs merchandise with 4-way tax classification:
+        #   Gravado:   has IVA tax with rate > 0%
+        #   Exento:    has IVA tax with rate = 0% (explicitly exempt)
+        #   NoSujeto:  has NO tax at all (outside IVA scope)
+        #   Exonerado: exonerated by decree (not implemented for gym)
         # Use 'subtotal' (qty * price_unit, before discount) for category totals
         total_serv_gravados = 0.0
         total_serv_exentos = 0.0
+        total_serv_no_sujeto = 0.0
         total_merc_gravadas = 0.0
         total_merc_exentas = 0.0
+        total_merc_no_sujeta = 0.0
 
         for ld in lines_data:
             is_service = self._is_service_line(ld)
+            has_tax = bool(ld['line'].tax_ids)
             is_taxed = ld['tax_amount'] > 0
             amount = ld['subtotal']  # Before discount
 
             if is_service:
                 if is_taxed:
                     total_serv_gravados += amount
+                elif has_tax:
+                    total_serv_exentos += amount  # Has 0% IVA tax
                 else:
-                    total_serv_exentos += amount
+                    total_serv_no_sujeto += amount  # No tax at all
             else:
                 if is_taxed:
                     total_merc_gravadas += amount
-                else:
+                elif has_tax:
                     total_merc_exentas += amount
+                else:
+                    total_merc_no_sujeta += amount
 
         total_gravado = total_serv_gravados + total_merc_gravadas
         total_exento = total_serv_exentos + total_merc_exentas
-        total_venta = total_gravado + total_exento
+        total_no_sujeto = total_serv_no_sujeto + total_merc_no_sujeta
+        total_venta = total_gravado + total_exento + total_no_sujeto
         total_venta_neta = total_venta - total_descuentos
         amount_total = total_venta_neta + amount_tax
 
-        # Totals
-        etree.SubElement(resumen, 'TotalServGravados').text = '%.5f' % total_serv_gravados
-        etree.SubElement(resumen, 'TotalServExentos').text = '%.5f' % total_serv_exentos
-        etree.SubElement(resumen, 'TotalMercanciasGravadas').text = '%.5f' % total_merc_gravadas
-        etree.SubElement(resumen, 'TotalMercanciasExentas').text = '%.5f' % total_merc_exentas
-        etree.SubElement(resumen, 'TotalGravado').text = '%.5f' % total_gravado
-        etree.SubElement(resumen, 'TotalExento').text = '%.5f' % total_exento
-        etree.SubElement(resumen, 'TotalVenta').text = '%.5f' % total_venta
-        etree.SubElement(resumen, 'TotalDescuentos').text = '%.5f' % total_descuentos
-        etree.SubElement(resumen, 'TotalVentaNeta').text = '%.5f' % total_venta_neta
+        # Totals - per XSD v4.4 sequence order; only emit non-zero (all are minOccurs=0)
+        fmt = '%.5f'
+        if total_serv_gravados:
+            etree.SubElement(resumen, 'TotalServGravados').text = fmt % total_serv_gravados
+        if total_serv_exentos:
+            etree.SubElement(resumen, 'TotalServExentos').text = fmt % total_serv_exentos
+        if total_serv_no_sujeto:
+            etree.SubElement(resumen, 'TotalServNoSujeto').text = fmt % total_serv_no_sujeto
+        if total_merc_gravadas:
+            etree.SubElement(resumen, 'TotalMercanciasGravadas').text = fmt % total_merc_gravadas
+        if total_merc_exentas:
+            etree.SubElement(resumen, 'TotalMercanciasExentas').text = fmt % total_merc_exentas
+        if total_merc_no_sujeta:
+            etree.SubElement(resumen, 'TotalMercNoSujeta').text = fmt % total_merc_no_sujeta
+        if total_gravado:
+            etree.SubElement(resumen, 'TotalGravado').text = fmt % total_gravado
+        if total_exento:
+            etree.SubElement(resumen, 'TotalExento').text = fmt % total_exento
+        if total_no_sujeto:
+            etree.SubElement(resumen, 'TotalNoSujeto').text = fmt % total_no_sujeto
+        etree.SubElement(resumen, 'TotalVenta').text = fmt % total_venta
+        etree.SubElement(resumen, 'TotalDescuentos').text = fmt % total_descuentos
+        etree.SubElement(resumen, 'TotalVentaNeta').text = fmt % total_venta_neta
 
         # v4.4: TotalDesgloseImpuesto - tax breakdown by code (BEFORE TotalImpuesto)
         # Aggregate tax amounts by (Codigo, CodigoTarifaIVA) across all lines
@@ -899,9 +924,9 @@ class XMLGenerator(models.AbstractModel):
                 desglose = etree.SubElement(resumen, 'TotalDesgloseImpuesto')
                 etree.SubElement(desglose, 'Codigo').text = codigo
                 etree.SubElement(desglose, 'CodigoTarifaIVA').text = codigo_tarifa
-                etree.SubElement(desglose, 'TotalMontoImpuesto').text = '%.5f' % total_monto
+                etree.SubElement(desglose, 'TotalMontoImpuesto').text = fmt % total_monto
 
-        etree.SubElement(resumen, 'TotalImpuesto').text = '%.5f' % amount_tax
+        etree.SubElement(resumen, 'TotalImpuesto').text = fmt % amount_tax
 
         # v4.4: MedioPago is now inside ResumenFactura (complex type)
         self._add_medio_pago(resumen, source_doc)
