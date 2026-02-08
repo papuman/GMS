@@ -1037,7 +1037,15 @@ class EInvoiceDocument(models.Model):
             'TE': '04',
         }
         doc_type = doc_type_codes.get(self.document_type, '01')
-        consecutive = '001' + '00001' + doc_type + str(self.id).zfill(10)  # 3+5+2+10 = 20
+
+        # Sucursal from company (3 digits), Terminal from POS config or company (5 digits)
+        sucursal = (company.l10n_cr_sucursal or '001').zfill(3)[:3]
+        terminal = '00001'
+        if self.pos_order_id and self.pos_order_id.config_id:
+            terminal = (self.pos_order_id.config_id.l10n_cr_terminal_id or '00001').zfill(5)[:5]
+        elif company.l10n_cr_terminal:
+            terminal = company.l10n_cr_terminal.zfill(5)[:5]
+        consecutive = sucursal + terminal + doc_type + str(self.id).zfill(10)  # 3+5+2+10 = 20
 
         # Situación del comprobante (1 digit): 1=Normal, 2=Contingencia, 3=Sin internet
         situacion = '1'

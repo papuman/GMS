@@ -44,12 +44,21 @@ coverage.xml
 
 # Environments
 .env
+.env.*
+!.env.example
+!.env.template
 .venv
 env/
 venv/
 ENV/
 env.bak/
 venv.bak/
+
+# Sensitive deployment files (credentials, passwords)
+deployment/.env
+**/docker/.env
+**/docker/.env.*
+!**/docker/.env.example
 
 # IDE
 .idea/

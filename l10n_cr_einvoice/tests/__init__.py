@@ -80,3 +80,11 @@ try:
 except ImportError as e:
     import logging
     logging.getLogger(__name__).warning(f"Skipping test_cedula_lookup_mocks: {e}")
+
+# P0/P1/P2 Gap Coverage Tests
+from . import test_p0_critical_gaps
+from . import test_p1_high_priority_gaps
+from . import test_p2_medium_priority_gaps
+
+# E2E Sandbox Lifecycle Tests
+from . import test_e2e_sandbox_lifecycle

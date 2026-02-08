@@ -75,6 +75,15 @@ class PosConfig(models.Model):
             }
 
         # If not exists, create it (shouldn't happen as it's in data file)
+        company = self.env.company
+        receipt_header = company.name or ''
+        if company.city:
+            receipt_header += '\n%s, %s' % (company.city, company.country_id.name or 'Costa Rica')
+        if company.phone:
+            receipt_header += '\nTel: %s' % company.phone
+        if company.email:
+            receipt_header += '\n%s' % company.email
+
         gym_config = self.create({
             'name': 'GYM POS',
             'l10n_cr_enable_einvoice': True,
@@ -86,13 +95,8 @@ class PosConfig(models.Model):
             'l10n_cr_terminal_id': '001',
             'iface_tipproduct': False,
             'iface_tax_included': 'total',
-            'receipt_header': '''GMS - Gym Management System
-San José, Costa Rica
-Tel: (506) 2222-3333
-gym@gms-cr.com''',
-            'receipt_footer': '''¡Gracias por entrenar con nosotros!
-
-*** Este es un comprobante válido ***''',
+            'receipt_header': receipt_header,
+            'receipt_footer': '*** Este es un comprobante válido ***',
         })
 
         return {

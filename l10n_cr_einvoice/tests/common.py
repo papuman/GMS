@@ -176,6 +176,11 @@ class EInvoiceTestCase(TransactionCase):
         # Set activity code on company partner (required for e-invoice)
         cls.company.partner_id.l10n_cr_activity_code = '861201'
 
+        # Set default CABYS code system parameter (required when products lack CABYS)
+        cls.env['ir.config_parameter'].sudo().set_param(
+            'l10n_cr_einvoice.default_cabys_code', '9652000009900'
+        )
+
         # Set dummy certificate for XML generation validation
         # (bypasses _validate_company_certificate check in xml_generator)
         dummy_cert = base64.b64encode(b'dummy-test-certificate-data')

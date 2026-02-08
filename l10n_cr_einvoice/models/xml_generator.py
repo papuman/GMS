@@ -135,7 +135,7 @@ class XMLGenerator(models.AbstractModel):
         etree.SubElement(root, 'Clave').text = einvoice.clave
         etree.SubElement(root, 'ProveedorSistemas').text = self._get_proveedor_sistemas(source_doc.company_id)
 
-        codigo_actividad = getattr(source_doc.company_id.partner_id, 'l10n_cr_activity_code', '') or '861201'
+        codigo_actividad = self._get_activity_code(source_doc.company_id)
         etree.SubElement(root, 'CodigoActividadEmisor').text = self._format_activity_code(codigo_actividad)
         etree.SubElement(root, 'NumeroConsecutivo').text = einvoice.name or ''
 
@@ -198,7 +198,7 @@ class XMLGenerator(models.AbstractModel):
         etree.SubElement(root, 'Clave').text = einvoice.clave
         etree.SubElement(root, 'ProveedorSistemas').text = self._get_proveedor_sistemas(source_doc.company_id)
 
-        codigo_actividad = getattr(source_doc.company_id.partner_id, 'l10n_cr_activity_code', '') or '861201'
+        codigo_actividad = self._get_activity_code(source_doc.company_id)
         etree.SubElement(root, 'CodigoActividadEmisor').text = self._format_activity_code(codigo_actividad)
         etree.SubElement(root, 'NumeroConsecutivo').text = einvoice.name or ''
 
@@ -235,7 +235,7 @@ class XMLGenerator(models.AbstractModel):
         etree.SubElement(root, 'Clave').text = einvoice.clave
         etree.SubElement(root, 'ProveedorSistemas').text = self._get_proveedor_sistemas(move.company_id)
 
-        codigo_actividad = getattr(move.company_id.partner_id, 'l10n_cr_activity_code', '') or '861201'
+        codigo_actividad = self._get_activity_code(move.company_id)
         etree.SubElement(root, 'CodigoActividadEmisor').text = self._format_activity_code(codigo_actividad)
         etree.SubElement(root, 'NumeroConsecutivo').text = einvoice.name or ''
 
@@ -281,7 +281,7 @@ class XMLGenerator(models.AbstractModel):
         etree.SubElement(root, 'Clave').text = einvoice.clave
         etree.SubElement(root, 'ProveedorSistemas').text = self._get_proveedor_sistemas(move.company_id)
 
-        codigo_actividad = getattr(move.company_id.partner_id, 'l10n_cr_activity_code', '') or '861201'
+        codigo_actividad = self._get_activity_code(move.company_id)
         etree.SubElement(root, 'CodigoActividadEmisor').text = self._format_activity_code(codigo_actividad)
         etree.SubElement(root, 'NumeroConsecutivo').text = einvoice.name or ''
 
@@ -440,7 +440,7 @@ class XMLGenerator(models.AbstractModel):
         if custom_code and custom_code in VALID_CONDICION_CODES:
             etree.SubElement(root, 'CondicionVenta').text = custom_code
             if custom_code == '02' and source_doc.invoice_payment_term_id:
-                days = sum(line.days for line in source_doc.invoice_payment_term_id.line_ids)
+                days = sum(line.nb_days for line in source_doc.invoice_payment_term_id.line_ids)
                 if days > 0:
                     etree.SubElement(root, 'PlazoCredito').text = str(int(days))
             return
@@ -448,7 +448,7 @@ class XMLGenerator(models.AbstractModel):
         # Default behavior: detect from payment terms
         if source_doc.invoice_payment_term_id and source_doc.invoice_payment_term_id.line_ids:
             etree.SubElement(root, 'CondicionVenta').text = '02'
-            days = sum(line.days for line in source_doc.invoice_payment_term_id.line_ids)
+            days = sum(line.nb_days for line in source_doc.invoice_payment_term_id.line_ids)
             etree.SubElement(root, 'PlazoCredito').text = str(int(days))
         else:
             etree.SubElement(root, 'CondicionVenta').text = '01'
@@ -616,7 +616,7 @@ class XMLGenerator(models.AbstractModel):
             if not cabys_code and line.product_id:
                 cabys_code = getattr(line.product_id.product_tmpl_id, 'l10n_cr_cabys_code', '') or ''
             if not cabys_code:
-                cabys_code = '9652000009900'  # Sports/recreation facility services
+                cabys_code = self._get_default_cabys_code()
             etree.SubElement(linea_detalle, 'CodigoCABYS').text = cabys_code
 
             etree.SubElement(linea_detalle, 'Cantidad').text = str(ld['quantity'])
@@ -736,6 +736,45 @@ class XMLGenerator(models.AbstractModel):
 
         return total_tax
 
+    def _get_default_cabys_code(self):
+        """Get the default CABYS code from system parameter.
+
+        Configurable via Settings > Technical > System Parameters:
+            key: l10n_cr_einvoice.default_cabys_code
+        If not set, raises UserError so the user is aware they need to
+        configure CABYS codes on their products.
+        """
+        default_code = self.env['ir.config_parameter'].sudo().get_param(
+            'l10n_cr_einvoice.default_cabys_code', ''
+        )
+        if not default_code:
+            raise UserError(_(
+                'No CABYS code found for one or more invoice lines, and no '
+                'default CABYS code is configured.\n\n'
+                'Please either:\n'
+                '1. Set the CABYS code on each product/invoice line, or\n'
+                '2. Set a default via Settings > Technical > System Parameters:\n'
+                '   Key: l10n_cr_einvoice.default_cabys_code\n'
+                '   Value: your 13-digit CABYS code'
+            ))
+        return default_code
+
+    def _get_activity_code(self, company):
+        """Get the CIIU activity code for a company, raising if not configured.
+
+        The activity code must match what's registered in Hacienda's RUT
+        for the taxpayer. Using a wrong code causes invoice rejection.
+        """
+        code = getattr(company.partner_id, 'l10n_cr_activity_code', '') or ''
+        if not code:
+            raise UserError(_(
+                'Activity code (Código de Actividad Económica) is not configured '
+                'for company "%s".\n\n'
+                'Please set it in the partner record or verify your registered '
+                'code at: https://www.hacienda.go.cr/ATV/Login.aspx'
+            ) % company.name)
+        return code
+
     def _format_activity_code(self, code):
         """Format activity code for CodigoActividadEmisor (6 digits).
 
@@ -794,7 +833,8 @@ class XMLGenerator(models.AbstractModel):
         in the XML, ensuring consistency between DetalleServicio and ResumenFactura.
 
         CABYS codes starting with '96'-'99' are service categories per Hacienda.
-        When no CABYS code is configured, the default fallback is '9652000009900'
+        When no CABYS code is configured, falls back to the system parameter
+        l10n_cr_einvoice.default_cabys_code
         (Sports/recreation facility services), which is a service category.
 
         Args:
@@ -811,8 +851,7 @@ class XMLGenerator(models.AbstractModel):
         if not cabys_code and product:
             cabys_code = getattr(product.product_tmpl_id, 'l10n_cr_cabys_code', '') or ''
         if not cabys_code:
-            # Same default as _add_detalle_servicio line ~619
-            cabys_code = '9652000009900'
+            cabys_code = self._get_default_cabys_code()
 
         # CABYS prefixes 96-99 are service categories per Hacienda classification
         if cabys_code[:2] in ('96', '97', '98', '99'):

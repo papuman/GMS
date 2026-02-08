@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 752 752" width="752" height="752">
+  <!-- SINPE Móvil icon: mobile phone with transfer arrows -->
+  <!-- Style matches Odoo POS icons: monochrome #5C5F62, ~28px stroke, round caps -->
+  <g fill="none" stroke="#5C5F62" stroke-width="28" stroke-linecap="round" stroke-linejoin="round">
+    <!-- Mobile phone body -->
+    <rect x="220" y="150" width="230" height="420" rx="30" ry="30"/>
+    <!-- Phone screen area (inner rectangle) -->
+    <rect x="250" y="210" width="170" height="280" rx="8" ry="8"/>
+    <!-- Phone home button / bottom indicator -->
+    <line x1="310" y1="530" x2="360" y2="530"/>
+    <!-- Transfer arrow going right (outgoing) -->
+    <line x1="440" y1="310" x2="560" y2="310"/>
+    <polyline points="520,275 560,310 520,345"/>
+    <!-- Transfer arrow going left (incoming) -->
+    <line x1="440" y1="410" x2="560" y2="410"/>
+    <polyline points="480,375 440,410 480,445"/>
+  </g>
+</svg>

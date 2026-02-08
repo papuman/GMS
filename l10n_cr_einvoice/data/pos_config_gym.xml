@@ -2,7 +2,10 @@
 <odoo>
     <data noupdate="0">
 
-        <!-- Gym POS Configuration -->
+        <!-- Gym POS Configuration
+             Receipt header/footer are intentionally left empty so they
+             inherit from the company record (name, phone, email).
+             Users can customize them via POS > Configuration > Settings. -->
         <record id="pos_config_gym" model="pos.config">
             <field name="name">GYM POS</field>
             <field name="company_id" ref="base.main_company"/>
@@ -16,14 +19,8 @@
             <field name="l10n_cr_default_email_customer" eval="True"/>
             <field name="l10n_cr_terminal_id">001</field>
 
-            <!-- Receipt Templates -->
-            <field name="receipt_header">GMS - Gym Management System
-San José, Costa Rica
-Tel: (506) 2222-3333
-gym@gms-cr.com</field>
-            <field name="receipt_footer">¡Gracias por entrenar con nosotros!
-
-*** Este es un comprobante válido ***</field>
+            <!-- Receipt footer — generic, not business-specific -->
+            <field name="receipt_footer">*** Este es un comprobante válido ***</field>
 
         </record>
 

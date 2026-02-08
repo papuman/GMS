@@ -200,6 +200,24 @@ class ResCompany(models.Model):
              'If empty, company VAT is used as fallback (self-developed system).',
     )
 
+    # Sucursal code (branch) for consecutive number in clave
+    l10n_cr_sucursal = fields.Char(
+        string='Sucursal (Branch Code)',
+        size=3,
+        default='001',
+        help='3-digit branch code for the consecutive number (Hacienda v4.4 Art. 4). '
+             'Default: 001 for single-location businesses.',
+    )
+
+    # Default terminal code (used when no POS config is available)
+    l10n_cr_terminal = fields.Char(
+        string='Default Terminal Code',
+        size=5,
+        default='00001',
+        help='5-digit terminal code for the consecutive number (Hacienda v4.4 Art. 4). '
+             'POS terminals use their own l10n_cr_terminal_id instead.',
+    )
+
     # Emisor Location (for clave generation)
     l10n_cr_emisor_location = fields.Char(
         string='Emisor Location Code',

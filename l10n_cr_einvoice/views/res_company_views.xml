@@ -20,10 +20,14 @@
                         </group>
                         <group>
                             <field name="l10n_cr_emisor_location" placeholder="01010100"/>
+                            <field name="l10n_cr_sucursal" placeholder="001"/>
+                            <field name="l10n_cr_terminal" placeholder="00001"/>
                             <div class="text-muted">
-                                8-digit location code: Provincia-Canton-Distrito-Barrio
+                                Location: 8-digit Provincia-Canton-Distrito-Barrio
                                 <br/>
-                                Example: 01010100 for San José, Carmen, Merced, La California
+                                Sucursal: 3-digit branch code (001 for single location)
+                                <br/>
+                                Terminal: 5-digit default terminal (POS uses its own)
                             </div>
                         </group>
                     </group>
