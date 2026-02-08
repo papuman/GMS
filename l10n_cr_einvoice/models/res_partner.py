@@ -299,14 +299,9 @@ class ResPartner(models.Model):
         costa_rica = self.env.ref('base.cr', raise_if_not_found=False)
 
         for partner in self:
-            # Only flag Costa Rica B2B partners
-            is_cr_partner = (
-                partner.country_id == costa_rica and
-                not partner.is_company is False  # Exclude individuals explicitly
-            )
             partner.l10n_cr_missing_ciiu = (
-                is_cr_partner and
-                not partner.l10n_cr_economic_activity_id
+                partner.country_id == costa_rica
+                and not partner.l10n_cr_economic_activity_id
             )
 
     @api.model

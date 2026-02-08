@@ -213,14 +213,16 @@ class TestCedulaCacheComputed(EInvoiceTestCase):
             'country_id': self.env.ref('base.cr').id,
         })
 
-        # Valid at exactly 24 hours for inscrito
-        sync_time = now - timedelta(hours=24)
+        # Valid at just under 24 hours for inscrito
+        # The model uses strict `> 24` for staleness, but by the time the
+        # computed field evaluates, a sync set to exactly 24h ago will be
+        # slightly over 24h. Use 23h59m to stay safely within the fresh window.
+        sync_time = now - timedelta(hours=23, minutes=59)
         partner.l10n_cr_hacienda_last_sync = fields.Datetime.to_string(sync_time)
         partner.l10n_cr_tax_status = 'inscrito'
         partner.l10n_cr_hacienda_verified = True
-        # At exactly 24h, it should still be considered fresh (<=24h)
         self.assertTrue(partner.l10n_cr_hacienda_cache_valid,
-                       "Cache should be valid at exactly 24 hours")
+                       "Cache should be valid at just under 24 hours")
 
 
 @tagged('post_install', '-at_install', 'l10n_cr_einvoice', 'unit', 'p0')
@@ -255,7 +257,7 @@ class TestCedulaCacheConstraints(EInvoiceTestCase):
         self.assertEqual(partner.l10n_cr_override_reason, 'Government entity')
 
     def test_override_reason_cleared_when_override_disabled(self):
-        """When override is disabled, reason should be cleared."""
+        """When override is disabled via clear_validation_override(), reason should be cleared."""
         partner = self.partner_model.create({
             'name': 'Test Partner',
             'vat': '1234567890',
@@ -264,10 +266,13 @@ class TestCedulaCacheConstraints(EInvoiceTestCase):
             'l10n_cr_override_reason': 'Test reason',
         })
 
-        # Disable override
-        partner.l10n_cr_cedula_validation_override = False
-        # Reason should be automatically cleared
-        self.assertFalse(partner.l10n_cr_override_reason or partner.l10n_cr_override_reason.strip(),
+        # Use the helper method which clears all override fields.
+        # Note: The @api.onchange handler only fires in form views, not
+        # during direct ORM writes, so we use the dedicated method instead.
+        partner.clear_validation_override()
+        self.assertFalse(partner.l10n_cr_cedula_validation_override,
+                        "Override should be disabled")
+        self.assertFalse(partner.l10n_cr_override_reason,
                         "Override reason should be cleared when override is disabled")
 
     def test_verified_status_consistency(self):
@@ -371,19 +376,16 @@ class TestCedulaCacheSearch(EInvoiceTestCase):
             'l10n_cr_tax_status': 'inscrito',
         })
 
-        # Search for stale
-        stale = self.partner_model.search([
-            ('l10n_cr_hacienda_cache_stale', '=', True),
+        # Use filtered() instead of search() for non-stored computed fields
+        test_partners = self.partner_model.search([
             ('id', 'in', [fresh_partner.id, stale_partner.id]),
         ])
+        stale = test_partners.filtered(lambda p: p.l10n_cr_hacienda_cache_stale)
         self.assertIn(stale_partner.id, stale.ids, "Stale partner should be found")
         self.assertNotIn(fresh_partner.id, stale.ids, "Fresh partner should not be found")
 
-        # Search for fresh
-        fresh = self.partner_model.search([
-            ('l10n_cr_hacienda_cache_stale', '=', False),
-            ('id', 'in', [fresh_partner.id, stale_partner.id]),
-        ])
+        # Filter for fresh
+        fresh = test_partners.filtered(lambda p: not p.l10n_cr_hacienda_cache_stale)
         self.assertIn(fresh_partner.id, fresh.ids, "Fresh partner should be found")
         self.assertNotIn(stale_partner.id, fresh.ids, "Stale partner should not be found")
 
@@ -409,19 +411,20 @@ class TestCedulaCacheSearch(EInvoiceTestCase):
             'l10n_cr_hacienda_last_sync': fields.Datetime.to_string(old_time),
         })
 
-        # Cache older than 12 hours
-        old_cache = self.partner_model.search([
-            ('l10n_cr_hacienda_cache_age_hours', '>', 12),
+        # l10n_cr_hacienda_cache_age_hours is a non-stored computed field on
+        # res.partner, so it cannot be used in ORM search() domains.
+        # Use filtered() on the recordset instead.
+        test_partners = self.partner_model.search([
             ('id', 'in', [young_partner.id, old_partner.id]),
         ])
+
+        # Cache older than 12 hours
+        old_cache = test_partners.filtered(lambda p: p.l10n_cr_hacienda_cache_age_hours > 12)
         self.assertIn(old_partner.id, old_cache.ids, "18-hour cache should be found")
         self.assertNotIn(young_partner.id, old_cache.ids, "6-hour cache should not be found")
 
         # Cache younger than 12 hours
-        young_cache = self.partner_model.search([
-            ('l10n_cr_hacienda_cache_age_hours', '<', 12),
-            ('id', 'in', [young_partner.id, old_partner.id]),
-        ])
+        young_cache = test_partners.filtered(lambda p: p.l10n_cr_hacienda_cache_age_hours < 12)
         self.assertIn(young_partner.id, young_cache.ids, "6-hour cache should be found")
         self.assertNotIn(old_partner.id, young_cache.ids, "18-hour cache should not be found")
 
@@ -446,11 +449,11 @@ class TestCedulaCacheSearch(EInvoiceTestCase):
             'country_id': self.cr_country.id,
         })
 
-        # Search for valid
-        valid = self.partner_model.search([
-            ('l10n_cr_hacienda_cache_valid', '=', True),
+        # Use filtered() instead of search() for non-stored computed fields
+        test_partners = self.partner_model.search([
             ('id', 'in', [valid_partner.id, invalid_partner.id]),
         ])
+        valid = test_partners.filtered(lambda p: p.l10n_cr_hacienda_cache_valid)
         self.assertIn(valid_partner.id, valid.ids, "Valid partner should be found")
         self.assertNotIn(invalid_partner.id, valid.ids, "Invalid partner should not be found")
 
@@ -499,7 +502,7 @@ class TestCedulaCacheHelpers(EInvoiceTestCase):
         partner.clear_validation_override()
 
         self.assertFalse(partner.l10n_cr_cedula_validation_override)
-        self.assertFalse(partner.l10n_cr_override_reason or partner.l10n_cr_override_reason.strip())
+        self.assertFalse(partner.l10n_cr_override_reason)
         self.assertFalse(partner.l10n_cr_override_user_id)
         self.assertFalse(partner.l10n_cr_override_date)
 
@@ -533,7 +536,9 @@ class TestCedulaCacheHelpers(EInvoiceTestCase):
         status = partner.get_validation_status()
         self.assertTrue(status['is_valid'])
         self.assertEqual(status['icon'], 'valid')
-        self.assertIn('Verified', status['reason'] or status['message'])
+        # The status text uses lowercase 'verified'; check case-insensitively
+        status_text = (status.get('reason') or status.get('message') or '').lower()
+        self.assertIn('verified', status_text)
 
     def test_get_validation_status_never_checked(self):
         """Get status when never verified."""
@@ -551,19 +556,23 @@ class TestCedulaCacheHelpers(EInvoiceTestCase):
         """Get status when cache is stale."""
         now = datetime.now(timezone.utc)
         old_sync = now - timedelta(days=10)
+        # Partner must be verified=True so get_validation_status() reaches the
+        # stale-cache branch. When verified=False, it returns 'unknown' early.
         partner = self.partner_model.create({
             'name': 'Test Partner',
             'vat': '1234567890',
             'country_id': self.cr_country.id,
             'l10n_cr_hacienda_last_sync': fields.Datetime.to_string(old_sync),
             'l10n_cr_tax_status': 'inscrito',
-            'l10n_cr_hacienda_verified': False,
+            'l10n_cr_hacienda_verified': True,
         })
 
         status = partner.get_validation_status()
         self.assertFalse(status['is_valid'])
         self.assertEqual(status['icon'], 'warning')
-        self.assertIn('stale', status['reason'].lower() or status['message'].lower())
+        # The method may return the stale info in 'reason' or 'message'
+        stale_text = (status.get('reason') or status.get('message') or '').lower()
+        self.assertIn('stale', stale_text)
 
 
 @tagged('post_install', '-at_install', 'l10n_cr_einvoice', 'unit', 'p1')
@@ -591,11 +600,15 @@ class TestCedulaCacheRefresh(EInvoiceTestCase):
         partner.refresh_hacienda_cache()
         after_refresh = datetime.now(timezone.utc)
 
-        # Timestamp should be set to current time
+        # Timestamp should be set to current time (1-second buffer for timing)
         self.assertIsNotNone(partner.l10n_cr_hacienda_last_sync)
         sync_time = fields.Datetime.from_string(partner.l10n_cr_hacienda_last_sync)
-        self.assertGreaterEqual(sync_time, before_refresh)
-        self.assertLessEqual(sync_time, after_refresh)
+        # fields.Datetime.from_string() returns a naive datetime (UTC);
+        # strip tzinfo from our aware datetimes so comparison works.
+        before_naive = before_refresh.replace(tzinfo=None)
+        after_naive = after_refresh.replace(tzinfo=None)
+        self.assertGreaterEqual(sync_time, before_naive - timedelta(seconds=1))
+        self.assertLessEqual(sync_time, after_naive + timedelta(seconds=1))
 
     def test_refresh_cache_updates_tax_status(self):
         """Cache refresh should update tax status from Hacienda API."""
@@ -641,7 +654,7 @@ class TestCedulaCacheRefresh(EInvoiceTestCase):
 
         # After refresh, caches should be fresh
         for partner in partners:
-            partner.refresh()  # Reload from database
+            partner.invalidate_recordset()  # Reload from database
             # Note: In real implementation, this would check if cache is refreshed
             # For now, we just verify the method can be called without errors
 
@@ -681,7 +694,12 @@ class TestCedulaCacheEdgeCases(EInvoiceTestCase):
         self.assertIsNotNone(status, "Status should not be None")
         self.assertIn('is_valid', status)
         self.assertIn('icon', status)
-        self.assertIn('reason', status)
+        # The status dict uses 'message' as the primary text key;
+        # 'reason' is only present in some status branches (e.g. override, stale).
+        self.assertTrue(
+            'reason' in status or 'message' in status,
+            "Status should contain either 'reason' or 'message' key"
+        )
 
     def test_cache_with_non_cr_partner(self):
         """Cache fields should work for non-Costa Rica partners."""

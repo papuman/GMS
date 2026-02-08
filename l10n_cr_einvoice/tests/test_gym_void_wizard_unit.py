@@ -56,7 +56,6 @@ class TestGymVoidWizardUnit(TransactionCase):
             'email': _generate_unique_email('customer'),
             'phone': '+506-8888-9999',
             'vat': '1-0234-0567',
-            'l10n_cr_identification_type': '01',  # Física
         })
 
         # Create test product
@@ -88,7 +87,7 @@ class TestGymVoidWizardUnit(TransactionCase):
             'move_id': self.invoice.id,
             'document_type': 'FE',
             'company_id': self.company.id,
-            'partner_id': self.customer.id,
+            'partner_id': self.partner.id,
             'state': 'accepted',
             'clave': '50601012025010100012340000100001000000001234567890',
         })

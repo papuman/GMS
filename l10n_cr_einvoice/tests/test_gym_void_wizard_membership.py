@@ -54,7 +54,6 @@ class TestGymVoidWizardMembership(TransactionCase):
             'email': _generate_unique_email('customer'),
             'phone': '+506-7777-8888',
             'vat': '1-0456-0789',
-            'l10n_cr_identification_type': '01',
         })
 
         # Create membership product

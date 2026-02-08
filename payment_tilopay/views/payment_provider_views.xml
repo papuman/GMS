@@ -52,43 +52,7 @@
         </field>
     </record>
 
-    <!-- TiloPay Configuration Help -->
-    <record id="payment_provider_onboarding_tilopay" model="ir.ui.view">
-        <field name="name">payment.provider.onboarding.tilopay</field>
-        <field name="model">payment.provider</field>
-        <field name="inherit_id" ref="payment.payment_provider_onboarding_form"/>
-        <field name="arch" type="xml">
-            <xpath expr="//div[hasclass('o_payment_provider_onboarding')]" position="inside">
-                <div invisible="code != 'tilopay'">
-                    <h3>TiloPay Setup Instructions</h3>
-                    <ol>
-                        <li>Register at <a href="https://tilopay.com/developers" target="_blank">https://tilopay.com/developers</a></li>
-                        <li>Complete merchant onboarding with your business information</li>
-                        <li>Navigate to: Account → Checkout → API Credentials</li>
-                        <li>Copy your API Key, API User, and API Password</li>
-                        <li>Paste credentials in the fields above</li>
-                        <li>Use sandbox mode for testing (test credentials provided as placeholders)</li>
-                        <li>Configure webhook URL in TiloPay dashboard</li>
-                        <li>Click "Test Connection" to verify setup</li>
-                        <li>Switch to production when ready and update credentials</li>
-                    </ol>
-
-                    <h4>Test Credentials (Sandbox)</h4>
-                    <ul>
-                        <li><strong>API Key:</strong> 6609-5850-8330-8034-3464</li>
-                        <li><strong>API User:</strong> lSrT45</li>
-                        <li><strong>API Password:</strong> Zlb8H9</li>
-                    </ul>
-
-                    <h4>Support</h4>
-                    <ul>
-                        <li>Email: <a href="mailto:sac@tilopay.com">sac@tilopay.com</a></li>
-                        <li>Developer Support: <a href="https://cst.support.tilopay.com/servicedesk/customer/portal/21" target="_blank">TiloPay Developer Portal</a></li>
-                        <li>Documentation: <a href="https://tilopay.com/documentacion" target="_blank">https://tilopay.com/documentacion</a></li>
-                    </ul>
-                </div>
-            </xpath>
-        </field>
-    </record>
+    <!-- NOTE: payment_provider_onboarding_form does not exist in Odoo 19.
+         TiloPay onboarding help removed until a valid base view is identified. -->
 
 </odoo>
