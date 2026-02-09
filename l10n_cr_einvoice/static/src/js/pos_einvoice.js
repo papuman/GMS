@@ -2,7 +2,6 @@
 
 import { PaymentScreen } from "@point_of_sale/app/screens/payment_screen/payment_screen";
 import { ReceiptScreen } from "@point_of_sale/app/screens/receipt_screen/receipt_screen";
-import { PosOrder } from "@point_of_sale/app/models/pos_order";
 import { patch } from "@web/core/utils/patch";
 import { useService } from "@web/core/utils/hooks";
 import { onMounted, useState } from "@odoo/owl";
@@ -13,96 +12,56 @@ import { AlertDialog } from "@web/core/confirmation_dialog/confirmation_dialog";
 const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
 
 /**
- * Patch PosOrder to extend canBeValidated() - the Odoo way
- * This grays out the Validate button when requirements aren't met
+ * Validate FE customer requirements.
+ * Returns { valid: boolean, missing: string[] }
+ *
+ * Hacienda v4.4 mandatory FE receptor fields:
+ *   1. Customer selected (partner exists)
+ *   2. Name (non-empty)
+ *   3. VAT / Cédula (non-empty)
+ *   4. Email (non-empty, valid format)
+ *   5. Economic Activity / CIIU (mandatory from Oct 6, 2025)
  */
-patch(PosOrder.prototype, {
-    /**
-     * Check if e-invoice requirements are met for Factura (FE)
-     */
-    isEinvoiceValid() {
-        // If e-invoice not enabled, always valid
-        if (!this.l10n_cr_is_einvoice) {
-            return true;
-        }
+function checkFERequirements(partner, ciiuMandatoryDate) {
+    const missing = [];
 
-        // Tiquete has no requirements
-        if (this.einvoice_type === 'TE') {
-            return true;
-        }
-
-        // Factura requires customer with complete data
-        const partner = this.getPartner();
-        if (!partner) {
-            return false;
-        }
-
-        // Required: name, vat, email
-        if (!partner.name || !partner.vat || !partner.email) {
-            return false;
-        }
-
-        // Email must be valid format
-        if (!EMAIL_REGEX.test(partner.email.trim())) {
-            return false;
-        }
-
-        // After CIIU mandatory date: CIIU code required (date loaded from server config)
-        const ciiuDate = this.pos?.config?._l10n_cr_ciiu_mandatory_date;
-        if (ciiuDate && new Date() >= new Date(ciiuDate) && !partner.l10n_cr_activity_code) {
-            return false;
-        }
-
-        return true;
-    },
-
-    /**
-     * Override canBeValidated to include e-invoice requirements
-     * This is the Odoo pattern - Validate button grays out automatically
-     */
-    canBeValidated() {
-        // First check standard Odoo requirements (isPaid, valid empty order)
-        const baseValid = super.canBeValidated();
-        if (!baseValid) {
-            return false;
-        }
-
-        // Then check e-invoice requirements
-        return this.isEinvoiceValid();
-    },
-
-    // Include E-Invoice fields in Receipt
-    export_for_printing() {
-        const result = super.export_for_printing(...arguments);
-        if (result) {
-            if (this.l10n_cr_clave) {
-                result.l10n_cr_clave = this.l10n_cr_clave;
-            }
-            if (this.l10n_cr_qr_code) {
-                result.l10n_cr_qr_code = this.l10n_cr_qr_code;
-            }
-        }
-        return result;
-    },
-
-    // Include E-Invoice fields when saving order
-    export_as_JSON() {
-        const json = super.export_as_JSON(...arguments);
-        json.l10n_cr_is_einvoice = this.l10n_cr_is_einvoice || false;
-        json.einvoice_type = this.einvoice_type || 'TE';
-        // Customer snapshot fields are related+store=True on pos.order,
-        // auto-populated from partner_id server-side. No need to send from JS.
-        return json;
+    if (!partner) {
+        missing.push(_t('Customer (select a customer first)'));
+        return { valid: false, missing };
     }
-});
+
+    if (!partner.name) {
+        missing.push(_t('Customer Name'));
+    }
+    if (!partner.vat) {
+        missing.push(_t('Cédula / Tax ID'));
+    }
+    if (!partner.email) {
+        missing.push(_t('Email Address'));
+    } else if (!EMAIL_REGEX.test(partner.email.trim())) {
+        missing.push(_t('Valid Email Address'));
+    }
+
+    // CIIU mandatory since Oct 6, 2025
+    if (ciiuMandatoryDate && new Date() >= new Date(ciiuMandatoryDate)) {
+        if (!partner.l10n_cr_activity_code) {
+            missing.push(_t('Economic Activity (CIIU Code)'));
+        }
+    }
+
+    return { valid: missing.length === 0, missing };
+}
 
 /**
- * Patch PaymentScreen for E-Invoice UI controls.
+ * Patch PaymentScreen for E-Invoice UI controls and Validate button gating.
  *
- * POS model records are NOT individually reactive (only RecordStore is).
- * Direct property assignment (order.field = value) doesn't trigger re-renders.
- * We use useState() to create a reactive trigger — when einvoiceState changes,
- * the component re-renders, re-evaluating canBeValidated() with the updated values.
+ * Key design: the Validate button state is driven by `canValidateOrder` getter
+ * on PaymentScreen, which reads from the reactive `einvoiceState` (useState).
+ * This avoids reading model fields through the WithLazyGetterTrap proxy,
+ * ensuring OWL reactivity works correctly.
+ *
+ * The template override in pos_einvoice.xml replaces the Validate button's
+ * class expression with `{{ canValidateOrder ? 'highlight' : 'disabled' }}`.
  */
 patch(PaymentScreen.prototype, {
     setup() {
@@ -110,7 +69,8 @@ patch(PaymentScreen.prototype, {
         this.notification = useService("notification");
         this.dialog = useService("dialog");
 
-        // Reactive state for e-invoice UI — drives component re-renders
+        // Reactive state for e-invoice UI — drives component re-renders.
+        // This is the SINGLE SOURCE OF TRUTH for the e-invoice toggle state.
         const order = this.currentOrder;
         const enabled = order ? (order.l10n_cr_is_einvoice || false) : false;
         let type = 'TE';
@@ -120,7 +80,7 @@ patch(PaymentScreen.prototype, {
         }
         this.einvoiceState = useState({ enabled, type });
 
-        // Sync initial state to order
+        // Sync initial state to order (for serialization to server)
         if (order) {
             order.l10n_cr_is_einvoice = this.einvoiceState.enabled;
             order.einvoice_type = this.einvoiceState.type;
@@ -132,31 +92,52 @@ patch(PaymentScreen.prototype, {
     },
 
     get einvoiceType() {
-        // Pure getter — no side effects during render
         return this.einvoiceState.type;
     },
 
+    /**
+     * Master validation getter for the Validate button.
+     * Combines Odoo's base validation + FE requirements.
+     *
+     * Used directly in the template (overridden in pos_einvoice.xml) instead of
+     * currentOrder.canBeValidated(), because the reactive einvoiceState lives here
+     * on the PaymentScreen component, not on the PosOrder record.
+     */
+    get canValidateOrder() {
+        const order = this.currentOrder;
+        if (!order) {
+            return false;
+        }
+
+        // Base Odoo checks: order is paid, has items/payments, no refund in process
+        if (!order.canBeValidated() || order.isRefundInProcess()) {
+            return false;
+        }
+
+        // E-invoice FE requirements — only when Factura Electrónica is selected
+        if (this.einvoiceState.enabled && this.einvoiceState.type === 'FE') {
+            const partner = order.getPartner();
+            const ciiuDate = this.pos?.config?._l10n_cr_ciiu_mandatory_date;
+            const { valid } = checkFERequirements(partner, ciiuDate);
+            return valid;
+        }
+
+        return true;
+    },
+
+    /**
+     * Override validateOrder to show a helpful dialog when FE requirements are missing.
+     * Even though the button is grayed out, it's still clickable (Odoo uses CSS class,
+     * not HTML disabled attribute). This catches clicks on the "disabled" button.
+     */
     async validateOrder(isForceValidate) {
-        // Check e-invoice requirements before proceeding
         const order = this.currentOrder;
         if (order && this.einvoiceState.enabled && this.einvoiceState.type === 'FE') {
             const partner = order.getPartner();
-            const missing = [];
+            const ciiuDate = this.pos?.config?._l10n_cr_ciiu_mandatory_date;
+            const { valid, missing } = checkFERequirements(partner, ciiuDate);
 
-            if (!partner) {
-                missing.push(_t('Customer (select a customer first)'));
-            } else {
-                if (!partner.name) missing.push(_t('Customer Name'));
-                if (!partner.vat) missing.push(_t('Cédula / Tax ID'));
-                if (!partner.email) missing.push(_t('Email Address'));
-                // Only check CIIU after mandatory date (loaded from server config)
-                const ciiuDate = this.pos?.config?._l10n_cr_ciiu_mandatory_date;
-                if (ciiuDate && new Date() >= new Date(ciiuDate) && !partner.l10n_cr_activity_code) {
-                    missing.push(_t('Economic Activity (CIIU Code)'));
-                }
-            }
-
-            if (missing.length > 0) {
+            if (!valid) {
                 this.dialog.add(AlertDialog, {
                     title: _t('Factura Electrónica - Missing Information'),
                     body: _t('The following information is required for Factura Electrónica (FE):\n\n') +
@@ -175,16 +156,16 @@ patch(PaymentScreen.prototype, {
         let newType = this.einvoiceState.type;
 
         if (newEnabled) {
-            // Just enabled - set document type based on partner
+            // Just enabled — set document type based on partner
             const partner = order.getPartner();
             newType = (partner && partner.vat) ? 'FE' : 'TE';
         }
 
-        // Update reactive state (triggers re-render → canBeValidated() re-evaluated)
+        // Update reactive state (triggers re-render → canValidateOrder re-evaluated)
         this.einvoiceState.enabled = newEnabled;
         this.einvoiceState.type = newType;
 
-        // Sync to order for persistence/serialization
+        // Sync to order for serialization to server via serializeForORM()
         order.l10n_cr_is_einvoice = newEnabled;
         order.einvoice_type = newType;
     },
@@ -205,20 +186,6 @@ patch(PaymentScreen.prototype, {
         }
         this.einvoiceState.type = 'FE';
         this.currentOrder.einvoice_type = 'FE';
-    },
-
-    /**
-     * Call this when the partner changes on the current order.
-     * Re-derives the e-invoice document type (FE vs TE) from the new partner.
-     * If e-invoice is not enabled, this is a no-op.
-     */
-    onPartnerChange() {
-        if (this.einvoiceState.enabled) {
-            const partner = this.currentOrder.getPartner();
-            const newType = (partner && partner.vat) ? 'FE' : 'TE';
-            this.einvoiceState.type = newType;
-            this.currentOrder.einvoice_type = newType;
-        }
     },
 });
 

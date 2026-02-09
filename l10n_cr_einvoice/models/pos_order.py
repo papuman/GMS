@@ -89,13 +89,14 @@ class PosOrder(models.Model):
             else:
                 order.l10n_cr_qr_code = False
 
-    # Odoo 19 POS order processing
+    # NOTE: In Odoo 19, _process_order() passes serialized data directly to create().
+    # _order_fields() is NOT called by the base Odoo 19 flow. This override is kept
+    # as a safety net in case any other module calls it, but the primary path for
+    # getting l10n_cr_is_einvoice/einvoice_type to the server is serializeForORM() →
+    # _process_order() → create().
     @api.model
     def _order_fields(self, ui_order):
-        """
-        Override to capture e-invoice flag from POS UI.
-        Odoo 19 uses _order_fields instead of _process_order.
-        """
+        """Capture e-invoice flag from POS UI (safety net)."""
         fields = super()._order_fields(ui_order)
 
         # Capture the e-invoice flag from UI (default: False)

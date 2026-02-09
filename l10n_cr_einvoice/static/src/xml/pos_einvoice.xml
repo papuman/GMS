@@ -39,4 +39,26 @@
         </xpath>
     </t>
 
+    <!--
+        Override the Validate button to use canValidateOrder (PaymentScreen getter)
+        instead of currentOrder.canBeValidated() (PosOrder method).
+
+        This is critical because the e-invoice state lives in einvoiceState (useState)
+        on the PaymentScreen component, which OWL tracks reactively. Reading from the
+        PosOrder record through the WithLazyGetterTrap proxy is unreliable for
+        triggering re-renders.
+
+        The canValidateOrder getter combines:
+        - Base Odoo validation (isPaid, isValidEmptyOrder, isRefundInProcess)
+        - FE requirements (customer name, cédula, email, CIIU) when Factura is selected
+    -->
+    <t t-name="l10n_cr_einvoice.PaymentScreenValidate" t-inherit="point_of_sale.PaymentScreenValidate" t-inherit-mode="extension">
+        <xpath expr="//button[hasclass('validation-button')]" position="attributes">
+            <attribute name="t-attf-class">
+                {{ ui.isSmall ? 'btn-switchpane flex-fill' : 'button next w-50' }}
+                {{ canValidateOrder ? 'highlight' : 'disabled' }}
+            </attribute>
+        </xpath>
+    </t>
+
 </templates>
