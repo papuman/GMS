@@ -15,7 +15,7 @@ class D151InformativeReport(models.Model):
     Filing deadline: April 15 of following year.
 
     Reports detailed transactions with customers and suppliers
-    for transactions above threshold (currently ₡500,000).
+    for transactions above threshold (currently ₡2,500,000).
     """
     _name = 'l10n_cr.d151.report'
     _description = 'D-151 Annual Informative Report'
@@ -227,12 +227,16 @@ class D151InformativeReport(models.Model):
         # Clear existing lines
         self.customer_line_ids.unlink()
         self.supplier_line_ids.unlink()
+        self.expense_line_ids.unlink()
 
         # Calculate customer lines (sales above threshold)
         self._calculate_customer_lines()
 
         # Calculate supplier lines (purchases above threshold)
         self._calculate_supplier_lines()
+
+        # Calculate specific expense lines (above specific_expense_threshold)
+        self._calculate_expense_lines()
 
         self.state = 'calculated'
         self.message_post(body=_(
@@ -334,6 +338,120 @@ class D151InformativeReport(models.Model):
                 'total_amount': total_purchases,
                 'transaction_count': bill_count,
             })
+
+    def _calculate_expense_lines(self):
+        """
+        Find all specific expense payments above the specific_expense_threshold.
+
+        D-151 requires reporting of Professional Services (SP), Rentals (A),
+        Commissions (M), and Interest (I) payments above the threshold
+        (default: ₡50,000) per provider.
+
+        Classification approach: vendor bill lines for service-type products
+        are queried and grouped by partner. The expense_type is determined
+        by the account used on the bill line:
+        - Accounts containing 'honorario' or 'profesional' -> SP
+        - Accounts containing 'alquiler' or 'arrend' -> A (Rentals)
+        - Accounts containing 'comision' or 'comisión' -> M (Commissions)
+        - Accounts containing 'interes' or 'interés' -> I (Interest)
+        - Default for service products -> SP (Professional Services)
+
+        TODO: For more accurate classification, consider adding an
+        expense_type field to product categories or account groups.
+        """
+        self.ensure_one()
+
+        # Query vendor bills and refunds for service-type lines, grouped by partner
+        query = """
+            SELECT
+                am.partner_id,
+                aa.name::text as account_name,
+                SUM(CASE WHEN am.move_type = 'in_refund'
+                    THEN -aml.price_subtotal
+                    ELSE aml.price_subtotal
+                END) as total_amount,
+                COUNT(*) as transaction_count
+            FROM account_move_line aml
+            JOIN account_move am ON am.id = aml.move_id
+            JOIN account_account aa ON aa.id = aml.account_id
+            LEFT JOIN product_product pp ON pp.id = aml.product_id
+            LEFT JOIN product_template pt ON pt.id = pp.product_tmpl_id
+            WHERE am.company_id = %s
+                AND am.move_type IN ('in_invoice', 'in_refund')
+                AND am.state = 'posted'
+                AND am.invoice_date >= %s
+                AND am.invoice_date <= %s
+                AND am.partner_id IS NOT NULL
+                AND aml.display_type = 'product'
+                AND (pt.type = 'service' OR pt.type IS NULL)
+            GROUP BY am.partner_id, aa.name
+            HAVING ABS(SUM(CASE WHEN am.move_type = 'in_refund'
+                THEN -aml.price_subtotal
+                ELSE aml.price_subtotal
+            END)) >= %s
+            ORDER BY total_amount DESC
+        """
+
+        self.env.cr.execute(query, (
+            self.company_id.id,
+            self.period_id.date_from,
+            self.period_id.date_to,
+            self.specific_expense_threshold,
+        ))
+
+        ExpenseLine = self.env['l10n_cr.d151.expense.line']
+
+        # Aggregate by partner and expense type
+        partner_expenses = {}  # {(partner_id, expense_type): {amount, count}}
+
+        for row in self.env.cr.fetchall():
+            partner_id, account_name, total_amount, transaction_count = row
+
+            # Classify expense type based on account name
+            expense_type = self._classify_expense_type(account_name or '')
+
+            key = (partner_id, expense_type)
+            if key not in partner_expenses:
+                partner_expenses[key] = {'amount': 0.0, 'count': 0}
+            partner_expenses[key]['amount'] += total_amount
+            partner_expenses[key]['count'] += transaction_count
+
+        # Create expense lines for amounts above threshold
+        for (partner_id, expense_type), data in partner_expenses.items():
+            if abs(data['amount']) < self.specific_expense_threshold:
+                continue
+
+            partner = self.env['res.partner'].browse(partner_id)
+
+            ExpenseLine.create({
+                'report_id': self.id,
+                'partner_id': partner_id,
+                'partner_vat': partner.vat or '',
+                'partner_name': partner.name,
+                'expense_type': expense_type,
+                'total_amount': data['amount'],
+                'transaction_count': data['count'],
+            })
+
+    def _classify_expense_type(self, account_name):
+        """
+        Classify a vendor bill line into a D-151 expense type based on
+        the account name.
+
+        Returns: 'SP' (Professional Services), 'A' (Rentals),
+                 'M' (Commissions), or 'I' (Interest)
+        """
+        name_lower = account_name.lower()
+
+        if any(kw in name_lower for kw in ('alquiler', 'arrend', 'renta')):
+            return 'A'
+        elif any(kw in name_lower for kw in ('comision', 'comisión')):
+            return 'M'
+        elif any(kw in name_lower for kw in ('interes', 'interés', 'financier')):
+            return 'I'
+        else:
+            # Default: Professional Services
+            return 'SP'
 
     def action_generate_xml(self):
         """Generate D-151 XML for TRIBU-CR submission"""

@@ -368,7 +368,7 @@ class XMLGenerator(models.AbstractModel):
         etree.SubElement(ubicacion, 'OtrasSenas').text = otras_senas
 
         # Contact info (Telefono is optional, only include if phone is set)
-        phone = (company.phone or '').replace(' ', '').replace('-', '')
+        phone = re.sub(r'\D', '', company.phone or '')
         if phone and int(phone[:8] or '0') >= 100:
             telefono = etree.SubElement(emisor, 'Telefono')
             etree.SubElement(telefono, 'CodigoPais').text = '506'
@@ -549,6 +549,9 @@ class XMLGenerator(models.AbstractModel):
         regardless of the source document's computed fields (which may differ
         for POS orders where amount_tax can be 0 even when taxes exist on lines).
 
+        Uses Odoo's tax engine (compute_all) to correctly handle fixed-amount
+        taxes, price-included taxes, and tax groups.
+
         Also collects tax breakdown by (Codigo, CodigoTarifaIVA) for the
         TotalDesgloseImpuesto elements required in v4.4.
 
@@ -560,6 +563,9 @@ class XMLGenerator(models.AbstractModel):
         else:
             order_lines = source_doc.invoice_line_ids.filtered(lambda l: l.display_type == 'product')
 
+        currency = source_doc.currency_id or self.env.company.currency_id
+        partner = source_doc.partner_id if hasattr(source_doc, 'partner_id') else None
+
         lines_data = []
         for line in order_lines:
             quantity = line.qty if source_doc._name == 'pos.order' else line.quantity
@@ -568,28 +574,34 @@ class XMLGenerator(models.AbstractModel):
             discount_amount = subtotal * (line.discount / 100) if line.discount > 0 else 0.0
             subtotal_after_discount = subtotal - discount_amount
 
-            # Compute tax from line.tax_ids (same logic as _add_line_tax)
-            # Also track breakdown by (codigo, codigo_tarifa) for TotalDesgloseImpuesto
+            # Use Odoo's tax engine for accurate tax computation
+            # compute_all handles fixed-amount taxes, price-included taxes, and tax groups
             line_tax = 0.0
             line_tax_breakdown = []
             if line.tax_ids:
-                for tax in line.tax_ids:
+                product = line.product_id if hasattr(line, 'product_id') else None
+                tax_res = line.tax_ids.compute_all(
+                    price_unit * (1 - (line.discount or 0.0) / 100.0),
+                    currency=currency,
+                    quantity=quantity,
+                    product=product,
+                    partner=partner,
+                )
+                line_tax = tax_res['total_included'] - tax_res['total_excluded']
+
+                for tax_detail in tax_res.get('taxes', []):
+                    tax_record = self.env['account.tax'].browse(tax_detail['id'])
                     codigo_tipo = '01'  # IVA
-                    tarifa_info = self.TARIFA_IVA_MAP.get(tax.amount)
+                    tarifa_info = self.TARIFA_IVA_MAP.get(tax_record.amount)
                     if tarifa_info:
-                        codigo_tarifa, tarifa_str = tarifa_info
-                        tarifa = float(tarifa_str)
+                        codigo_tarifa, _ = tarifa_info
                     else:
-                        # Map to closest valid rate (same logic as _add_line_tax)
-                        closest_rate = min(self.TARIFA_IVA_MAP.keys(), key=lambda r: abs(r - tax.amount))
-                        codigo_tarifa, tarifa_str = self.TARIFA_IVA_MAP[closest_rate]
-                        tarifa = float(tarifa_str)
-                    tax_amt = subtotal_after_discount * (tarifa / 100)
-                    line_tax += tax_amt
+                        closest_rate = min(self.TARIFA_IVA_MAP.keys(), key=lambda r: abs(r - tax_record.amount))
+                        codigo_tarifa, _ = self.TARIFA_IVA_MAP[closest_rate]
                     line_tax_breakdown.append({
                         'codigo': codigo_tipo,
                         'codigo_tarifa': codigo_tarifa,
-                        'amount': tax_amt,
+                        'amount': abs(tax_detail['amount']),
                     })
 
             lines_data.append({
@@ -720,16 +732,36 @@ class XMLGenerator(models.AbstractModel):
     def _add_line_tax(self, linea_detalle, line, base_amount):
         """Add tax information to line item (v4.4: each tax is a separate Impuesto element).
 
+        Uses Odoo's tax engine (compute_all) to correctly handle fixed-amount
+        taxes, price-included taxes, and tax groups.
+
         Returns:
             float: Total tax amount for the line.
         """
         total_tax = 0.0
 
-        for tax in line.tax_ids:
-            # Each tax gets its own Impuesto element in v4.4
+        # Use compute_all on the base_amount to get accurate per-tax amounts
+        # base_amount is subtotal_after_discount (qty * price - discount)
+        quantity = line.qty if hasattr(line, 'qty') else line.quantity
+        price_after_discount = base_amount / quantity if quantity else base_amount
+        source_doc = line.order_id if hasattr(line, 'order_id') else line.move_id
+        currency = source_doc.currency_id if source_doc else self.env.company.currency_id
+        partner = source_doc.partner_id if hasattr(source_doc, 'partner_id') else None
+        product = line.product_id if hasattr(line, 'product_id') else None
+
+        tax_res = line.tax_ids.compute_all(
+            price_after_discount,
+            currency=currency,
+            quantity=quantity,
+            product=product,
+            partner=partner,
+        )
+
+        for tax_detail in tax_res.get('taxes', []):
+            tax_record = self.env['account.tax'].browse(tax_detail['id'])
             impuesto = etree.SubElement(linea_detalle, 'Impuesto')
 
-            tax_amount_percent = tax.amount
+            tax_amount_percent = tax_record.amount
 
             # Codigo = Tax TYPE code (01=IVA for all value-added taxes)
             # CodigoTarifaIVA = Tax RATE code (01=0%, 02=1%, 03=2%, 04=4%, 08=13%)
@@ -748,8 +780,8 @@ class XMLGenerator(models.AbstractModel):
             etree.SubElement(impuesto, 'CodigoTarifaIVA').text = codigo_tarifa
             etree.SubElement(impuesto, 'Tarifa').text = tarifa
 
-            # Calculate tax amount
-            tax_amount = base_amount * (float(tarifa) / 100)
+            # Use the tax amount from compute_all (accurate for all tax types)
+            tax_amount = abs(tax_detail['amount'])
             etree.SubElement(impuesto, 'Monto').text = '%.5f' % tax_amount
             total_tax += tax_amount
 

@@ -878,16 +878,17 @@ class L10nCRValidationRule(models.Model):
             # ===== VAT FORMAT VALIDATION =====
             {
                 'code': 'vat_cedula_fisica_format',
-                'rule_name': 'VAT: Cédula Física Format (9 digits)',
+                'rule_name': 'VAT: Costa Rica ID Format (9-12 digits)',
                 'sequence': 100,
                 'document_type': 'all',
                 'applies_to': 'partner',
                 'field_name': 'vat',
-                'field_label': 'Cédula Física',
+                'field_label': 'Número de Identificación',
                 'validation_type': 'regex',
-                'validation_params': '{"pattern": "^[0-9]{9}$"}',
+                'validation_params': '{"pattern": "^[0-9]{9,12}$"}',
                 'error_message_es': (
-                    'La Cédula Física debe tener exactamente 9 dígitos.\n\n'
+                    'El número de identificación debe tener entre 9 y 12 dígitos numéricos.\n'
+                    'Cédula Física: 9 dígitos, Jurídica: 10 dígitos, DIMEX: 11-12 dígitos.\n\n'
                     'Valor actual: {field_value}'
                 ),
                 'blocking': False,  # Validated elsewhere with more context

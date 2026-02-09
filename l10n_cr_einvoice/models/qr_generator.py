@@ -104,7 +104,7 @@ class QRGenerator(models.AbstractModel):
             str: Complete URL for QR code
         """
         # Use Tribunet Hacienda validation page
-        base_url = 'https://tribunet.hacienda.go.cr/docs/esquemas/2017/v4.3/facturaElectronica.html'
+        base_url = 'https://tribunet.hacienda.go.cr/docs/esquemas/2017/v4.4/facturaElectronica.html'
         return f'{base_url}?clave={clave}'
 
     @api.model

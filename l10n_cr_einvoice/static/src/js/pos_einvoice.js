@@ -90,6 +90,10 @@ patch(PosOrder.prototype, {
         const json = super.export_as_JSON(...arguments);
         json.l10n_cr_is_einvoice = this.l10n_cr_is_einvoice || false;
         json.einvoice_type = this.einvoice_type || 'TE';
+        // Customer snapshot fields for e-invoice
+        json.l10n_cr_customer_id_number = this.l10n_cr_customer_id_number || '';
+        json.l10n_cr_customer_name = this.l10n_cr_customer_name || '';
+        json.l10n_cr_customer_email = this.l10n_cr_customer_email || '';
         return json;
     }
 });

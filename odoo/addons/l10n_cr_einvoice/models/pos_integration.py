@@ -236,6 +236,7 @@ class PosOrder(models.Model):
 
             line_data = {
                 'sequence': len(lines) + 1,
+                'product_id': line.product_id.id,
                 'product_code': line.product_id.default_code or '',
                 'product_code_type': '04',  # Internal code
                 'cabys_code': cabys_code,
@@ -243,7 +244,7 @@ class PosOrder(models.Model):
                 'quantity': line.qty,
                 'uom': line.product_id.uom_id.name or 'Unidad',
                 'unit_price': line.price_unit,
-                'subtotal': line.price_subtotal_incl,
+                'subtotal': line.price_subtotal,
                 'discount': line.discount,
                 'tax_amount': line.price_subtotal_incl - line.price_subtotal,
             }
@@ -281,7 +282,7 @@ class PosOrder(models.Model):
             'lines': lines,
             'payment_methods': payment_methods,
             'total_amount': self.amount_total,
-            'total_tax': self.amount_total - self.amount_paid,
+            'total_tax': self.amount_tax,
         }
 
     def _l10n_cr_generate_einvoice(self):
@@ -311,7 +312,7 @@ class PosOrder(models.Model):
 
             # Add invoice lines
             for line_data in invoice_data['lines']:
-                line = self.lines.filtered(lambda l: l.product_id.name == line_data['product_name'])[:1]
+                line = self.lines.filtered(lambda l: l.product_id.id == line_data.get('product_id'))[:1]
                 if line:
                     move_vals['invoice_line_ids'].append((0, 0, {
                         'product_id': line.product_id.id,
@@ -388,7 +389,7 @@ class PosOrder(models.Model):
                 emisor=self.company_id.vat or '',
                 receptor=self.l10n_cr_customer_id_number or '999999999999',
                 total=str(self.amount_total),
-                tax=str(self.amount_total - self.amount_paid),
+                tax=str(self.amount_tax),
             )
 
             self.l10n_cr_qr_code = qr_data

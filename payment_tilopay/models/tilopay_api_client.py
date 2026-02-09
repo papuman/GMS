@@ -399,7 +399,7 @@ class TiloPayAPIClient:
         actually came from TiloPay.
 
         Args:
-            payload (bytes): Raw webhook payload (request body as bytes)
+            payload (bytes or str): Raw webhook payload (request body)
             signature (str): Signature from TiloPay webhook header
             secret_key (str): TiloPay secret key from provider configuration
 
@@ -409,36 +409,27 @@ class TiloPayAPIClient:
         Security Note:
             ALWAYS verify webhook signatures before processing payment updates.
             Unverified webhooks could be forged to mark invoices as paid fraudulently.
-
-        TODO (Phase 3): Implement actual signature verification
-        - Use HMAC-SHA256 with secret_key to compute expected signature
-        - Compare expected signature with provided signature (constant-time comparison)
-        - Log verification failures as security events
         """
-        _logger.info("Verifying TiloPay webhook signature")
+        if not signature or not secret_key:
+            _logger.warning("Missing signature or secret key for webhook verification")
+            return False
 
-        # SKELETON: Placeholder implementation
-        # In Phase 3, implement:
-        # expected_signature = hmac.new(
-        #     secret_key.encode('utf-8'),
-        #     payload,
-        #     hashlib.sha256
-        # ).hexdigest()
-        #
-        # # Use constant-time comparison to prevent timing attacks
-        # is_valid = hmac.compare_digest(expected_signature, signature)
-        #
-        # if not is_valid:
-        #     _logger.error(
-        #         "SECURITY: Invalid webhook signature detected! "
-        #         "Expected: %s, Got: %s",
-        #         expected_signature, signature
-        #     )
-        #
-        # return is_valid
+        computed = hmac.new(
+            secret_key.encode('utf-8'),
+            payload.encode('utf-8') if isinstance(payload, str) else payload,
+            hashlib.sha256,
+        ).hexdigest()
 
-        _logger.warning("SKELETON: Skipping signature verification (always returns True)")
-        return True
+        is_valid = hmac.compare_digest(computed, signature)
+
+        if not is_valid:
+            _logger.error(
+                "SECURITY: Invalid webhook signature detected! "
+                "Computed: %s, Received: %s",
+                computed, signature,
+            )
+
+        return is_valid
 
     def _make_request(self, method, endpoint, **kwargs):
         """

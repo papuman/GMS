@@ -408,8 +408,17 @@ class L10nCrCedulaCache(models.Model):
         Creates a one-time scheduled action that will call refresh_from_api()
         on this specific record. The cron runs once after 1 minute and then
         auto-deletes (numbercall=1).
+
+        Deduplication: if an active cron already exists for this cédula,
+        skip creating a duplicate.
         """
         self.ensure_one()
+        existing_cron = self.env['ir.cron'].sudo().search([
+            ('name', '=', f'Refresh cédula cache: {self.cedula}'),
+            ('active', '=', True),
+        ], limit=1)
+        if existing_cron:
+            return  # Already scheduled
         self.env['ir.cron'].sudo().create({
             'name': f'Refresh cédula cache: {self.cedula}',
             'model_id': self.env['ir.model']._get_id('l10n_cr.cedula.cache'),

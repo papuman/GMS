@@ -503,28 +503,31 @@ class D101IncomeTaxReport(models.Model):
         )
         self.sales_revenue = sales_revenue
 
-        # Get vendor bills (expenses)
+        # Get vendor bills and vendor refunds (expenses)
         vendor_bills = self.env['account.move'].search([
             ('company_id', '=', self.company_id.id),
-            ('move_type', '=', 'in_invoice'),
+            ('move_type', 'in', ['in_invoice', 'in_refund']),
             ('state', '=', 'posted'),
             ('invoice_date', '>=', self.period_id.date_from),
             ('invoice_date', '<=', self.period_id.date_to),
         ])
 
-        # WARNING: Simplified calculation — all vendor bills treated as operating expenses.
+        # WARNING: Simplified calculation -- all vendor bills treated as operating expenses.
         # For accurate D-101 filing, manual categorization by account type is required:
-        # - Cost of Goods Sold (COGS) → costo_ventas
-        # - Operating Expenses → gastos_operativos
-        # - Depreciation → depreciacion
-        # - Financial Expenses → gastos_financieros
+        # - Cost of Goods Sold (COGS) -> costo_ventas
+        # - Operating Expenses -> gastos_operativos
+        # - Depreciation -> depreciacion
+        # - Financial Expenses -> gastos_financieros
         _logger.warning(
             'D-101 for %s: Using simplified expense calculation. '
             'All vendor bills treated as operating expenses. '
             'Manual adjustment may be required for accurate filing.',
             self.name
         )
-        total_expenses = sum(bill.amount_untaxed for bill in vendor_bills)
+        total_expenses = sum(
+            bill.amount_untaxed if bill.move_type == 'in_invoice' else -bill.amount_untaxed
+            for bill in vendor_bills
+        )
         self.operating_expenses = total_expenses
 
         self.state = 'calculated'

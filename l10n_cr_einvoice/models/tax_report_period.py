@@ -213,7 +213,7 @@ class TaxReportPeriod(models.Model):
     def _check_dates(self):
         """Validate date range"""
         for record in self:
-            if record.date_from > record.date_to:
+            if record.date_from and record.date_to and record.date_from > record.date_to:
                 raise ValidationError(_('Start date must be before end date.'))
 
     @api.onchange('year', 'month', 'report_type')

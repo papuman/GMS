@@ -371,9 +371,9 @@ class TestModuleInstallation(TransactionCase):
         """Test that webhook controller route is registered."""
         # We can't easily test HTTP routes in unit tests, but we can verify
         # the controller module is loaded
-        from odoo.addons.payment_tilopay.controllers import tilopay_webhook
+        from odoo.addons.payment_tilopay.controllers import main
         self.assertTrue(
-            tilopay_webhook,
+            main,
             "Webhook controller module should be importable"
         )
 

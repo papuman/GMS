@@ -166,24 +166,25 @@ Los números de Costa Rica deben tener 8 dígitos.</field>
             <field name="severity">warning</field>
         </record>
 
-        <!-- VAT Length Validation (9 digits for Cédula Física) -->
+        <!-- VAT Length Validation (9-12 digits for all CR ID types) -->
         <record id="validation_rule_vat_cedula_fisica" model="l10n_cr.validation.rule">
             <field name="code">vat_cedula_fisica_format</field>
-            <field name="rule_name">VAT: Cédula Física Format (9 digits)</field>
+            <field name="rule_name">VAT: Costa Rica ID Format (9-12 digits)</field>
             <field name="sequence">120</field>
             <field name="document_type">all</field>
             <field name="applies_to">partner</field>
             <field name="field_name">vat</field>
-            <field name="field_label">Cédula Física</field>
+            <field name="field_label">Número de Identificación</field>
             <field name="validation_type">regex</field>
-            <field name="validation_params">{"pattern": "^[0-9]{9}$"}</field>
+            <field name="validation_params">{"pattern": "^[0-9]{9,12}$"}</field>
             <field name="required" eval="False"/>
-            <field name="error_message_es">La Cédula Física debe tener exactamente 9 dígitos.
+            <field name="error_message_es">El número de identificación debe tener entre 9 y 12 dígitos numéricos.
+Cédula Física: 9 dígitos, Jurídica: 10 dígitos, DIMEX: 11-12 dígitos.
 
 Valor actual: {field_value}</field>
             <field name="blocking" eval="False"/>
             <field name="severity">warning</field>
-            <field name="description">This rule validates format only. ID type-specific validation happens in res.partner constraints.</field>
+            <field name="description">Validates all Costa Rica ID formats: Cédula Física (9 digits), Cédula Jurídica (10 digits), DIMEX (11-12 digits). ID type-specific validation happens in res.partner constraints.</field>
         </record>
 
         <!-- Company Certificate Validation -->
@@ -207,12 +208,31 @@ Valor actual: {field_value}</field>
             <field name="description">Certificate validation is handled by xml_generator._validate_company_certificate() which checks the correct environment-specific fields.</field>
         </record>
 
-        <!-- Document Amount Validation -->
+        <!-- Document Amount Validation (FE only) -->
         <record id="validation_rule_document_amount" model="l10n_cr.validation.rule">
             <field name="code">document_amount_positive</field>
-            <field name="rule_name">Document: Amount Must Be Positive</field>
+            <field name="rule_name">FE: Amount Must Be Positive</field>
             <field name="sequence">300</field>
-            <field name="document_type">all</field>
+            <field name="document_type">FE</field>
+            <field name="applies_to">document</field>
+            <field name="field_name">amount_total</field>
+            <field name="field_label">Total Amount</field>
+            <field name="validation_type">range</field>
+            <field name="validation_params">{"min": 0.01}</field>
+            <field name="required" eval="True"/>
+            <field name="error_message_es">El monto total del documento debe ser mayor a cero.
+
+Valor actual: {field_value}</field>
+            <field name="blocking" eval="True"/>
+            <field name="severity">error</field>
+        </record>
+
+        <!-- Document Amount Validation (TE only) -->
+        <record id="validation_rule_document_amount_te" model="l10n_cr.validation.rule">
+            <field name="code">document_amount_positive_te</field>
+            <field name="rule_name">TE: Amount Must Be Positive</field>
+            <field name="sequence">301</field>
+            <field name="document_type">TE</field>
             <field name="applies_to">document</field>
             <field name="field_name">amount_total</field>
             <field name="field_label">Total Amount</field>

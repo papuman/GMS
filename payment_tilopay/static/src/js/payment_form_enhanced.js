@@ -290,8 +290,8 @@ publicWidget.registry.TiloPayPaymentFormEnhanced = publicWidget.Widget.extend({
      */
     _onFormSubmit: function (ev) {
         // Only handle TiloPay payments
-        const providerCode = this.$('input[name="provider_code"]').val();
-        if (providerCode !== 'tilopay') {
+        const providerCode = this.$('input[name="provider_code"]:checked').val();
+        if (!providerCode || providerCode !== 'tilopay') {
             return;
         }
 

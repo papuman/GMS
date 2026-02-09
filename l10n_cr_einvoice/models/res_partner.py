@@ -712,8 +712,9 @@ class ResPartner(models.Model):
                 }
             }
 
-        # Lookup in cache
-        cache = self.env['l10n_cr.cedula.cache'].get_cached(self.vat)
+        # Lookup in cache (normalize VAT: remove hyphens/spaces)
+        vat_clean = (self.vat or '').replace('-', '').replace(' ', '').strip()
+        cache = self.env['l10n_cr.cedula.cache'].get_cached(vat_clean)
 
         if not cache:
             return {
@@ -1215,17 +1216,17 @@ class ResPartner(models.Model):
         from datetime import datetime, timedelta, timezone
 
         now = datetime.now(timezone.utc)
-        fresh_threshold = now - timedelta(hours=24)
+        fresh_threshold = now - timedelta(days=7)
 
         if operator == '=' and value:
-            # Find stale caches (>24h old or never synced)
+            # Find stale caches (>7 days old or never synced)
             return [
                 '|',
                 ('l10n_cr_hacienda_last_sync', '=', False),
                 ('l10n_cr_hacienda_last_sync', '<', fields.Datetime.to_string(fresh_threshold)),
             ]
         elif operator == '=' and not value:
-            # Find fresh caches (<=24h old)
+            # Find fresh caches (<=7 days old)
             return [
                 ('l10n_cr_hacienda_last_sync', '!=', False),
                 ('l10n_cr_hacienda_last_sync', '>=', fields.Datetime.to_string(fresh_threshold)),
@@ -1259,7 +1260,7 @@ class ResPartner(models.Model):
         from datetime import datetime, timedelta, timezone
 
         now = datetime.now(timezone.utc)
-        fresh_threshold = now - timedelta(hours=24)
+        fresh_threshold = now - timedelta(days=7)
 
         if operator == '=' and value:
             # Find valid caches

@@ -62,15 +62,18 @@ class PosOrder(models.Model):
     # )
     l10n_cr_customer_id_number = fields.Char(
         related='partner_id.vat',
-        string='Customer ID Number'
+        string='Customer ID Number',
+        store=True,
     )
     l10n_cr_customer_name = fields.Char(
         related='partner_id.name',
-        string='Customer Name'
+        string='Customer Name',
+        store=True,
     )
     l10n_cr_customer_email = fields.Char(
         related='partner_id.email',
-        string='Customer Email'
+        string='Customer Email',
+        store=True,
     )
     
     # QR Code for the view
@@ -98,6 +101,11 @@ class PosOrder(models.Model):
         # Capture the e-invoice flag from UI (default: False)
         fields['l10n_cr_is_einvoice'] = ui_order.get('l10n_cr_is_einvoice', False)
         fields['einvoice_type'] = ui_order.get('einvoice_type', 'TE')
+
+        # Customer snapshot fields from POS UI
+        fields['l10n_cr_customer_id_number'] = ui_order.get('l10n_cr_customer_id_number', '')
+        fields['l10n_cr_customer_name'] = ui_order.get('l10n_cr_customer_name', '')
+        fields['l10n_cr_customer_email'] = ui_order.get('l10n_cr_customer_email', '')
 
         return fields
 

@@ -132,6 +132,39 @@ class D150VATReport(models.Model):
         help='VAT reduction from credit notes'
     )
 
+    credit_notes_4_base = fields.Monetary(
+        string='Credit Notes 4% - Base',
+        currency_field='currency_id',
+        help='Credit notes at 4% reducing VAT collected'
+    )
+    credit_notes_4_tax = fields.Monetary(
+        string='Credit Notes 4% - Tax',
+        currency_field='currency_id',
+        help='VAT reduction from 4% credit notes'
+    )
+
+    credit_notes_2_base = fields.Monetary(
+        string='Credit Notes 2% - Base',
+        currency_field='currency_id',
+        help='Credit notes at 2% reducing VAT collected'
+    )
+    credit_notes_2_tax = fields.Monetary(
+        string='Credit Notes 2% - Tax',
+        currency_field='currency_id',
+        help='VAT reduction from 2% credit notes'
+    )
+
+    credit_notes_1_base = fields.Monetary(
+        string='Credit Notes 1% - Base',
+        currency_field='currency_id',
+        help='Credit notes at 1% reducing VAT collected'
+    )
+    credit_notes_1_tax = fields.Monetary(
+        string='Credit Notes 1% - Tax',
+        currency_field='currency_id',
+        help='VAT reduction from 1% credit notes'
+    )
+
     # =====================================================
     # SECTION 2: PURCHASES (Compras - IVA Soportado)
     # =====================================================
@@ -327,21 +360,33 @@ class D150VATReport(models.Model):
         'sales_2_base', 'sales_2_tax',
         'sales_1_base', 'sales_1_tax',
         'sales_exempt',
-        'credit_notes_13_base', 'credit_notes_13_tax'
+        'credit_notes_13_base', 'credit_notes_13_tax',
+        'credit_notes_4_base', 'credit_notes_4_tax',
+        'credit_notes_2_base', 'credit_notes_2_tax',
+        'credit_notes_1_base', 'credit_notes_1_tax',
     )
     def _compute_sales_totals(self):
         """Calculate total sales and VAT collected"""
         for record in self:
+            total_cn_base = (
+                record.credit_notes_13_base + record.credit_notes_4_base +
+                record.credit_notes_2_base + record.credit_notes_1_base
+            )
+            total_cn_tax = (
+                record.credit_notes_13_tax + record.credit_notes_4_tax +
+                record.credit_notes_2_tax + record.credit_notes_1_tax
+            )
+
             record.sales_total_base = (
                 record.sales_13_base + record.sales_4_base +
                 record.sales_2_base + record.sales_1_base +
-                record.sales_exempt - record.credit_notes_13_base
+                record.sales_exempt - total_cn_base
             )
 
             record.sales_total_tax = (
                 record.sales_13_tax + record.sales_4_tax +
                 record.sales_2_tax + record.sales_1_tax -
-                record.credit_notes_13_tax
+                total_cn_tax
             )
 
     @api.depends(
@@ -504,29 +549,42 @@ class D150VATReport(models.Model):
                         sales_by_rate[0]['base'] += line.price_subtotal
                     continue
 
-                # NOTE: In Costa Rica IVA, each invoice line typically has
-                # exactly one VAT tax. If a line has multiple taxes, the base
-                # will be counted once per tax -- acceptable for CR IVA model.
+                # Determine the primary tax rate for base categorization.
+                # In Costa Rica IVA, each invoice line typically has exactly
+                # one VAT tax. If a line has multiple taxes, we use the
+                # highest rate to categorize the base (counted once), and
+                # compute each tax's proportional amount individually.
+                vat_taxes = []
                 for tax in line.tax_ids:
                     rate = int(tax.amount) if tax.amount else 0
+                    if rate in sales_by_rate:
+                        vat_taxes.append((rate, tax))
 
-                    if rate not in sales_by_rate:
+                if not vat_taxes:
+                    continue
+
+                # Use the highest rate to categorize the base amount (once)
+                primary_rate = max(r for r, _ in vat_taxes)
+                base_amount = abs(line.price_subtotal)
+
+                if is_refund:
+                    if primary_rate in credit_notes:
+                        credit_notes[primary_rate]['base'] += base_amount
+                elif primary_rate == 0:
+                    sales_by_rate[0]['base'] += line.price_subtotal
+                else:
+                    sales_by_rate[primary_rate]['base'] += line.price_subtotal
+
+                # Compute tax amount per tax (each tax contributes its own rate)
+                for rate, tax in vat_taxes:
+                    if rate == 0:
                         continue
-
-                    # Per-tax amount calculation (avoids double-counting
-                    # line_tax when a line has multiple taxes)
                     tax_amount = line.price_subtotal * (rate / 100.0)
-
                     if is_refund:
-                        # Credit notes reduce sales
                         if rate in credit_notes:
-                            credit_notes[rate]['base'] += abs(line.price_subtotal)
                             credit_notes[rate]['tax'] += abs(tax_amount)
                     else:
-                        # Regular invoices
-                        sales_by_rate[rate]['base'] += line.price_subtotal
-                        if rate > 0:  # Only taxable rates have tax amount
-                            sales_by_rate[rate]['tax'] += tax_amount
+                        sales_by_rate[rate]['tax'] += tax_amount
 
         # Assign to fields
         self.sales_13_base = sales_by_rate[13]['base']
@@ -541,20 +599,23 @@ class D150VATReport(models.Model):
 
         self.credit_notes_13_base = credit_notes[13]['base']
         self.credit_notes_13_tax = credit_notes[13]['tax']
-        # TODO: Add model fields for reduced-rate credit notes (4%, 2%, 1%)
-        # and assign credit_notes[4], credit_notes[2], credit_notes[1] here.
-        # Currently these are tracked in-memory but not persisted.
+        self.credit_notes_4_base = credit_notes[4]['base']
+        self.credit_notes_4_tax = credit_notes[4]['tax']
+        self.credit_notes_2_base = credit_notes[2]['base']
+        self.credit_notes_2_tax = credit_notes[2]['tax']
+        self.credit_notes_1_base = credit_notes[1]['base']
+        self.credit_notes_1_tax = credit_notes[1]['tax']
 
     def _calculate_purchases(self):
-        """Calculate purchase VAT credit from vendor bills"""
+        """Calculate purchase VAT credit from vendor bills and vendor refunds"""
         self.ensure_one()
 
         AccountMove = self.env['account.move']
 
-        # Get all vendor bills in period that are posted
+        # Get all vendor bills and vendor refunds in period that are posted
         bills = AccountMove.search([
             ('company_id', '=', self.company_id.id),
-            ('move_type', '=', 'in_invoice'),
+            ('move_type', 'in', ['in_invoice', 'in_refund']),
             ('state', '=', 'posted'),
             ('invoice_date', '>=', self.period_id.date_from),
             ('invoice_date', '<=', self.period_id.date_to),
@@ -571,33 +632,52 @@ class D150VATReport(models.Model):
 
         # Aggregate by tax rate
         for bill in bills:
+            # Vendor refunds (in_refund) reduce purchase totals
+            sign = -1.0 if bill.move_type == 'in_refund' else 1.0
+
             for line in bill.invoice_line_ids:
                 if not line.tax_ids:
                     # No tax = exempt
-                    purchases_by_rate[0]['base'] += line.price_subtotal
+                    purchases_by_rate[0]['base'] += line.price_subtotal * sign
                     continue
 
-                # Use Odoo's actual tax amounts instead of computing rate * base
-                line_tax = abs(line.price_total - line.price_subtotal)
-
+                # Determine tax-specific amounts to avoid double-counting base
+                # when a line has multiple taxes
+                vat_taxes = []
                 for tax in line.tax_ids:
                     rate = int(tax.amount) if tax.amount else 0
+                    vat_taxes.append((rate, tax))
 
+                if not vat_taxes:
+                    continue
+
+                # Use the highest rate to categorize the base amount (once)
+                primary_rate = max(r for r, _ in vat_taxes)
+                base_amount = line.price_subtotal * sign
+
+                if primary_rate == 13:
+                    # Classify as goods or services using product type
+                    if line.product_id and line.product_id.type == 'service':
+                        purchases_by_rate[13]['services'] += base_amount
+                    else:
+                        purchases_by_rate[13]['goods'] += base_amount
+                elif primary_rate in (4, 2, 1):
+                    purchases_by_rate[primary_rate]['base'] += base_amount
+                elif primary_rate == 0:
+                    purchases_by_rate[0]['base'] += base_amount
+
+                # Compute tax amount per tax rate
+                for rate, tax in vat_taxes:
+                    if rate == 0:
+                        continue
+                    tax_amount = line.price_subtotal * (rate / 100.0) * sign
                     if rate == 13:
-                        # Classify as goods or services using product type
                         if line.product_id and line.product_id.type == 'service':
-                            purchases_by_rate[13]['services'] += line.price_subtotal
-                            purchases_by_rate[13]['services_tax'] += line_tax
+                            purchases_by_rate[13]['services_tax'] += tax_amount
                         else:
-                            purchases_by_rate[13]['goods'] += line.price_subtotal
-                            purchases_by_rate[13]['goods_tax'] += line_tax
-
+                            purchases_by_rate[13]['goods_tax'] += tax_amount
                     elif rate in (4, 2, 1):
-                        purchases_by_rate[rate]['base'] += line.price_subtotal
-                        purchases_by_rate[rate]['tax'] += line_tax
-
-                    elif rate == 0:
-                        purchases_by_rate[0]['base'] += line.price_subtotal
+                        purchases_by_rate[rate]['tax'] += tax_amount
 
         # Update fields
         self.purchases_goods_13_base = purchases_by_rate[13]['goods']

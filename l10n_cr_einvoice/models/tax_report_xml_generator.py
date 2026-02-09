@@ -132,13 +132,21 @@ class TaxReportXMLGenerator(models.AbstractModel):
             exentas = etree.SubElement(ventas, 'VentasExentas')
             exentas.text = self._format_amount(d150_report.sales_exempt)
 
-        # Credit notes
-        if d150_report.credit_notes_13_base or d150_report.credit_notes_13_tax:
+        # Credit notes - aggregate all rate buckets
+        total_cn_base = (
+            d150_report.credit_notes_13_base + d150_report.credit_notes_4_base +
+            d150_report.credit_notes_2_base + d150_report.credit_notes_1_base
+        )
+        total_cn_tax = (
+            d150_report.credit_notes_13_tax + d150_report.credit_notes_4_tax +
+            d150_report.credit_notes_2_tax + d150_report.credit_notes_1_tax
+        )
+        if total_cn_base or total_cn_tax:
             notas_credito = etree.SubElement(ventas, 'NotasCredito')
             nc_base = etree.SubElement(notas_credito, 'BaseImponible')
-            nc_base.text = self._format_amount(d150_report.credit_notes_13_base)
+            nc_base.text = self._format_amount(total_cn_base)
             nc_impuesto = etree.SubElement(notas_credito, 'Impuesto')
-            nc_impuesto.text = self._format_amount(d150_report.credit_notes_13_tax)
+            nc_impuesto.text = self._format_amount(total_cn_tax)
 
         # Total sales VAT
         total_ventas = etree.SubElement(ventas, 'TotalIVAGenerado')
@@ -606,6 +614,10 @@ class TaxReportXMLGenerator(models.AbstractModel):
             # Parse XML
             root = etree.fromstring(xml_content.encode('utf-8'))
 
+            # Extract namespace from root element if present
+            # e.g. '{https://example.com/schema}D150' -> '{https://example.com/schema}'
+            ns = root.tag.split('}')[0] + '}' if '{' in root.tag else ''
+
             # Basic validation
             errors = []
 
@@ -613,7 +625,7 @@ class TaxReportXMLGenerator(models.AbstractModel):
             if report_type == 'D150':
                 required_elements = ['Periodo', 'Contribuyente', 'Ventas', 'Compras', 'Liquidacion']
                 for elem in required_elements:
-                    if root.find(elem) is None:
+                    if root.find(f'{ns}{elem}') is None:
                         errors.append(f'Missing required element: {elem}')
 
             # TODO: Add XSD schema validation when schema is available

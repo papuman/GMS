@@ -127,11 +127,16 @@ class TestValidationRulesByDocType(EInvoiceTestCase):
         # Create e-invoice document
         einvoice = self._create_einvoice_document(invoice, document_type='TE')
 
-        # TE should allow unverified partners (more relaxed)
+        # TE should allow unverified partners (more relaxed than FE)
         is_valid, messages = self.env['l10n_cr.validation.rule'].validate_all_rules(einvoice)
         message = ' '.join(messages) if messages else ''
-        # Note: TE may warn but shouldn't block
-        # Implementation depends on business rules
+
+        # TE does not require FE-specific fields (email, CIIU, etc.),
+        # so an unverified partner with valid basic data should pass.
+        self.assertTrue(
+            is_valid,
+            f"TE should pass validation for unverified partner with valid basic data. Errors: {message}"
+        )
 
     def test_nc_inherits_fe_validation(self):
         """NC (Credit Note) -- validated partner passes all rules."""
@@ -222,7 +227,9 @@ class TestValidationRulesDateBased(EInvoiceTestCase):
         einvoice_before = self._create_einvoice_document(invoice_before, document_type='FE')
         is_valid_before, msgs_before = self.env['l10n_cr.validation.rule'].validate_all_rules(einvoice_before)
         message_before = ' '.join(msgs_before) if msgs_before else ''
-        # May warn but shouldn't block before enforcement date
+        # NOTE: Enforcement date relaxation is not yet implemented in validation rules.
+        # Currently all rules apply regardless of date, so is_valid_before may be False.
+        # This test verifies the plumbing works; enforcement dates are a future feature.
 
         # Invoice after enforcement date (should be strict)
         invoice_after = self._create_test_invoice(partner=partner)

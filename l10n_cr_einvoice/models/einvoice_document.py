@@ -970,44 +970,6 @@ class EInvoiceDocument(models.Model):
             _logger.error(f'Error generating QR code for {self.name}: {str(e)}')
             return False
 
-    def _check_fe_mandatory_fields_fallback(self, doc):
-        """
-        Fallback validation for Factura Electrónica mandatory fields.
-
-        This method provides basic validation when the validation rule engine
-        is not available or misconfigured. It ensures critical FE fields are
-        always validated.
-
-        Args:
-            doc: l10n_cr.einvoice.document record to validate
-
-        Raises:
-            ValidationError: If any critical field is missing
-        """
-        if doc.document_type != 'FE':
-            return
-
-        errors = []
-
-        # Customer validation
-        if not doc.partner_id:
-            errors.append(_('Customer is required for Factura Electrónica'))
-        else:
-            if not doc.partner_id.name:
-                errors.append(_('Customer name is required'))
-            if not doc.partner_id.vat:
-                errors.append(_('Customer Tax ID (Cédula/VAT) is required'))
-            # ID type is auto-detected from VAT format by xml_generator._get_partner_id_type()
-            if not doc.partner_id.email:
-                errors.append(_('Customer email is required'))
-
-        if errors:
-            error_message = _(
-                'Validation failed for Factura Electrónica:\n\n%s\n\n'
-                'Please update the customer information or change to Tiquete Electrónico (TE).'
-            ) % '\n'.join('• %s' % e for e in errors)
-            raise ValidationError(error_message)
-
     def _generate_clave(self):
         """
         Generate the 50-digit Hacienda key (clave).
