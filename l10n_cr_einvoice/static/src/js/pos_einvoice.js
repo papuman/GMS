@@ -130,14 +130,7 @@ patch(PaymentScreen.prototype, {
     },
 
     get einvoiceType() {
-        if (this.einvoiceState.enabled && this.einvoiceState.type === 'FE') {
-            // Re-check: if partner was removed after selecting FE, downgrade to TE
-            const partner = this.currentOrder.getPartner();
-            if (!partner || !partner.vat) {
-                this.einvoiceState.type = 'TE';
-                this.currentOrder.einvoice_type = 'TE';
-            }
-        }
+        // Pure getter — no side effects during render
         return this.einvoiceState.type;
     },
 
@@ -200,6 +193,14 @@ patch(PaymentScreen.prototype, {
     },
 
     selectFactura() {
+        const partner = this.currentOrder.getPartner();
+        if (!partner || !partner.vat) {
+            this.dialog.add(AlertDialog, {
+                title: _t('Factura Electrónica'),
+                body: _t('Para emitir Factura Electrónica (FE) debe seleccionar un cliente con cédula/NIT.\n\nSeleccione un cliente primero o use Tiquete Electrónico (TE).'),
+            });
+            return;
+        }
         this.einvoiceState.type = 'FE';
         this.currentOrder.einvoice_type = 'FE';
     },

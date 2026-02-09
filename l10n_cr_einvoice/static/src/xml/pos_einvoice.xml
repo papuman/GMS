@@ -1,18 +1,17 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <templates id="template" xml:space="preserve">
 
-    <!-- Clean E-Invoice UI - Odoo style (Validate button grays out automatically) -->
-    <!-- Uses einvoiceEnabled/einvoiceType reactive getters (from useState) -->
-    <t t-inherit="point_of_sale.PaymentScreenButtons" t-inherit-mode="extension">
+    <!-- E-Invoice controls on PaymentScreen — reads einvoiceState (useState) directly for reactivity -->
+    <t t-name="l10n_cr_einvoice.PaymentScreenButtons" t-inherit="point_of_sale.PaymentScreenButtons" t-inherit-mode="extension">
         <xpath expr="//div[hasclass('payment-buttons')]" position="before">
             <t t-if="currentOrder">
                 <!-- E-Invoice Toggle -->
                 <div class="einvoice-section mb-3">
                     <button type="button"
-                            t-attf-class="btn btn-lg w-100 {{einvoiceEnabled ? 'btn-success' : 'btn-light border'}}"
-                            t-on-click="toggleEinvoiceEnabled">
-                        <i t-attf-class="fa {{einvoiceEnabled ? 'fa-check-circle' : 'fa-circle-o'}} me-2"/>
-                        <t t-if="einvoiceEnabled">
+                            t-attf-class="btn btn-lg w-100 {{einvoiceState.enabled ? 'btn-success' : 'btn-light border'}}"
+                            t-on-click="() => this.toggleEinvoiceEnabled()">
+                        <i t-attf-class="fa {{einvoiceState.enabled ? 'fa-check-circle' : 'fa-circle-o'}} me-2"/>
+                        <t t-if="einvoiceState.enabled">
                             <strong>Factura Electrónica</strong> (Activada)
                         </t>
                         <t t-else="">
@@ -21,16 +20,16 @@
                     </button>
 
                     <!-- Document type selector - only when enabled -->
-                    <t t-if="einvoiceEnabled">
+                    <t t-if="einvoiceState.enabled">
                         <div class="d-flex gap-2 mt-2">
                             <button type="button"
-                                    t-attf-class="btn flex-fill {{einvoiceType === 'TE' ? 'btn-primary' : 'btn-outline-secondary'}}"
-                                    t-on-click="selectTiquete">
+                                    t-attf-class="btn flex-fill {{einvoiceState.type === 'TE' ? 'btn-primary' : 'btn-outline-secondary'}}"
+                                    t-on-click="() => this.selectTiquete()">
                                 <i class="fa fa-ticket me-1"/> Tiquete
                             </button>
                             <button type="button"
-                                    t-attf-class="btn flex-fill {{einvoiceType === 'FE' ? 'btn-primary' : 'btn-outline-secondary'}}"
-                                    t-on-click="selectFactura">
+                                    t-attf-class="btn flex-fill {{einvoiceState.type === 'FE' ? 'btn-primary' : 'btn-outline-secondary'}}"
+                                    t-on-click="() => this.selectFactura()">
                                 <i class="fa fa-building me-1"/> Factura
                             </button>
                         </div>
