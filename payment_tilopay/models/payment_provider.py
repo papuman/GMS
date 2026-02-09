@@ -35,16 +35,23 @@ class PaymentProvider(models.Model):
 
     # --- Constraint methods ---
 
-    @api.constrains('state', 'tilopay_api_key')
+    @api.constrains('state', 'tilopay_api_key', 'tilopay_api_user', 'tilopay_api_password')
     def _check_tilopay_credentials_before_enabling(self):
         for provider in self.filtered(
             lambda p: p.code == 'tilopay' and p.state != 'disabled'
         ):
+            missing = []
             if not provider.tilopay_api_key:
+                missing.append('API Key')
+            if not provider.tilopay_api_user:
+                missing.append('API User')
+            if not provider.tilopay_api_password:
+                missing.append('API Password')
+            if missing:
                 raise ValidationError(_(
-                    "TiloPay credentials are missing. Please configure the API Key, "
-                    "API User, and API Password before enabling the provider."
-                ))
+                    "TiloPay credentials incomplete. Missing: %s. "
+                    "Please configure all credentials before enabling the provider."
+                ) % ', '.join(missing))
 
     # --- Business methods ---
 

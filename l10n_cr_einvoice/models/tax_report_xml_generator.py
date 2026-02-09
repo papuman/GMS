@@ -1,8 +1,12 @@
 # -*- coding: utf-8 -*-
+import logging
+
 from odoo import models, api, _
 from odoo.exceptions import UserError
 from lxml import etree
 from datetime import datetime
+
+_logger = logging.getLogger(__name__)
 
 
 class TaxReportXMLGenerator(models.AbstractModel):
@@ -57,8 +61,9 @@ class TaxReportXMLGenerator(models.AbstractModel):
             raise UserError(_('Period is required to generate D-150 XML'))
 
         # Create root element
+        # TODO: Add official TRIBU-CR XML namespace when available
+        # root = etree.Element('D150', nsmap={'': 'https://tribunet.hacienda.go.cr/docs/esquemas/2017/v4.3/...'})
         root = etree.Element('D150')
-        # NOTE: xmlns removed for simpler testing - Hacienda API may add it during submission
         root.set('version', '1.0')
 
         # Period information
@@ -72,7 +77,15 @@ class TaxReportXMLGenerator(models.AbstractModel):
         contribuyente = etree.SubElement(root, 'Contribuyente')
         identificacion = etree.SubElement(contribuyente, 'Identificacion')
         tipo_id = etree.SubElement(identificacion, 'Tipo')
-        tipo_id.text = '02'  # Jurídica
+        company_vat = (d150_report.company_id.vat or '').replace('-', '').replace(' ', '')
+        if len(company_vat) == 9:
+            tipo_id.text = '01'  # Física
+        elif len(company_vat) == 10:
+            tipo_id.text = '02'  # Jurídica
+        elif len(company_vat) in (11, 12):
+            tipo_id.text = '03'  # DIMEX
+        else:
+            tipo_id.text = '02'  # Default to Jurídica
         numero_id = etree.SubElement(identificacion, 'Numero')
         numero_id.text = d150_report.company_id.vat or ''
 
@@ -275,7 +288,15 @@ class TaxReportXMLGenerator(models.AbstractModel):
         contribuyente = etree.SubElement(root, 'Contribuyente')
         identificacion = etree.SubElement(contribuyente, 'Identificacion')
         tipo_id = etree.SubElement(identificacion, 'Tipo')
-        tipo_id.text = '02'  # Jurídica
+        company_vat = (d101_report.company_id.vat or '').replace('-', '').replace(' ', '')
+        if len(company_vat) == 9:
+            tipo_id.text = '01'  # Fisica
+        elif len(company_vat) == 10:
+            tipo_id.text = '02'  # Juridica
+        elif len(company_vat) in (11, 12):
+            tipo_id.text = '03'  # DIMEX
+        else:
+            tipo_id.text = '02'  # Default to Juridica
         numero_id = etree.SubElement(identificacion, 'Numero')
         numero_id.text = d101_report.company_id.vat or ''
         nombre = etree.SubElement(contribuyente, 'Nombre')
@@ -435,7 +456,15 @@ class TaxReportXMLGenerator(models.AbstractModel):
         contribuyente = etree.SubElement(root, 'Contribuyente')
         identificacion = etree.SubElement(contribuyente, 'Identificacion')
         tipo_id = etree.SubElement(identificacion, 'Tipo')
-        tipo_id.text = '02'  # Jurídica
+        company_vat = (d151_report.company_id.vat or '').replace('-', '').replace(' ', '')
+        if len(company_vat) == 9:
+            tipo_id.text = '01'  # Fisica
+        elif len(company_vat) == 10:
+            tipo_id.text = '02'  # Juridica
+        elif len(company_vat) in (11, 12):
+            tipo_id.text = '03'  # DIMEX
+        else:
+            tipo_id.text = '02'  # Default to Juridica
         numero_id = etree.SubElement(identificacion, 'Numero')
         numero_id.text = d151_report.company_id.vat or ''
         nombre = etree.SubElement(contribuyente, 'Nombre')
@@ -588,6 +617,10 @@ class TaxReportXMLGenerator(models.AbstractModel):
                         errors.append(f'Missing required element: {elem}')
 
             # TODO: Add XSD schema validation when schema is available
+            _logger.info(
+                'Tax report XML generated without XSD validation. '
+                'Manual review recommended before submission.'
+            )
 
             return {
                 'valid': len(errors) == 0,

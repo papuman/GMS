@@ -486,6 +486,9 @@ class D150VATReport(models.Model):
 
         credit_notes = {
             13: {'base': 0.0, 'tax': 0.0},
+            4: {'base': 0.0, 'tax': 0.0},
+            2: {'base': 0.0, 'tax': 0.0},
+            1: {'base': 0.0, 'tax': 0.0},
         }
 
         # Aggregate invoices by tax rate
@@ -501,25 +504,29 @@ class D150VATReport(models.Model):
                         sales_by_rate[0]['base'] += line.price_subtotal
                     continue
 
+                # NOTE: In Costa Rica IVA, each invoice line typically has
+                # exactly one VAT tax. If a line has multiple taxes, the base
+                # will be counted once per tax -- acceptable for CR IVA model.
                 for tax in line.tax_ids:
                     rate = int(tax.amount) if tax.amount else 0
 
                     if rate not in sales_by_rate:
                         continue
 
-                    # Calculate tax amount for this line
-                    line_tax = line.price_total - line.price_subtotal
+                    # Per-tax amount calculation (avoids double-counting
+                    # line_tax when a line has multiple taxes)
+                    tax_amount = line.price_subtotal * (rate / 100.0)
 
                     if is_refund:
                         # Credit notes reduce sales
                         if rate in credit_notes:
                             credit_notes[rate]['base'] += abs(line.price_subtotal)
-                            credit_notes[rate]['tax'] += abs(line_tax)
+                            credit_notes[rate]['tax'] += abs(tax_amount)
                     else:
                         # Regular invoices
                         sales_by_rate[rate]['base'] += line.price_subtotal
                         if rate > 0:  # Only taxable rates have tax amount
-                            sales_by_rate[rate]['tax'] += line_tax
+                            sales_by_rate[rate]['tax'] += tax_amount
 
         # Assign to fields
         self.sales_13_base = sales_by_rate[13]['base']
@@ -534,6 +541,9 @@ class D150VATReport(models.Model):
 
         self.credit_notes_13_base = credit_notes[13]['base']
         self.credit_notes_13_tax = credit_notes[13]['tax']
+        # TODO: Add model fields for reduced-rate credit notes (4%, 2%, 1%)
+        # and assign credit_notes[4], credit_notes[2], credit_notes[1] here.
+        # Currently these are tracked in-memory but not persisted.
 
     def _calculate_purchases(self):
         """Calculate purchase VAT credit from vendor bills"""
@@ -567,18 +577,24 @@ class D150VATReport(models.Model):
                     purchases_by_rate[0]['base'] += line.price_subtotal
                     continue
 
+                # Use Odoo's actual tax amounts instead of computing rate * base
+                line_tax = abs(line.price_total - line.price_subtotal)
+
                 for tax in line.tax_ids:
-                    rate = int(tax.amount)
+                    rate = int(tax.amount) if tax.amount else 0
 
                     if rate == 13:
-                        # TODO: Differentiate goods vs services
-                        # For now, treat all as goods
-                        purchases_by_rate[13]['goods'] += line.price_subtotal
-                        purchases_by_rate[13]['goods_tax'] += line.price_subtotal * 0.13
+                        # Classify as goods or services using product type
+                        if line.product_id and line.product_id.type == 'service':
+                            purchases_by_rate[13]['services'] += line.price_subtotal
+                            purchases_by_rate[13]['services_tax'] += line_tax
+                        else:
+                            purchases_by_rate[13]['goods'] += line.price_subtotal
+                            purchases_by_rate[13]['goods_tax'] += line_tax
 
-                    elif rate in [4, 2, 1]:
+                    elif rate in (4, 2, 1):
                         purchases_by_rate[rate]['base'] += line.price_subtotal
-                        purchases_by_rate[rate]['tax'] += line.price_subtotal * (rate / 100.0)
+                        purchases_by_rate[rate]['tax'] += line_tax
 
                     elif rate == 0:
                         purchases_by_rate[0]['base'] += line.price_subtotal
@@ -651,11 +667,16 @@ class D150VATReport(models.Model):
         if not self.xml_content:
             raise UserError(_('Generate XML before signing.'))
 
-        # Reuse existing XML signer
+        # Load certificate and private key from company configuration
+        cert_manager = self.env['l10n_cr.certificate.manager']
+        certificate, private_key = cert_manager.load_certificate_from_company(self.company_id)
+
+        # Sign XML with certificate and private key objects
         XMLSigner = self.env['l10n_cr.xml.signer']
         signed_xml = XMLSigner.sign_xml(
             self.xml_content,
-            self.company_id.hacienda_certificate_id
+            certificate,
+            private_key
         )
 
         self.xml_signed = signed_xml

@@ -157,24 +157,32 @@ class CedulaLookupService(models.AbstractModel):
                 'user_message': _('Datos obtenidos de Hacienda.'),
             }
 
-        # Step 3: Try GoMeta API Fallback
-        _logger.warning(f'Hacienda API failed for {cedula_clean}, trying GoMeta fallback...')
-        gometa_result = self._lookup_gometa(cedula_clean)
-        if gometa_result['success']:
-            # Cache the result
-            cache_record = self._save_to_cache(cedula_clean, gometa_result['data'], 'gometa')
-            response_time = time.time() - start_time
-            _logger.info(
-                f'Cédula lookup SUCCESS (gometa): {cedula_clean} in {response_time:.3f}s'
-            )
-            return {
-                'success': True,
-                'source': 'gometa',
-                'data': gometa_result['data'],
-                'cache_age_days': 0,
-                'response_time': round(response_time, 3),
-                'user_message': _('Datos obtenidos de fuente alternativa (GoMeta).'),
-            }
+        # Step 3: Try GoMeta API Fallback (if enabled)
+        # Check if GoMeta fallback is enabled (default: True for backward compatibility)
+        use_gometa = self.env['ir.config_parameter'].sudo().get_param(
+            'l10n_cr_einvoice.enable_gometa_fallback', 'True'
+        )
+        gometa_result = {'success': False, 'error_type': 'disabled'}
+        if use_gometa.lower() in ('true', '1', 'yes'):
+            _logger.warning(f'Hacienda API failed for {cedula_clean}, trying GoMeta fallback...')
+            gometa_result = self._lookup_gometa(cedula_clean)
+            if gometa_result['success']:
+                # Cache the result
+                cache_record = self._save_to_cache(cedula_clean, gometa_result['data'], 'gometa')
+                response_time = time.time() - start_time
+                _logger.info(
+                    f'Cédula lookup SUCCESS (gometa): {cedula_clean} in {response_time:.3f}s'
+                )
+                return {
+                    'success': True,
+                    'source': 'gometa',
+                    'data': gometa_result['data'],
+                    'cache_age_days': 0,
+                    'response_time': round(response_time, 3),
+                    'user_message': _('Datos obtenidos de fuente alternativa (GoMeta).'),
+                }
+        else:
+            _logger.info(f'GoMeta fallback disabled for {cedula_clean}')
 
         # Step 4: Return Stale Cache (7-90 days old) as emergency fallback
         _logger.warning(f'Both APIs failed for {cedula_clean}, checking stale cache...')
@@ -284,12 +292,16 @@ class CedulaLookupService(models.AbstractModel):
             token_acquired = rate_limiter.try_acquire_token()
 
             if not token_acquired:
-                _logger.warning(f'Rate limit exceeded for Hacienda API (cédula: {cedula})')
-                return {
-                    'success': False,
-                    'error': _('Límite de consultas excedido. Intente nuevamente en unos segundos.'),
-                    'error_type': ERROR_RATE_LIMIT,
-                }
+                # Wait briefly and retry once before giving up
+                time.sleep(0.5)
+                token_acquired = rate_limiter.try_acquire_token()
+                if not token_acquired:
+                    _logger.warning(f'Rate limit exceeded for Hacienda API (cédula: {cedula})')
+                    return {
+                        'success': False,
+                        'error': _('Límite de consultas excedido. Intente nuevamente en unos segundos.'),
+                        'error_type': ERROR_RATE_LIMIT,
+                    }
 
             # Call Hacienda API
             api = self.env['l10n_cr.hacienda.cedula.api']

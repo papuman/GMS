@@ -4,6 +4,8 @@ import logging
 from datetime import datetime
 from lxml import etree
 
+import psycopg2
+
 from odoo import models, fields, api, _
 from odoo.exceptions import UserError, ValidationError
 
@@ -337,8 +339,8 @@ class EInvoiceDocument(models.Model):
             except ValidationError:
                 # Re-raise validation errors from rule engine
                 raise
-            except Exception as e:
-                # Log unexpected errors but don't block document creation
+            except (AttributeError, KeyError, TypeError) as e:
+                # Log common data issues but don't block document creation
                 _logger.error(
                     f'Unexpected error during validation for document {doc.name}: {str(e)}'
                 )
@@ -359,7 +361,7 @@ class EInvoiceDocument(models.Model):
     def action_generate_xml(self):
         """
         Generate the XML content for the electronic invoice.
-        
+
         This method performs Layer 3 validation (pre-generation) before
         attempting XML generation. For Factura Electrónica documents,
         it validates all mandatory fields are present unless override is active.
@@ -367,10 +369,13 @@ class EInvoiceDocument(models.Model):
         self.ensure_one()
 
         # Acquire database lock to prevent concurrent modifications
-        self.env.cr.execute(
-            'SELECT id FROM l10n_cr_einvoice_document WHERE id = %s FOR UPDATE NOWAIT',
-            (self.id,)
-        )
+        try:
+            self.env.cr.execute(
+                'SELECT id FROM l10n_cr_einvoice_document WHERE id = %s FOR UPDATE NOWAIT',
+                (self.id,)
+            )
+        except psycopg2.OperationalError:
+            raise UserError(_('This document is currently being processed by another user. Please try again in a moment.'))
 
         if self.state not in ['draft', 'error', 'generation_error']:
             raise UserError(_('Can only generate XML for draft or error documents.'))
@@ -416,15 +421,11 @@ class EInvoiceDocument(models.Model):
                 f'due to validation override by {self.validation_override_user_id.name}'
             )
 
-            raise UserError(_('Can only generate XML for draft or error documents.'))
-
         try:
-            # Generate the clave (50-digit key)
-            clave = self._generate_clave()
+            # Generate the clave (50-digit key) and consecutive number
+            clave, consecutive = self._generate_clave()
             self.clave = clave
-            # Extract the 20-digit consecutive number from the clave
-            # Clave format: 506(3) + DDMMYY(6) + cedula(12) + consecutive(20) + security(8) + check(1)
-            self.name = clave[21:41]
+            self.name = consecutive
 
             # Generate XML content
             xml_content = self._build_xml_content(clave)
@@ -469,10 +470,13 @@ class EInvoiceDocument(models.Model):
         self.ensure_one()
 
         # Acquire database lock to prevent concurrent modifications
-        self.env.cr.execute(
-            'SELECT id FROM l10n_cr_einvoice_document WHERE id = %s FOR UPDATE NOWAIT',
-            (self.id,)
-        )
+        try:
+            self.env.cr.execute(
+                'SELECT id FROM l10n_cr_einvoice_document WHERE id = %s FOR UPDATE NOWAIT',
+                (self.id,)
+            )
+        except psycopg2.OperationalError:
+            raise UserError(_('This document is currently being processed by another user. Please try again in a moment.'))
 
         if self.state not in ['generated', 'signing_error']:
             raise UserError(_('Can only sign generated XML documents.'))
@@ -554,7 +558,7 @@ class EInvoiceDocument(models.Model):
         # Partner/Customer validation
         if not self.partner_id:
             errors.append(_('Customer is required for e-invoice'))
-        else:
+        elif self.document_type == 'FE':
             if not self.partner_id.vat:
                 errors.append(
                     _('Customer Tax ID (VAT/Cédula) is required for customer "%s"') %
@@ -614,10 +618,13 @@ class EInvoiceDocument(models.Model):
         self._validate_before_submission()
 
         # Acquire database lock to prevent concurrent submissions (double-click protection)
-        self.env.cr.execute(
-            'SELECT id FROM l10n_cr_einvoice_document WHERE id = %s FOR UPDATE NOWAIT',
-            (self.id,)
-        )
+        try:
+            self.env.cr.execute(
+                'SELECT id FROM l10n_cr_einvoice_document WHERE id = %s FOR UPDATE NOWAIT',
+                (self.id,)
+            )
+        except psycopg2.OperationalError:
+            raise UserError(_('This document is currently being processed by another user. Please try again in a moment.'))
 
         if self.state not in ['signed', 'submission_error']:
             raise UserError(_('Can only submit signed documents.'))
@@ -626,8 +633,8 @@ class EInvoiceDocument(models.Model):
             raise UserError(_('No signed XML to submit.'))
 
         try:
-            # Get API client
-            api_client = self.env['l10n_cr.hacienda.api']
+            # Get API client (use document's company for multi-company safety)
+            api_client = self.env['l10n_cr.hacienda.api'].with_company(self.company_id)
 
             # Submit to Hacienda
             response = api_client.submit_invoice(
@@ -657,16 +664,19 @@ class EInvoiceDocument(models.Model):
         self.ensure_one()
 
         # Acquire database lock to prevent concurrent status checks
-        self.env.cr.execute(
-            'SELECT id FROM l10n_cr_einvoice_document WHERE id = %s FOR UPDATE NOWAIT',
-            (self.id,)
-        )
+        try:
+            self.env.cr.execute(
+                'SELECT id FROM l10n_cr_einvoice_document WHERE id = %s FOR UPDATE NOWAIT',
+                (self.id,)
+            )
+        except psycopg2.OperationalError:
+            raise UserError(_('This document is currently being processed by another user. Please try again in a moment.'))
 
         if self.state not in ['submitted', 'submission_error', 'error']:
             raise UserError(_('Can only check status for submitted documents.'))
 
         try:
-            api_client = self.env['l10n_cr.hacienda.api']
+            api_client = self.env['l10n_cr.hacienda.api'].with_company(self.company_id)
 
             response = api_client.check_status(self.clave)
 
@@ -1024,7 +1034,14 @@ class EInvoiceDocument(models.Model):
         date_str = invoice_date.strftime('%d%m%y')
 
         # Cedula juridica (12 digits, zero-padded)
-        cedula = (company.vat or '').replace('-', '').replace(' ', '').zfill(12)[:12]
+        raw_vat = (company.vat or '').replace('-', '').replace(' ', '')
+        if not raw_vat or not raw_vat.isdigit():
+            raise ValidationError(
+                _('Company VAT (cédula) is missing or invalid: "%s". '
+                  'Configure a valid numeric cédula in Company settings before generating e-invoices.')
+                % (company.vat or '')
+            )
+        cedula = raw_vat.zfill(12)[:12]
 
         # Consecutive number (20 digits)
         # Format per Hacienda v4.4 Article 4: SSS + TTTTT + DD + NNNNNNNNNN
@@ -1059,7 +1076,7 @@ class EInvoiceDocument(models.Model):
         if len(clave) != 50:
             raise ValidationError(_('Invalid clave length: %s (expected 50)') % len(clave))
 
-        return clave
+        return clave, consecutive
 
     def _calculate_check_digit(self, clave):
         """Calculate the verification digit using module 10."""
@@ -1234,7 +1251,7 @@ class EInvoiceDocument(models.Model):
         vals = {
             'hacienda_response': str(response),
             'hacienda_message': message or '',
-            'hacienda_submission_date': fields.Datetime.now(),
+            'hacienda_submission_date': self.hacienda_submission_date or fields.Datetime.now(),
         }
 
         if status == 'aceptado':

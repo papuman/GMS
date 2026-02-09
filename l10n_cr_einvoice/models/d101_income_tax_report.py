@@ -1,6 +1,10 @@
 # -*- coding: utf-8 -*-
+import logging
+
 from odoo import models, fields, api, _
 from odoo.exceptions import UserError, ValidationError
+
+_logger = logging.getLogger(__name__)
 
 
 class D101IncomeTaxReport(models.Model):
@@ -508,16 +512,20 @@ class D101IncomeTaxReport(models.Model):
             ('invoice_date', '<=', self.period_id.date_to),
         ])
 
-        # Calculate total expenses (simplified - could categorize by account)
+        # WARNING: Simplified calculation — all vendor bills treated as operating expenses.
+        # For accurate D-101 filing, manual categorization by account type is required:
+        # - Cost of Goods Sold (COGS) → costo_ventas
+        # - Operating Expenses → gastos_operativos
+        # - Depreciation → depreciacion
+        # - Financial Expenses → gastos_financieros
+        _logger.warning(
+            'D-101 for %s: Using simplified expense calculation. '
+            'All vendor bills treated as operating expenses. '
+            'Manual adjustment may be required for accurate filing.',
+            self.name
+        )
         total_expenses = sum(bill.amount_untaxed for bill in vendor_bills)
-
-        # For now, put all in operating expenses
-        # TODO: Categorize by account type (COGS, Operating, etc.)
         self.operating_expenses = total_expenses
-
-        # TODO: Calculate depreciation from fixed assets
-        # TODO: Get financial expenses from specific accounts
-        # TODO: Get other income from specific accounts
 
         self.state = 'calculated'
         self.message_post(body=_('D-101 calculated successfully'))
@@ -548,11 +556,12 @@ class D101IncomeTaxReport(models.Model):
         if not self.xml_content:
             raise UserError(_('Generate XML before signing.'))
 
+        cert_manager = self.env['l10n_cr.certificate.manager']
+        certificate, private_key = cert_manager.load_certificate_from_company(self.company_id)
+        if not certificate:
+            raise UserError(_('Certificate not configured. Please upload certificate in Company settings.'))
         XMLSigner = self.env['l10n_cr.xml.signer']
-        signed_xml = XMLSigner.sign_xml(
-            self.xml_content,
-            self.company_id.hacienda_certificate_id
-        )
+        signed_xml = XMLSigner.sign_xml(self.xml_content, certificate, private_key)
 
         self.xml_signed = signed_xml
         self.message_post(body=_('D-101 XML signed successfully'))

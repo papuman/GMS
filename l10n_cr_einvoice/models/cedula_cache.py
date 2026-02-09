@@ -360,6 +360,13 @@ class L10nCrCedulaCache(models.Model):
             # Increment access counter
             cache.increment_access_count()
 
+            # Trigger background refresh if entry is in refresh tier
+            if cache.cache_tier == 'refresh':
+                try:
+                    cache._enqueue_refresh_job()
+                except Exception:
+                    _logger.debug('Failed to enqueue refresh for %s', cedula)
+
             _logger.debug(
                 'Cache HIT for cédula %s (age: %d days, tier: %s)',
                 cedula, cache.cache_age_days, cache.cache_tier
@@ -396,22 +403,66 @@ class L10nCrCedulaCache(models.Model):
 
     def _enqueue_refresh_job(self):
         """
-        Enqueue background job to refresh this cache entry.
+        Enqueue background job to refresh this cache entry using ir.cron.
 
-        Implementation depends on your async framework:
-        - Odoo Queue (OCA)
-        - ir.cron delayed job
-        - Native Odoo job queue (v16+)
+        Creates a one-time scheduled action that will call refresh_from_api()
+        on this specific record. The cron runs once after 1 minute and then
+        auto-deletes (numbercall=1).
         """
-        # TODO: Implement based on your async job framework
-        # Example using Odoo Queue:
-        # self.with_delay().refresh_from_api()
+        self.ensure_one()
+        self.env['ir.cron'].sudo().create({
+            'name': f'Refresh cédula cache: {self.cedula}',
+            'model_id': self.env['ir.model']._get_id('l10n_cr.cedula.cache'),
+            'state': 'code',
+            'code': f'model.browse({self.id}).refresh_from_api()',
+            'interval_type': 'minutes',
+            'interval_number': 1,
+            'numbercall': 1,  # Run only once
+            'doall': False,
+        })
+        _logger.info('Enqueued refresh job for cédula %s', self.cedula)
 
-        # For now, log the intent
-        _logger.info(
-            'QUEUE: Refresh job for cédula %s (access_count: %d)',
-            self.cedula, self.access_count
-        )
+    def refresh_from_api(self):
+        """
+        Refresh this cache entry by calling the Hacienda API.
+
+        Called by the one-time ir.cron job created by _enqueue_refresh_job().
+        Updates the cache record with fresh data if the API call succeeds.
+        """
+        self.ensure_one()
+        _logger.info('Refreshing cache entry for cédula %s from API', self.cedula)
+
+        try:
+            api = self.env['l10n_cr.hacienda.cedula.api']
+            result = api.lookup_cedula(self.cedula)
+
+            if result.get('success'):
+                self.env['l10n_cr.cedula.cache'].update_cache(
+                    cedula=self.cedula,
+                    data={
+                        'name': result.get('name'),
+                        'tax_regime': result.get('tax_regime'),
+                        'tax_status': 'inscrito',
+                        'economic_activities': result.get('economic_activities', []),
+                        'raw_response': json.dumps(result.get('raw_data', {})),
+                    },
+                    source='hacienda',
+                    company=self.company_id,
+                )
+                _logger.info('Successfully refreshed cédula %s from API', self.cedula)
+            else:
+                error_msg = result.get('error', 'Unknown error')
+                self.write({'error_message': error_msg[:500]})
+                _logger.warning(
+                    'Failed to refresh cédula %s from API: %s',
+                    self.cedula, error_msg
+                )
+        except Exception as e:
+            self.write({'error_message': str(e)[:500]})
+            _logger.error(
+                'Exception refreshing cédula %s from API: %s',
+                self.cedula, str(e), exc_info=True
+            )
 
     # =============================================================================
     # CACHE UPDATE METHODS

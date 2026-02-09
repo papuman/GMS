@@ -88,18 +88,12 @@ class XSDValidator(models.AbstractModel):
             # Then, validate against XSD schema if available
             is_valid, error = self._validate_against_xsd(xml_content, document_type)
             if not is_valid:
-                # XSD validation failed or schema not available
-                # Log warning but don't fail (allows operation without XSD files)
-                if error:
-                    _logger.warning(
-                        'XSD validation unavailable for %s: %s. Using well-formed validation only.',
-                        document_type,
-                        error
-                    )
-                # Return success for well-formed XML even without XSD
-                return True, ''
+                # XSD validation failed — this is a real error, propagate it
+                return False, error
+            # If is_valid is True but error has a message, it means schema was unavailable
+            if error:
+                _logger.warning('XSD validation note for %s: %s', document_type, error)
 
-            # Full validation passed
             _logger.debug('XML validation passed for document type %s', document_type)
             return True, ''
 
@@ -163,7 +157,7 @@ class XSDValidator(models.AbstractModel):
             list: List of error messages (empty if valid)
         """
         errors = []
-        ns = {'': self.SCHEMA_URLS[document_type]}
+        ns = {'fe': self.SCHEMA_URLS[document_type]}
 
         # Required elements for all document types
         required_common = [
@@ -181,16 +175,22 @@ class XSDValidator(models.AbstractModel):
 
         # Check each required element
         for elem_name in required_common:
-            elem = root.find(f'.//{elem_name}', namespaces=ns)
+            elem = root.find('.//fe:' + elem_name, namespaces=ns)
             if elem is None:
-                # Try without namespace (for compatibility)
-                elem = root.find(f'.//{elem_name}')
+                # Fallback: try without namespace (for compatibility)
+                elem = root.find('.//' + elem_name)
+                if elem is not None:
+                    _logger.debug(
+                        'Element %s found without namespace prefix — '
+                        'consider adding proper namespace to XML.',
+                        elem_name
+                    )
 
             if elem is None:
                 errors.append(_('Missing required element: %s') % elem_name)
 
         # Validate Clave format (50 digits)
-        clave = root.find('.//Clave', namespaces=ns)
+        clave = root.find('.//fe:Clave', namespaces=ns)
         if clave is None:
             clave = root.find('.//Clave')
 
@@ -225,7 +225,7 @@ class XSDValidator(models.AbstractModel):
                 document_type,
                 xsd_path or 'unknown path'
             )
-            return True, ''  # Return True to indicate "no error" (schema just not available)
+            return True, ''  # No schema = skip, OK
 
         try:
             # Load XSD schema
@@ -245,19 +245,19 @@ class XSDValidator(models.AbstractModel):
                         f'Line {error.line}, Column {error.column}: {error.message}'
                     )
 
-                return False, '\n'.join(error_messages)
+                return False, 'XSD validation error: ' + '\n'.join(error_messages)
 
             return True, ''
 
         except FileNotFoundError:
-            # XSD file not found - not an error, just unavailable
+            # XSD file disappeared between check and open - treat as unavailable
             return True, ''
         except etree.XMLSchemaParseError as e:
             _logger.error('XSD schema parsing error for %s: %s', document_type, str(e))
-            return True, ''  # Don't fail validation if schema itself is invalid
+            return True, 'Schema parse error: %s' % str(e)
         except Exception as e:
             _logger.error('Unexpected XSD validation error: %s', str(e))
-            return True, ''  # Don't fail validation on unexpected errors
+            return True, 'Unexpected: %s' % str(e)
 
     @api.model
     def _get_xsd_path(self, document_type):

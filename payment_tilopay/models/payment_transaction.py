@@ -250,6 +250,13 @@ class PaymentTransaction(models.Model):
         hash_key = f"{tpt}|{provider.tilopay_api_key}|{provider.tilopay_api_password}"
 
         # Construct params — amount/currency/email from stored transaction, rest from callback
+        email = self.partner_email or self.partner_id.email or ''
+        if not email:
+            _logger.warning(
+                'Transaction %s: Partner email missing for hash verification. '
+                'This may cause hash mismatch with TiloPay callback.',
+                self.reference
+            )
         params = {
             'api_Key': provider.tilopay_api_key,
             'api_user': provider.tilopay_api_user,
@@ -259,7 +266,7 @@ class PaymentTransaction(models.Model):
             'currency': self.currency_id.name,
             'responseCode': str(code),
             'auth': auth_code,
-            'email': self.partner_email or self.partner_id.email or '',
+            'email': email,
         }
 
         computed_hash = hmac.new(

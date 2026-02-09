@@ -173,6 +173,8 @@ class PosOfflineQueue(models.Model):
             # If there's an einvoice document, submit it
             if self.einvoice_document_id:
                 if self.einvoice_document_id.state == 'draft':
+                    self.einvoice_document_id.action_generate_xml()
+                if self.einvoice_document_id.state == 'generated':
                     self.einvoice_document_id.action_sign_xml()
                 if self.einvoice_document_id.state == 'signed':
                     self.einvoice_document_id.action_submit_to_hacienda()

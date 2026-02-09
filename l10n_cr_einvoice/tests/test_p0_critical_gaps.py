@@ -817,7 +817,7 @@ class TestClaveGeneration(EInvoiceTestCase):
         move = self._create_test_invoice()
         move.action_post()
         einvoice = self._create_test_einvoice(move)
-        clave = einvoice._generate_clave()
+        clave, _ = einvoice._generate_clave()
         self.assertEqual(len(clave), 50)
 
     def test_clave_starts_with_506(self):
@@ -825,7 +825,7 @@ class TestClaveGeneration(EInvoiceTestCase):
         move = self._create_test_invoice()
         move.action_post()
         einvoice = self._create_test_einvoice(move)
-        clave = einvoice._generate_clave()
+        clave, _ = einvoice._generate_clave()
         self.assertEqual(clave[:3], '506')
 
     def test_clave_date_segment_ddmmyy(self):
@@ -834,7 +834,7 @@ class TestClaveGeneration(EInvoiceTestCase):
         move.invoice_date = date(2025, 2, 1)
         move.action_post()
         einvoice = self._create_test_einvoice(move)
-        clave = einvoice._generate_clave()
+        clave, _ = einvoice._generate_clave()
 
         date_segment = clave[3:9]
         self.assertEqual(date_segment, '010225')  # 01 Feb 2025
@@ -844,7 +844,7 @@ class TestClaveGeneration(EInvoiceTestCase):
         move = self._create_test_invoice()
         move.action_post()
         einvoice = self._create_test_einvoice(move)
-        clave = einvoice._generate_clave()
+        clave, _ = einvoice._generate_clave()
 
         cedula_segment = clave[9:21]
         self.assertEqual(len(cedula_segment), 12)
@@ -856,7 +856,7 @@ class TestClaveGeneration(EInvoiceTestCase):
         move = self._create_test_invoice()
         move.action_post()
         einvoice = self._create_test_einvoice(move)
-        clave = einvoice._generate_clave()
+        clave, _ = einvoice._generate_clave()
 
         consecutive = clave[21:41]
         self.assertEqual(len(consecutive), 20)
@@ -868,7 +868,7 @@ class TestClaveGeneration(EInvoiceTestCase):
                 move = self._create_test_invoice()
                 move.action_post()
                 einvoice = self._create_test_einvoice(move, doc_type)
-                clave = einvoice._generate_clave()
+                clave, _ = einvoice._generate_clave()
 
                 consecutive = clave[21:41]
                 # SSS(3) + TTTTT(5) + DD(2) = doc type at positions 8-9 of consecutive
@@ -881,7 +881,7 @@ class TestClaveGeneration(EInvoiceTestCase):
         move = self._create_test_invoice()
         move.action_post()
         einvoice = self._create_test_einvoice(move)
-        clave = einvoice._generate_clave()
+        clave, _ = einvoice._generate_clave()
 
         situacion = clave[41]
         self.assertEqual(situacion, '1')
@@ -891,7 +891,7 @@ class TestClaveGeneration(EInvoiceTestCase):
         move = self._create_test_invoice()
         move.action_post()
         einvoice = self._create_test_einvoice(move)
-        clave = einvoice._generate_clave()
+        clave, _ = einvoice._generate_clave()
 
         security = clave[42:50]
         self.assertEqual(len(security), 8)
@@ -902,7 +902,7 @@ class TestClaveGeneration(EInvoiceTestCase):
         move = self._create_test_invoice()
         move.action_post()
         einvoice = self._create_test_einvoice(move)
-        clave = einvoice._generate_clave()
+        clave, _ = einvoice._generate_clave()
         self.assertTrue(clave.isdigit(), f"Clave must be all digits, got: {clave}")
 
     def test_clave_unique_security_codes(self):
@@ -911,8 +911,8 @@ class TestClaveGeneration(EInvoiceTestCase):
         move.action_post()
         einvoice = self._create_test_einvoice(move)
 
-        clave1 = einvoice._generate_clave()
-        clave2 = einvoice._generate_clave()
+        clave1, _ = einvoice._generate_clave()
+        clave2, _ = einvoice._generate_clave()
         # Security codes (last 8 digits) should almost always differ
         self.assertNotEqual(clave1[42:50], clave2[42:50])
 
@@ -921,7 +921,7 @@ class TestClaveGeneration(EInvoiceTestCase):
         move = self._create_test_invoice()
         move.action_post()
         einvoice = self._create_test_einvoice(move)
-        clave = einvoice._generate_clave()
+        clave, _ = einvoice._generate_clave()
 
         consecutive = clave[21:41]
         sucursal = consecutive[:3]

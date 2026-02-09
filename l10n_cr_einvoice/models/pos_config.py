@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from datetime import datetime
 from odoo import models, fields, api
 
 class PosConfig(models.Model):
@@ -30,6 +31,28 @@ class PosConfig(models.Model):
     # Anonymous Customer Defaults
     l10n_cr_default_partner_id = fields.Many2one('res.partner', string="Default Partner")
     l10n_cr_default_customer_id_number = fields.Char(related='l10n_cr_default_partner_id.vat')
+
+    @api.model
+    def _load_pos_data_read(self, records, config):
+        """Inject CR e-invoice config parameters into POS session data.
+
+        Follows the Mexico l10n_mx_edi_pos pattern: override _load_pos_data_read
+        to add custom keys (prefixed with _) to the config record dict.
+        """
+        read_records = super()._load_pos_data_read(records, config)
+        if read_records:
+            # Load CIIU mandatory date from system parameter (same source as xml_generator.py)
+            IrConfigParameter = self.env['ir.config_parameter'].sudo()
+            date_str = IrConfigParameter.get_param('l10n_cr_einvoice.ciiu_mandatory_date')
+            if date_str:
+                try:
+                    datetime.strptime(date_str, '%Y-%m-%d')
+                    # Valid date string — pass it through as-is
+                except ValueError:
+                    date_str = None
+            # Default: October 6, 2025 (matches XmlGenerator.CIIU_MANDATORY_DATE)
+            read_records[0]['_l10n_cr_ciiu_mandatory_date'] = date_str or '2025-10-06'
+        return read_records
 
     def action_test_hacienda_connection(self):
         # Placeholder for connection test logic

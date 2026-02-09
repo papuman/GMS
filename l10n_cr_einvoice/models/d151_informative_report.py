@@ -1,6 +1,10 @@
 # -*- coding: utf-8 -*-
+import logging
+
 from odoo import models, fields, api, _
 from odoo.exceptions import UserError, ValidationError
+
+_logger = logging.getLogger(__name__)
 
 
 class D151InformativeReport(models.Model):
@@ -247,7 +251,7 @@ class D151InformativeReport(models.Model):
         query = """
             SELECT
                 partner_id,
-                SUM(amount_untaxed) as total_sales,
+                SUM(CASE WHEN move_type = 'out_refund' THEN -amount_untaxed ELSE amount_untaxed END) as total_sales,
                 COUNT(*) as invoice_count
             FROM account_move
             WHERE company_id = %s
@@ -255,9 +259,10 @@ class D151InformativeReport(models.Model):
                 AND state = 'posted'
                 AND invoice_date >= %s
                 AND invoice_date <= %s
+                AND partner_id IS NOT NULL
             GROUP BY partner_id
-            HAVING SUM(amount_untaxed) >= %s
-            ORDER BY SUM(amount_untaxed) DESC
+            HAVING SUM(CASE WHEN move_type = 'out_refund' THEN -amount_untaxed ELSE amount_untaxed END) >= %s
+            ORDER BY total_sales DESC
         """
 
         self.env.cr.execute(query, (
@@ -293,17 +298,18 @@ class D151InformativeReport(models.Model):
         query = """
             SELECT
                 partner_id,
-                SUM(amount_untaxed) as total_purchases,
+                SUM(CASE WHEN move_type = 'in_refund' THEN -amount_untaxed ELSE amount_untaxed END) as total_purchases,
                 COUNT(*) as bill_count
             FROM account_move
             WHERE company_id = %s
-                AND move_type = 'in_invoice'
+                AND move_type IN ('in_invoice', 'in_refund')
                 AND state = 'posted'
                 AND invoice_date >= %s
                 AND invoice_date <= %s
+                AND partner_id IS NOT NULL
             GROUP BY partner_id
-            HAVING SUM(amount_untaxed) >= %s
-            ORDER BY SUM(amount_untaxed) DESC
+            HAVING SUM(CASE WHEN move_type = 'in_refund' THEN -amount_untaxed ELSE amount_untaxed END) >= %s
+            ORDER BY total_purchases DESC
         """
 
         self.env.cr.execute(query, (
@@ -352,11 +358,12 @@ class D151InformativeReport(models.Model):
         if not self.xml_content:
             raise UserError(_('Generate XML before signing.'))
 
+        cert_manager = self.env['l10n_cr.certificate.manager']
+        certificate, private_key = cert_manager.load_certificate_from_company(self.company_id)
+        if not certificate:
+            raise UserError(_('Certificate not configured. Please upload certificate in Company settings.'))
         XMLSigner = self.env['l10n_cr.xml.signer']
-        signed_xml = XMLSigner.sign_xml(
-            self.xml_content,
-            self.company_id.hacienda_certificate_id
-        )
+        signed_xml = XMLSigner.sign_xml(self.xml_content, certificate, private_key)
 
         self.xml_signed = signed_xml
         self.message_post(body=_('D-151 XML signed successfully'))

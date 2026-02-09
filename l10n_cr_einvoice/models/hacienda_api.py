@@ -3,8 +3,9 @@ import base64
 import json
 import logging
 import requests
+import threading
 import time
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 
 from odoo import models, api, _
 from odoo.exceptions import UserError
@@ -18,6 +19,10 @@ RETRY_BACKOFF_FACTOR = 2  # exponential backoff multiplier
 
 # Token cache: {company_id: {'access_token': str, 'refresh_token': str, 'expires_at': float, 'refresh_expires_at': float}}
 _TOKEN_CACHE = {}
+_TOKEN_CACHE_LOCK = threading.Lock()
+
+# Costa Rica is always UTC-6 (no daylight saving)
+CR_TZ = timezone(timedelta(hours=-6))
 
 
 class HaciendaAPI(models.AbstractModel):
@@ -78,6 +83,9 @@ class HaciendaAPI(models.AbstractModel):
         Raises:
             UserError: On authentication failure
         """
+        # IMPORTANT: Caller must ensure correct company context via with_company()
+        # when operating in a multi-company environment.
+        # e.g. self.env['l10n_cr.hacienda.api'].with_company(self.company_id)
         company = self.env.company
         company_id = company.id
 
@@ -87,19 +95,28 @@ class HaciendaAPI(models.AbstractModel):
         now = time.time()
 
         # Check cached token (unless forced refresh)
-        if not force_refresh and company_id in _TOKEN_CACHE:
-            cached = _TOKEN_CACHE[company_id]
-            # Return cached access token if still valid
-            if cached.get('expires_at', 0) > now:
-                return cached['access_token']
+        with _TOKEN_CACHE_LOCK:
+            if not force_refresh and company_id in _TOKEN_CACHE:
+                cached = _TOKEN_CACHE[company_id]
+                # Return cached access token if still valid
+                if cached.get('expires_at', 0) > now:
+                    return cached['access_token']
 
-            # Try refresh token grant if refresh token is still valid
-            if cached.get('refresh_token') and cached.get('refresh_expires_at', 0) > now:
-                try:
-                    return self._refresh_token(cached['refresh_token'])
-                except Exception:
-                    _logger.info('Refresh token grant failed, falling back to password grant')
-                    # Fall through to full password grant
+                # Try refresh token grant if refresh token is still valid
+                if cached.get('refresh_token') and cached.get('refresh_expires_at', 0) > now:
+                    refresh_token = cached['refresh_token']
+                else:
+                    refresh_token = None
+            else:
+                refresh_token = None
+
+        # Try refresh token grant outside the lock (network I/O)
+        if refresh_token:
+            try:
+                return self._refresh_token(refresh_token)
+            except Exception:
+                _logger.info('Refresh token grant failed, falling back to password grant')
+                # Fall through to full password grant
 
         # Full password grant
         return self._password_grant()
@@ -163,7 +180,8 @@ class HaciendaAPI(models.AbstractModel):
             return token_data['access_token']
         else:
             # Clear stale cache on refresh failure
-            _TOKEN_CACHE.pop(company.id, None)
+            with _TOKEN_CACHE_LOCK:
+                _TOKEN_CACHE.pop(company.id, None)
             raise Exception('Refresh token grant failed (HTTP %s)' % response.status_code)
 
     @api.model
@@ -173,20 +191,22 @@ class HaciendaAPI(models.AbstractModel):
         expires_in = token_data.get('expires_in', 300)
         refresh_expires_in = token_data.get('refresh_expires_in', 1800)
 
-        _TOKEN_CACHE[company_id] = {
-            'access_token': token_data['access_token'],
-            'refresh_token': token_data.get('refresh_token', ''),
-            'expires_at': now + expires_in - 30,  # 30 second safety margin
-            'refresh_expires_at': now + refresh_expires_in - 30,
-        }
+        with _TOKEN_CACHE_LOCK:
+            _TOKEN_CACHE[company_id] = {
+                'access_token': token_data['access_token'],
+                'refresh_token': token_data.get('refresh_token', ''),
+                'expires_at': now + expires_in - 30,  # 30 second safety margin
+                'refresh_expires_at': now + refresh_expires_in - 30,
+            }
 
     @api.model
     def _clear_token_cache(self, company_id=None):
         """Clear token cache for a specific company or all companies."""
-        if company_id:
-            _TOKEN_CACHE.pop(company_id, None)
-        else:
-            _TOKEN_CACHE.clear()
+        with _TOKEN_CACHE_LOCK:
+            if company_id:
+                _TOKEN_CACHE.pop(company_id, None)
+            else:
+                _TOKEN_CACHE.clear()
 
     @api.model
     def _get_auth_headers(self):
@@ -229,10 +249,13 @@ class HaciendaAPI(models.AbstractModel):
         receiver_clean = (receiver_id or '').replace('-', '').replace(' ', '') if receiver_id else ''
 
         # Use provided date or current time for the submission timestamp
+        # Always express in Costa Rica time (UTC-6, no DST)
         if fecha:
-            fecha_str = fecha.strftime('%Y-%m-%dT%H:%M:%S-06:00')
+            # Ensure the provided date is in CR timezone
+            fecha_cr = fecha.replace(tzinfo=CR_TZ) if fecha.tzinfo is None else fecha.astimezone(CR_TZ)
+            fecha_str = fecha_cr.strftime('%Y-%m-%dT%H:%M:%S-06:00')
         else:
-            fecha_str = datetime.now().strftime('%Y-%m-%dT%H:%M:%S-06:00')
+            fecha_str = datetime.now(CR_TZ).strftime('%Y-%m-%dT%H:%M:%S-06:00')
 
         # Prepare payload according to Hacienda API specification
         payload = {
@@ -788,7 +811,7 @@ class HaciendaAPI(models.AbstractModel):
                 'nombre': company.name,
             },
             'declaracionXml': xml_base64,
-            'fechaPresentacion': datetime.now().strftime('%Y-%m-%dT%H:%M:%S-06:00'),
+            'fechaPresentacion': datetime.now(CR_TZ).strftime('%Y-%m-%dT%H:%M:%S-06:00'),
         }
 
         # Add month for monthly reports

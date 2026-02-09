@@ -9,9 +9,6 @@ import { onMounted, useState } from "@odoo/owl";
 import { _t } from "@web/core/l10n/translation";
 import { AlertDialog } from "@web/core/confirmation_dialog/confirmation_dialog";
 
-// CIIU mandatory date (October 6, 2025)
-const CIIU_MANDATORY_DATE = new Date('2025-10-06');
-
 // Email validation regex
 const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
 
@@ -50,8 +47,9 @@ patch(PosOrder.prototype, {
             return false;
         }
 
-        // After Oct 6, 2025: CIIU code required
-        if (new Date() >= CIIU_MANDATORY_DATE && !partner.l10n_cr_activity_code) {
+        // After CIIU mandatory date: CIIU code required (date loaded from server config)
+        const ciiuDate = this.pos?.config?._l10n_cr_ciiu_mandatory_date;
+        if (ciiuDate && new Date() >= new Date(ciiuDate) && !partner.l10n_cr_activity_code) {
             return false;
         }
 
@@ -132,6 +130,14 @@ patch(PaymentScreen.prototype, {
     },
 
     get einvoiceType() {
+        if (this.einvoiceState.enabled && this.einvoiceState.type === 'FE') {
+            // Re-check: if partner was removed after selecting FE, downgrade to TE
+            const partner = this.currentOrder.getPartner();
+            if (!partner || !partner.vat) {
+                this.einvoiceState.type = 'TE';
+                this.currentOrder.einvoice_type = 'TE';
+            }
+        }
         return this.einvoiceState.type;
     },
 
@@ -148,8 +154,9 @@ patch(PaymentScreen.prototype, {
                 if (!partner.name) missing.push(_t('Customer Name'));
                 if (!partner.vat) missing.push(_t('Cédula / Tax ID'));
                 if (!partner.email) missing.push(_t('Email Address'));
-                // Only check CIIU after Oct 6, 2025
-                if (new Date() >= CIIU_MANDATORY_DATE && !partner.l10n_cr_activity_code) {
+                // Only check CIIU after mandatory date (loaded from server config)
+                const ciiuDate = this.pos?.config?._l10n_cr_ciiu_mandatory_date;
+                if (ciiuDate && new Date() >= new Date(ciiuDate) && !partner.l10n_cr_activity_code) {
                     missing.push(_t('Economic Activity (CIIU Code)'));
                 }
             }
@@ -195,6 +202,20 @@ patch(PaymentScreen.prototype, {
     selectFactura() {
         this.einvoiceState.type = 'FE';
         this.currentOrder.einvoice_type = 'FE';
+    },
+
+    /**
+     * Call this when the partner changes on the current order.
+     * Re-derives the e-invoice document type (FE vs TE) from the new partner.
+     * If e-invoice is not enabled, this is a no-op.
+     */
+    onPartnerChange() {
+        if (this.einvoiceState.enabled) {
+            const partner = this.currentOrder.getPartner();
+            const newType = (partner && partner.vat) ? 'FE' : 'TE';
+            this.einvoiceState.type = newType;
+            this.currentOrder.einvoice_type = newType;
+        }
     },
 });
 

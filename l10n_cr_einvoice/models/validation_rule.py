@@ -609,13 +609,21 @@ class L10nCRValidationRule(models.Model):
                 return (False, 'Custom expression not specified')
 
             # Build evaluation context
+            # NOTE: 'env' intentionally excluded for security - prevents
+            # arbitrary ORM access via safe_eval expressions.
+            # Use specific, safe builtins instead.
             eval_context = {
                 'record': record,
                 'value': value,
-                'env': self.env,
                 'date': date,
                 'datetime': datetime,
                 'relativedelta': relativedelta,
+                'len': len,
+                'bool': bool,
+                'str': str,
+                'int': int,
+                'float': float,
+                'abs': abs,
             }
 
             # Evaluate expression

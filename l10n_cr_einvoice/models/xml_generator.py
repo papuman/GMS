@@ -471,41 +471,36 @@ class XMLGenerator(models.AbstractModel):
         06 = SINPE Movil (Mobile payment)
         99 = Otros (Others)
         """
-        payment_method_code = '01'  # Default to Efectivo
+        payment_method_codes = []
 
         if source_doc._name == 'pos.order':
-            # POS: derive from pos.payment records
+            # POS: derive from pos.payment records — emit one MedioPago per
+            # distinct payment method so split payments are correctly reported.
             payments = source_doc.payment_ids
             if payments:
-                # Map POS payment method names to Hacienda codes
-                method_name = (payments[0].payment_method_id.name or '').lower()
-                if 'sinpe' in method_name:
-                    payment_method_code = '06'  # SINPE Movil
-                elif 'card' in method_name or 'tarjeta' in method_name:
-                    payment_method_code = '02'
-                elif 'transfer' in method_name or 'transferencia' in method_name:
-                    payment_method_code = '04'  # Bank transfer (not SINPE)
-                elif 'check' in method_name or 'cheque' in method_name:
-                    payment_method_code = '03'
-                elif 'customer_account' in method_name or 'cuenta' in method_name:
-                    payment_method_code = '99'
-                else:
-                    payment_method_code = '01'  # Cash/Efectivo
+                seen_codes = []
+                for payment in payments:
+                    code = self._pos_payment_to_hacienda_code(payment)
+                    if code not in seen_codes:
+                        seen_codes.append(code)
+                payment_method_codes = seen_codes
+            if not payment_method_codes:
+                payment_method_codes = ['01']  # Default to Efectivo
             _logger.debug(
-                'POS order %s: payment method code %s',
-                source_doc.name, payment_method_code
+                'POS order %s: payment method codes %s',
+                source_doc.name, payment_method_codes
             )
         else:
             # account.move: use configured payment method
             if source_doc.l10n_cr_payment_method_id:
-                payment_method_code = source_doc.l10n_cr_payment_method_id.code
+                payment_method_codes = [source_doc.l10n_cr_payment_method_id.code]
             else:
                 # Fallback: try to detect from linked payment transactions
                 # This covers cases where the payment method was not set during
                 # invoice posting (e.g., existing invoices, manual e-invoice creation)
                 detected = source_doc._detect_payment_method_from_transactions()
                 if detected:
-                    payment_method_code = detected.code
+                    payment_method_codes = [detected.code]
                     # Also update the invoice field for future reference
                     source_doc.l10n_cr_payment_method_id = detected
                     _logger.info(
@@ -514,14 +509,38 @@ class XMLGenerator(models.AbstractModel):
                         detected.name, detected.code, source_doc.name
                     )
                 else:
+                    payment_method_codes = ['01']
                     _logger.warning(
-                        'No payment method set for invoice %s, defaulting to "01" (Efectivo)',
+                        'No payment method set for invoice %s, defaulting to "01" (Efectivo). '
+                        'Set payment method on invoice to avoid this default.',
                         source_doc.name
                     )
 
-        # v4.4: MedioPago is a complex type inside ResumenFactura
-        medio_pago = etree.SubElement(root, 'MedioPago')
-        etree.SubElement(medio_pago, 'TipoMedioPago').text = payment_method_code
+        # v4.4: MedioPago is a complex type inside ResumenFactura.
+        # Hacienda allows multiple MedioPago elements for split payments.
+        for code in payment_method_codes:
+            medio_pago = etree.SubElement(root, 'MedioPago')
+            etree.SubElement(medio_pago, 'TipoMedioPago').text = code
+
+    @staticmethod
+    def _pos_payment_to_hacienda_code(payment):
+        """Map a single pos.payment record to a Hacienda MedioPago code.
+
+        Uses name matching on the payment method. For reliability, consider
+        adding a l10n_cr_payment_code field to pos.payment.method.
+        """
+        method_name = (payment.payment_method_id.name or '').lower()
+        if any(k in method_name for k in ('sinpe', 'sinpé', 'movil', 'móvil')):
+            return '06'  # SINPE Móvil
+        elif any(k in method_name for k in ('card', 'tarjeta', 'crédito', 'credito', 'débito', 'debito', 'visa', 'mastercard')):
+            return '02'  # Card
+        elif any(k in method_name for k in ('transfer', 'transferencia', 'wire', 'banco')):
+            return '04'  # Bank transfer
+        elif any(k in method_name for k in ('check', 'cheque')):
+            return '03'  # Check
+        elif any(k in method_name for k in ('customer_account', 'cuenta', 'crédito cliente')):
+            return '99'  # Others
+        return '01'  # Cash/Efectivo
 
     def _compute_line_amounts(self, source_doc):
         """Compute line-level amounts for both DetalleServicio and ResumenFactura.
@@ -976,7 +995,8 @@ class XMLGenerator(models.AbstractModel):
                 etree.SubElement(desglose, 'CodigoTarifaIVA').text = codigo_tarifa
                 etree.SubElement(desglose, 'TotalMontoImpuesto').text = fmt % total_monto
 
-        etree.SubElement(resumen, 'TotalImpuesto').text = fmt % amount_tax
+        if amount_tax > 0:
+            etree.SubElement(resumen, 'TotalImpuesto').text = fmt % amount_tax
 
         # v4.4: MedioPago is now inside ResumenFactura (complex type)
         self._add_medio_pago(resumen, source_doc)
@@ -998,8 +1018,11 @@ class XMLGenerator(models.AbstractModel):
         etree.SubElement(info_ref, 'TipoDocIR').text = '01'
         etree.SubElement(info_ref, 'Numero').text = numero_ref
         # XSD requires xs:dateTime format YYYY-MM-DDTHH:MM:SS (not just YYYY-MM-DD)
+        ref_date = original_move.invoice_date
+        if not ref_date:
+            raise ValidationError(_('Referenced document %s has no invoice date.') % numero_ref)
         etree.SubElement(info_ref, 'FechaEmisionIR').text = datetime.combine(
-            original_move.invoice_date, datetime.min.time()
+            ref_date, datetime.min.time()
         ).isoformat()
         etree.SubElement(info_ref, 'Codigo').text = '01'  # Reference code
         etree.SubElement(info_ref, 'Razon').text = 'Anulación de factura'
@@ -1200,7 +1223,12 @@ class XMLGenerator(models.AbstractModel):
         """
         errors = []
 
-        # Get active credentials based on environment
+        # Get active credentials based on environment.
+        # Note: l10n_cr_active_* fields are computed from the current environment
+        # (sandbox/production) setting. Both validation and signing use the same
+        # active certificate through these computed fields. Here we resolve the
+        # env-specific fields directly for explicit error messages, but the
+        # result is equivalent to using l10n_cr_active_certificate etc.
         if company.l10n_cr_hacienda_env == 'production':
             certificate = company.l10n_cr_prod_certificate
             certificate_filename = company.l10n_cr_prod_certificate_filename

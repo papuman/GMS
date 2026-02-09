@@ -11,7 +11,14 @@ class PosOrder(models.Model):
         default=False,
         copy=False
     )
-    
+
+    einvoice_type = fields.Selection(
+        [('FE', 'Factura Electrónica'), ('TE', 'Tiquete Electrónico')],
+        string='E-Invoice Type',
+        default='TE',
+        copy=False
+    )
+
     l10n_cr_einvoice_document_id = fields.Many2one(
         'l10n_cr.einvoice.document',
         string='Electronic Invoice Document',
@@ -90,6 +97,7 @@ class PosOrder(models.Model):
 
         # Capture the e-invoice flag from UI (default: False)
         fields['l10n_cr_is_einvoice'] = ui_order.get('l10n_cr_is_einvoice', False)
+        fields['einvoice_type'] = ui_order.get('einvoice_type', 'TE')
 
         return fields
 
@@ -104,6 +112,14 @@ class PosOrder(models.Model):
                 order._generate_einvoice_if_requested()
 
         return orders
+
+    def write(self, vals):
+        result = super().write(vals)
+        if vals.get('state') == 'paid':
+            for order in self:
+                if not order.l10n_cr_einvoice_document_id:
+                    order._generate_einvoice_if_requested()
+        return result
 
     def _generate_einvoice_if_requested(self):
         """
@@ -123,20 +139,26 @@ class PosOrder(models.Model):
         """Generate and submit the electronic invoice."""
         self.ensure_one()
 
+        if self.l10n_cr_einvoice_document_id:
+            raise UserError(_("This order already has an electronic invoice."))
+
         # Ensure we have a partner
         partner = self.partner_id or self.config_id.l10n_cr_default_partner_id
-        if not partner:
-             # Critical: cannot invoice without a partner
-             raise UserError(_("Cannot generate e-invoice: No partner selected and no default configured."))
+        doc_type = self.einvoice_type or 'TE'
+        if not partner and doc_type == 'FE':
+            raise UserError(_("Cannot generate Factura Electrónica: No customer selected and no default configured."))
+        if not partner and doc_type == 'TE':
+            # TE can proceed without partner — use company as minimal data
+            partner = self.company_id.partner_id
 
         # Get the billing partner (corporate parent if applicable)
         invoice_partner = partner._get_invoice_partner()
 
         # Determine document type (FE or TE)
-        # Use the INVOICE partner's VAT to determine document type
-        doc_type = 'TE'
-        if invoice_partner.vat:
-             doc_type = 'FE'
+        doc_type = self.einvoice_type or 'TE'
+        # If FE was selected but partner has no VAT, downgrade to TE
+        if doc_type == 'FE' and not invoice_partner.vat:
+            doc_type = 'TE'
 
         # Create e-invoice document linked to POS order
         # Note: account_move is created later during invoicing/reconciliation
@@ -162,11 +184,16 @@ class PosOrder(models.Model):
                 einvoice.action_submit_to_hacienda()
             else:
                 self.l10n_cr_offline_queue = True
+                self.env['l10n_cr.pos.offline.queue'].create({
+                    'pos_order_id': self.id,
+                    'einvoice_document_id': einvoice.id,
+                    'state': 'pending',
+                })
 
         except Exception as e:
             # Log specific error to the document too
              einvoice.write({'error_message': str(e), 'state': 'error'})
-             raise e # Re-raise to be caught by the caller to log to chatter
+             raise  # Re-raise to be caught by the caller to log to chatter
 
     def action_l10n_cr_resend_email(self):
         self.ensure_one()
@@ -205,8 +232,12 @@ class PosOrder(models.Model):
         elif doc.state == 'rejected':
             reason = self._map_hacienda_error_for_pos(doc.error_message or '')
             return {'type': 'danger', 'message': '%s rechazada: %s' % (doc_label, reason)}
-        elif doc.state in ('submitted', 'signed'):
+        elif doc.state == 'submitted':
             return {'type': 'info', 'message': '%s enviada a Hacienda' % doc_label}
+        elif doc.state == 'signed':
+            if self.l10n_cr_offline_queue:
+                return {'type': 'warning', 'message': '%s en cola offline - se enviará cuando haya conexión' % doc_label}
+            return {'type': 'info', 'message': '%s firmada, pendiente de envío' % doc_label}
         elif doc.state == 'error':
             reason = self._map_hacienda_error_for_pos(doc.error_message or '')
             return {'type': 'warning', 'message': 'Error enviando %s: %s' % (doc_label, reason)}
