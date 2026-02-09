@@ -471,8 +471,9 @@ class TestHaciendaAPIIntegration(EInvoiceTestCase):
             mock_success_response
         ]
 
-        # Submit (should retry and succeed)
-        result = self.api.submit_invoice(
+        # Submit with cron context so exponential backoff retry is exercised
+        # (user-facing requests skip retry sleep for fast feedback)
+        result = self.api.with_context(cron=True).submit_invoice(
             clave=self.sample_clave,
             xml_content=self.sample_xml,
             sender_id='3101234567',
@@ -780,9 +781,10 @@ class TestHaciendaAPIIntegration(EInvoiceTestCase):
             mock_error_response
         ]
 
-        # Should fail after max retries
+        # Run with cron context so exponential backoff is exercised
+        # (user-facing requests skip retry sleep for fast feedback)
         with self.assertRaises(UserError):
-            self.api.submit_invoice(
+            self.api.with_context(cron=True).submit_invoice(
                 clave=self.sample_clave,
                 xml_content=self.sample_xml,
                 sender_id='3101234567',

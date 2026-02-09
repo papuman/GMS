@@ -24,6 +24,7 @@ class ResCompany(models.Model):
     )
     l10n_cr_hacienda_password = fields.Char(
         string='Sandbox API Password',
+        groups='base.group_system',
     )
     l10n_cr_certificate = fields.Binary(
         string='Sandbox Certificate',
@@ -39,6 +40,7 @@ class ResCompany(models.Model):
     )
     l10n_cr_key_password = fields.Char(
         string='Sandbox Key Password',
+        groups='base.group_system',
     )
 
     # ---- Production credential storage (new fields) ----
@@ -47,6 +49,7 @@ class ResCompany(models.Model):
     )
     l10n_cr_prod_hacienda_password = fields.Char(
         string='Production API Password',
+        groups='base.group_system',
     )
     l10n_cr_prod_certificate = fields.Binary(
         string='Production Certificate',
@@ -62,6 +65,7 @@ class ResCompany(models.Model):
     )
     l10n_cr_prod_key_password = fields.Char(
         string='Production Key Password',
+        groups='base.group_system',
     )
 
     # ---- Computed "active" fields (UI binds to these) ----
@@ -191,6 +195,21 @@ class ResCompany(models.Model):
             company.l10n_cr_needs_private_key = (
                 bool(filename) and not filename.endswith(('.p12', '.pfx'))
             )
+
+    # Credential fields that should invalidate the Hacienda token cache when changed
+    _HACIENDA_CREDENTIAL_FIELDS = {
+        'l10n_cr_hacienda_username', 'l10n_cr_hacienda_password',
+        'l10n_cr_prod_hacienda_username', 'l10n_cr_prod_hacienda_password',
+        'l10n_cr_hacienda_env',
+    }
+
+    def write(self, vals):
+        res = super().write(vals)
+        if self._HACIENDA_CREDENTIAL_FIELDS & set(vals):
+            from .hacienda_api import HaciendaAPI
+            for company in self:
+                HaciendaAPI.invalidate_token_cache(company.id)
+        return res
 
     # Software Provider ID (v4.4 mandatory ProveedorSistemas element)
     l10n_cr_proveedor_sistemas = fields.Char(

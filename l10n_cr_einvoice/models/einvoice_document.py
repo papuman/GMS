@@ -303,8 +303,13 @@ class EInvoiceDocument(models.Model):
             ValidationError: If any mandatory field validation fails for FE documents
         """
         # Check if validation should be bypassed (for imports, migrations, etc.)
-        if self.env.context.get('bypass_einvoice_validation', False):
-            _logger.info('E-invoice validation bypassed via context flag')
+        # Only ERP managers can bypass validation to prevent unauthorized callers
+        if (self.env.context.get('bypass_einvoice_validation', False)
+                and self.env.user.has_group('base.group_erp_manager')):
+            _logger.info(
+                'E-invoice validation bypassed via context flag by user %s (uid=%s)',
+                self.env.user.name, self.env.user.id,
+            )
             return
 
         for doc in self:
@@ -432,11 +437,21 @@ class EInvoiceDocument(models.Model):
 
             # Add warning comment if validation override is active
             if self.validation_override:
+                def _sanitize_xml_comment(text):
+                    """Remove sequences that would break XML comments.
+
+                    XML comments cannot contain '--' and must not end with '-'.
+                    Replace '--' with '- -' to neutralize any injection attempt.
+                    """
+                    if not text:
+                        return ''
+                    return str(text).replace('--', '- -')
+
                 override_comment = (
                     f'<!-- VALIDATION OVERRIDE ACTIVE -->\n'
-                    f'<!-- Approved by: {self.validation_override_user_id.name} -->\n'
-                    f'<!-- Date: {self.validation_override_date} -->\n'
-                    f'<!-- Reason: {self.validation_override_reason} -->\n'
+                    f'<!-- Approved by: {_sanitize_xml_comment(self.validation_override_user_id.name)} -->\n'
+                    f'<!-- Date: {_sanitize_xml_comment(self.validation_override_date)} -->\n'
+                    f'<!-- Reason: {_sanitize_xml_comment(self.validation_override_reason)} -->\n'
                 )
                 # Insert comment after XML declaration
                 if '?>' in xml_content:

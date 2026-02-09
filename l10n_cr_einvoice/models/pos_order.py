@@ -200,8 +200,8 @@ class PosOrder(models.Model):
 
         except Exception as e:
             # Log specific error to the document too
-             einvoice.write({'error_message': str(e), 'state': 'error'})
-             raise  # Re-raise to be caught by the caller to log to chatter
+            einvoice.write({'error_message': str(e), 'state': 'error'})
+            raise  # Re-raise to be caught by the caller to log to chatter
 
     def action_l10n_cr_resend_email(self):
         self.ensure_one()

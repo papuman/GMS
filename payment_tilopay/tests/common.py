@@ -12,7 +12,6 @@ class TilopayCommon(PaymentCommon):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-
         cls.tilopay = cls._prepare_provider('tilopay', update_values={
             'tilopay_api_key': 'test_api_key_123',
             'tilopay_api_user': 'test@example.com',
@@ -74,6 +73,13 @@ class TilopayCommon(PaymentCommon):
             'ReasonCode': '1',
             'ReasonCodeDescription': 'Refund approved',
         }
+
+    def setUp(self):
+        super().setUp()
+        # Clear the module-level token cache before each test to prevent
+        # tokens cached by one test from contaminating the next.
+        from odoo.addons.payment_tilopay.models.payment_provider import _TILOPAY_TOKEN_CACHE
+        _TILOPAY_TOKEN_CACHE.clear()
 
     @staticmethod
     def _compute_tilopay_hash(

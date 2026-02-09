@@ -544,7 +544,7 @@ class D150VATReport(models.Model):
                 if not line.tax_ids:
                     # No tax = exempt sale
                     if is_refund:
-                        sales_by_rate[0]['base'] -= line.price_subtotal
+                        sales_by_rate[0]['base'] -= abs(line.price_subtotal)
                     else:
                         sales_by_rate[0]['base'] += line.price_subtotal
                     continue

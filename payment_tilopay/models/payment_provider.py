@@ -1,6 +1,8 @@
 # Part of Odoo. See LICENSE file for full copyright and licensing details.
 
 import logging
+import threading
+import time
 
 from odoo import api, fields, models, _
 from odoo.exceptions import ValidationError
@@ -8,6 +10,13 @@ from odoo.exceptions import ValidationError
 from odoo.addons.payment_tilopay import const
 
 _logger = logging.getLogger(__name__)
+
+# Module-level token cache: {provider_id: {'access_token': str, 'expires_at': float}}
+# Tilopay tokens are cached with a conservative TTL to avoid authenticating on every API call.
+_TILOPAY_TOKEN_CACHE = {}
+_TILOPAY_TOKEN_CACHE_LOCK = threading.Lock()
+# Default TTL: 10 minutes (Tilopay tokens typically last longer, but we stay conservative)
+_TILOPAY_TOKEN_TTL = 600
 
 
 class PaymentProvider(models.Model):
@@ -109,13 +118,27 @@ class PaymentProvider(models.Model):
         """Authenticate with Tilopay and return the access token.
 
         POST /api/v1/login with {email: api_user, password: api_password}.
-        Per-request — no caching, simplest approach.
+        Tokens are cached per provider with a conservative TTL to avoid
+        authenticating on every API call.
 
         :return: The access token string.
         :rtype: str
         :raise ValidationError: If authentication fails.
         """
         self.ensure_one()
+        now = time.time()
+
+        # Check cached token
+        with _TILOPAY_TOKEN_CACHE_LOCK:
+            cached = _TILOPAY_TOKEN_CACHE.get(self.id)
+            if cached and cached.get('expires_at', 0) > now:
+                _logger.debug(
+                    "Using cached Tilopay token for provider %s (expires in %ds)",
+                    self.id, int(cached['expires_at'] - now),
+                )
+                return cached['access_token']
+
+        # Token missing or expired -- authenticate
         _logger.info("Authenticating with Tilopay API for provider %s", self.id)
         response = self._send_api_request(
             'POST',
@@ -130,4 +153,26 @@ class PaymentProvider(models.Model):
             raise ValidationError(_(
                 "Tilopay authentication failed: no access token in response."
             ))
+
+        # Cache the token with TTL
+        with _TILOPAY_TOKEN_CACHE_LOCK:
+            _TILOPAY_TOKEN_CACHE[self.id] = {
+                'access_token': access_token,
+                'expires_at': now + _TILOPAY_TOKEN_TTL,
+            }
+
         return access_token
+
+    @api.model
+    def _tilopay_clear_token_cache(self, provider_id=None):
+        """Clear the Tilopay token cache.
+
+        Call this when credentials change or on authentication failures.
+
+        :param int provider_id: Specific provider to clear, or None to clear all.
+        """
+        with _TILOPAY_TOKEN_CACHE_LOCK:
+            if provider_id:
+                _TILOPAY_TOKEN_CACHE.pop(provider_id, None)
+            else:
+                _TILOPAY_TOKEN_CACHE.clear()

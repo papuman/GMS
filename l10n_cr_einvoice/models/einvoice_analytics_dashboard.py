@@ -214,11 +214,12 @@ class EInvoiceAnalyticsDashboard(models.Model):
                 document_type
             FROM l10n_cr_einvoice_document
             WHERE create_date >= %s AND create_date <= %s
+                AND company_id = %s
             GROUP BY DATE(create_date), state, document_type
             ORDER BY date
         """
 
-        self.env.cr.execute(query, (date_from, date_to))
+        self.env.cr.execute(query, (date_from, date_to, self.env.company.id))
         results = self.env.cr.dictfetchall()
 
         # Group data by date
@@ -286,11 +287,12 @@ class EInvoiceAnalyticsDashboard(models.Model):
             JOIN account_move m ON d.move_id = m.id
             WHERE d.create_date >= %s AND d.create_date <= %s
                 AND d.state = 'accepted'
+                AND d.company_id = %s
             GROUP BY DATE(d.create_date), d.document_type
             ORDER BY date
         """
 
-        self.env.cr.execute(query, (date_from, date_to))
+        self.env.cr.execute(query, (date_from, date_to, self.env.company.id))
         results = self.env.cr.dictfetchall()
 
         # Group by date
@@ -355,12 +357,13 @@ class EInvoiceAnalyticsDashboard(models.Model):
             JOIN res_partner p ON m.partner_id = p.id
             WHERE d.create_date >= %s AND d.create_date <= %s
                 AND d.state = 'accepted'
+                AND d.company_id = %s
             GROUP BY p.id, p.name
             ORDER BY total_revenue DESC
             LIMIT %s
         """
 
-        self.env.cr.execute(query, (date_from, date_to, limit))
+        self.env.cr.execute(query, (date_from, date_to, self.env.company.id, limit))
         results = self.env.cr.dictfetchall()
 
         return [{
@@ -401,11 +404,12 @@ class EInvoiceAnalyticsDashboard(models.Model):
             LEFT JOIN l10n_cr_payment_method pm ON pmr.payment_method_id = pm.id
             WHERE d.create_date >= %s AND d.create_date <= %s
                 AND d.state = 'accepted'
+                AND d.company_id = %s
             GROUP BY pm.name, pm.code
             ORDER BY total_amount DESC
         """
 
-        self.env.cr.execute(query, (date_from, date_to))
+        self.env.cr.execute(query, (date_from, date_to, self.env.company.id))
         results = self.env.cr.dictfetchall()
 
         return [{
@@ -445,11 +449,12 @@ class EInvoiceAnalyticsDashboard(models.Model):
             WHERE d.create_date >= %s AND d.create_date <= %s
                 AND d.state = 'accepted'
                 AND d.document_type IN ('FE', 'TE', 'ND')
+                AND d.company_id = %s
             GROUP BY DATE(d.create_date)
             ORDER BY date
         """
 
-        self.env.cr.execute(query, (date_from, date_to))
+        self.env.cr.execute(query, (date_from, date_to, self.env.company.id))
         results = self.env.cr.dictfetchall()
 
         trend_data = []

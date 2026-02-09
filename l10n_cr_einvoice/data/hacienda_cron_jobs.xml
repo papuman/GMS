@@ -13,9 +13,7 @@
             <field name="priority">5</field>
         </record>
 
-        <!-- TODO: Re-enable when l10n_cr.einvoice.retry.queue model is implemented -->
         <!-- Cron Job: Process Retry Queue -->
-        <!--
         <record id="ir_cron_process_retry_queue" model="ir.cron">
             <field name="name">E-Invoice: Process Retry Queue</field>
             <field name="model_id" ref="model_l10n_cr_einvoice_retry_queue"/>
@@ -26,7 +24,6 @@
             <field name="active" eval="True"/>
             <field name="priority">10</field>
         </record>
-        -->
 
         <!-- TODO: Re-enable when l10n_cr.hacienda.response.message model is implemented -->
         <!-- Cron Job: Cleanup Old Response Messages -->

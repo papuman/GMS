@@ -6,7 +6,7 @@ import logging
 import pprint
 from urllib.parse import urlencode
 
-from odoo import _, api, models
+from odoo import _, api, fields, models
 from odoo.exceptions import ValidationError
 
 from odoo.addons.payment_tilopay import const
@@ -16,6 +16,13 @@ _logger = logging.getLogger(__name__)
 
 class PaymentTransaction(models.Model):
     _inherit = 'payment.transaction'
+
+    tilopay_payment_url = fields.Char(
+        string="TiloPay Payment URL",
+        readonly=True,
+        copy=False,
+        help="URL where customer completes payment on the TiloPay hosted page.",
+    )
 
     # --- Business methods ---
 
@@ -69,9 +76,10 @@ class PaymentTransaction(models.Model):
             'returnData': 'tilopay',
         }
 
+        log_payload = {**payload, 'key': '***'}
         _logger.info(
             "Sending processPayment request for tx %s:\n%s",
-            self.reference, pprint.pformat(payload),
+            self.reference, pprint.pformat(log_payload),
         )
 
         # Step 3: Call processPayment

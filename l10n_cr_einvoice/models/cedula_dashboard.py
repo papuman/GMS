@@ -550,7 +550,7 @@ class L10nCrCedulaDashboard(models.AbstractModel):
         <h3>Cache Health</h3>
         <ul>
             <li><strong>Total Cached Entries:</strong> {cache_health['total_cached']}</li>
-            <li><strong>Fresh (0-7 days):</strong> {cache_health['fresh_count']} ({cache_health['fresh_count'] / cache_health['total_cached'] * 100:.1f}%)</li>
+            <li><strong>Fresh (0-7 days):</strong> {cache_health['fresh_count']} ({(cache_health['fresh_count'] / cache_health['total_cached'] * 100) if cache_health['total_cached'] else 0:.1f}%)</li>
             <li><strong>Refresh Needed (5-7 days):</strong> {cache_health['refresh_needed']}</li>
             <li><strong>Stale (7-90 days):</strong> {cache_health['stale_count']}</li>
             <li><strong>Expired (>90 days):</strong> {cache_health['expired_count']}</li>
@@ -629,7 +629,7 @@ class L10nCrCedulaDashboard(models.AbstractModel):
         <ul>
             <li><strong>Total Lookups:</strong> {usage_month['total_lookups']}</li>
             <li><strong>Unique Cédulas:</strong> {usage_month['unique_cedulas']}</li>
-            <li><strong>Cache Hits:</strong> {usage_month['cache_hits']} ({usage_month['cache_hits'] / usage_month['total_lookups'] * 100:.1f}%)</li>
+            <li><strong>Cache Hits:</strong> {usage_month['cache_hits']} ({(usage_month['cache_hits'] / usage_month['total_lookups'] * 100) if usage_month['total_lookups'] else 0:.1f}%)</li>
             <li><strong>API Calls:</strong> {usage_month['api_calls']}</li>
             <li><strong>Average Lookups/Day:</strong> {usage_month['avg_lookups_per_day']}</li>
         </ul>
@@ -710,7 +710,7 @@ class L10nCrCedulaDashboard(models.AbstractModel):
         if cache_health['expired_count'] > cache_health['total_cached'] * 0.2:
             alerts.append({
                 'severity': 'warning',
-                'message': f"High expired entry count: {cache_health['expired_count']} ({cache_health['expired_count'] / cache_health['total_cached'] * 100:.1f}%)",
+                'message': f"High expired entry count: {cache_health['expired_count']} ({(cache_health['expired_count'] / cache_health['total_cached'] * 100) if cache_health['total_cached'] else 0:.1f}%)",
                 'recommendation': 'Run cache purge job to clean up expired entries',
             })
 

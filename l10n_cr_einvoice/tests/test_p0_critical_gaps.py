@@ -542,11 +542,16 @@ class TestTokenCacheLifecycle(EInvoiceTestCase):
         from odoo.addons.l10n_cr_einvoice.models import hacienda_api
 
         # Seed cache with expired access_token but valid refresh_token
+        # Include credential_hash so the cache entry isn't invalidated
+        cred_hash = hacienda_api.HaciendaAPI._credential_hash(
+            self.company.l10n_cr_active_username
+        )
         hacienda_api._TOKEN_CACHE[self.company.id] = {
             'access_token': 'old_token',
             'refresh_token': 'valid_refresh',
             'expires_at': time.time() - 100,       # Expired
             'refresh_expires_at': time.time() + 3600,  # Still valid
+            'credential_hash': cred_hash,
         }
 
         # Mock refresh grant
@@ -562,11 +567,15 @@ class TestTokenCacheLifecycle(EInvoiceTestCase):
         """Both tokens expired → full password grant."""
         from odoo.addons.l10n_cr_einvoice.models import hacienda_api
 
+        cred_hash = hacienda_api.HaciendaAPI._credential_hash(
+            self.company.l10n_cr_active_username
+        )
         hacienda_api._TOKEN_CACHE[self.company.id] = {
             'access_token': 'old',
             'refresh_token': 'old_refresh',
             'expires_at': time.time() - 100,
             'refresh_expires_at': time.time() - 50,  # Also expired
+            'credential_hash': cred_hash,
         }
 
         mock_post.return_value = self._mock_token_response(access_token='fresh')
@@ -581,11 +590,15 @@ class TestTokenCacheLifecycle(EInvoiceTestCase):
         """If refresh_token grant fails, fall back to password grant."""
         from odoo.addons.l10n_cr_einvoice.models import hacienda_api
 
+        cred_hash = hacienda_api.HaciendaAPI._credential_hash(
+            self.company.l10n_cr_active_username
+        )
         hacienda_api._TOKEN_CACHE[self.company.id] = {
             'access_token': 'old',
             'refresh_token': 'stale_refresh',
             'expires_at': time.time() - 100,
             'refresh_expires_at': time.time() + 3600,
+            'credential_hash': cred_hash,
         }
 
         # First call = refresh (fails), second call = password (succeeds)
@@ -606,11 +619,15 @@ class TestTokenCacheLifecycle(EInvoiceTestCase):
         """force_refresh=True always does a full password grant."""
         from odoo.addons.l10n_cr_einvoice.models import hacienda_api
 
+        cred_hash = hacienda_api.HaciendaAPI._credential_hash(
+            self.company.l10n_cr_active_username
+        )
         hacienda_api._TOKEN_CACHE[self.company.id] = {
             'access_token': 'cached',
             'refresh_token': 'refresh',
             'expires_at': time.time() + 9999,  # Still valid
             'refresh_expires_at': time.time() + 9999,
+            'credential_hash': cred_hash,
         }
 
         mock_post.return_value = self._mock_token_response(access_token='forced_new')

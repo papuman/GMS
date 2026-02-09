@@ -254,10 +254,10 @@ class XSDValidator(models.AbstractModel):
             return True, ''
         except etree.XMLSchemaParseError as e:
             _logger.error('XSD schema parsing error for %s: %s', document_type, str(e))
-            return True, 'Schema parse error: %s' % str(e)
+            return False, 'Schema parse error: %s' % str(e)
         except Exception as e:
             _logger.error('Unexpected XSD validation error: %s', str(e))
-            return True, 'Unexpected: %s' % str(e)
+            return False, 'Unexpected: %s' % str(e)
 
     @api.model
     def _get_xsd_path(self, document_type):

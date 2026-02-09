@@ -10,6 +10,36 @@ from odoo.tools.safe_eval import safe_eval
 
 _logger = logging.getLogger(__name__)
 
+# Attributes blocked on records passed to safe_eval expressions to prevent
+# arbitrary ORM access (e.g. record.env.cr.execute(...)).
+_BLOCKED_RECORD_ATTRS = frozenset({
+    'env', 'sudo', 'write', 'create', 'unlink', 'search', 'with_user',
+    'with_company', 'with_context', '_cr', 'pool',
+})
+
+
+class SafeRecordProxy:
+    """Read-only proxy that blocks env/ORM-mutation access on records
+    passed into safe_eval validation expressions."""
+
+    __slots__ = ('_record',)
+
+    def __init__(self, record):
+        object.__setattr__(self, '_record', record)
+
+    def __getattr__(self, name):
+        if name in _BLOCKED_RECORD_ATTRS:
+            raise AttributeError(
+                f"Access to '{name}' is not allowed in validation expressions"
+            )
+        return getattr(object.__getattribute__(self, '_record'), name)
+
+    def __setattr__(self, name, value):
+        raise AttributeError("Record modification is not allowed in validation expressions")
+
+    def __bool__(self):
+        return bool(object.__getattribute__(self, '_record'))
+
 
 class L10nCRValidationRule(models.Model):
     """
@@ -609,11 +639,12 @@ class L10nCRValidationRule(models.Model):
                 return (False, 'Custom expression not specified')
 
             # Build evaluation context
-            # NOTE: 'env' intentionally excluded for security - prevents
-            # arbitrary ORM access via safe_eval expressions.
-            # Use specific, safe builtins instead.
+            # NOTE: record is wrapped in SafeRecordProxy to block access
+            # to env, sudo, write, create, unlink, search and other ORM
+            # mutation/escalation attributes.  This prevents validation
+            # expressions from performing arbitrary database operations.
             eval_context = {
-                'record': record,
+                'record': SafeRecordProxy(record),
                 'value': value,
                 'date': date,
                 'datetime': datetime,

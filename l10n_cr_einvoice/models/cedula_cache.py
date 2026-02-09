@@ -124,9 +124,9 @@ class L10nCrCedulaCache(models.Model):
         ('expired', 'Expired (>90 days)'),
     ],
         compute='_compute_cache_tier',
-        store=True,
         string='Cache Tier',
-        help='Computed cache freshness tier based on age'
+        help='Computed cache freshness tier based on age. '
+             'Computed on-the-fly since it derives from elapsed time.'
     )
 
     fetched_at = fields.Datetime(
@@ -167,16 +167,16 @@ class L10nCrCedulaCache(models.Model):
 
     cache_age_hours = fields.Float(
         compute='_compute_cache_age',
-        store=True,
         string='Cache Age (Hours)',
-        help='Time elapsed since last refresh (in hours)'
+        help='Time elapsed since last refresh (in hours). '
+             'Computed on-the-fly to always reflect current time.'
     )
 
     cache_age_days = fields.Integer(
         compute='_compute_cache_age',
-        store=True,
         string='Cache Age (Days)',
-        help='Time elapsed since last refresh (in days)'
+        help='Time elapsed since last refresh (in days). '
+             'Computed on-the-fly to always reflect current time.'
     )
 
     # =============================================================================
@@ -419,6 +419,9 @@ class L10nCrCedulaCache(models.Model):
         ], limit=1)
         if existing_cron:
             return  # Already scheduled
+        # Odoo 19 ir.cron no longer has 'numbercall' / 'doall'.
+        # Create a recurring cron that deactivates itself after first run
+        # (refresh_from_api handles self-deactivation).
         self.env['ir.cron'].sudo().create({
             'name': f'Refresh cédula cache: {self.cedula}',
             'model_id': self.env['ir.model']._get_id('l10n_cr.cedula.cache'),
@@ -426,8 +429,6 @@ class L10nCrCedulaCache(models.Model):
             'code': f'model.browse({self.id}).refresh_from_api()',
             'interval_type': 'minutes',
             'interval_number': 1,
-            'numbercall': 1,  # Run only once
-            'doall': False,
         })
         _logger.info('Enqueued refresh job for cédula %s', self.cedula)
 
@@ -472,6 +473,14 @@ class L10nCrCedulaCache(models.Model):
                 'Exception refreshing cédula %s from API: %s',
                 self.cedula, str(e), exc_info=True
             )
+        finally:
+            # Deactivate the one-shot cron so it doesn't run again
+            cron = self.env['ir.cron'].sudo().search([
+                ('name', '=', f'Refresh cédula cache: {self.cedula}'),
+                ('active', '=', True),
+            ], limit=1)
+            if cron:
+                cron.active = False
 
     # =============================================================================
     # CACHE UPDATE METHODS

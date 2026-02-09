@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import base64
+import hashlib
 import json
 import logging
 import requests
@@ -17,7 +18,7 @@ MAX_RETRY_ATTEMPTS = 3
 INITIAL_RETRY_DELAY = 2  # seconds
 RETRY_BACKOFF_FACTOR = 2  # exponential backoff multiplier
 
-# Token cache: {company_id: {'access_token': str, 'refresh_token': str, 'expires_at': float, 'refresh_expires_at': float}}
+# Token cache: {company_id: {'access_token': str, 'refresh_token': str, 'expires_at': float, 'refresh_expires_at': float, 'credential_hash': str}}
 _TOKEN_CACHE = {}
 _TOKEN_CACHE_LOCK = threading.Lock()
 
@@ -93,20 +94,28 @@ class HaciendaAPI(models.AbstractModel):
             raise UserError(_('Hacienda API credentials not configured. Please check company settings.'))
 
         now = time.time()
+        current_cred_hash = self._credential_hash(company.l10n_cr_active_username)
 
         # Check cached token (unless forced refresh)
         with _TOKEN_CACHE_LOCK:
             if not force_refresh and company_id in _TOKEN_CACHE:
                 cached = _TOKEN_CACHE[company_id]
-                # Return cached access token if still valid
-                if cached.get('expires_at', 0) > now:
-                    return cached['access_token']
 
-                # Try refresh token grant if refresh token is still valid
-                if cached.get('refresh_token') and cached.get('refresh_expires_at', 0) > now:
-                    refresh_token = cached['refresh_token']
-                else:
+                # Invalidate cache if credentials changed (C2 fix)
+                if cached.get('credential_hash') != current_cred_hash:
+                    _logger.info('Credentials changed for company %s, invalidating token cache', company_id)
+                    _TOKEN_CACHE.pop(company_id, None)
                     refresh_token = None
+                else:
+                    # Return cached access token if still valid
+                    if cached.get('expires_at', 0) > now:
+                        return cached['access_token']
+
+                    # Try refresh token grant if refresh token is still valid
+                    if cached.get('refresh_token') and cached.get('refresh_expires_at', 0) > now:
+                        refresh_token = cached['refresh_token']
+                    else:
+                        refresh_token = None
             else:
                 refresh_token = None
 
@@ -186,7 +195,8 @@ class HaciendaAPI(models.AbstractModel):
 
     @api.model
     def _cache_token(self, company_id, token_data):
-        """Cache token data with computed expiration timestamps."""
+        """Cache token data with computed expiration timestamps and credential hash."""
+        company = self.env.company
         now = time.time()
         expires_in = token_data.get('expires_in', 300)
         refresh_expires_in = token_data.get('refresh_expires_in', 1800)
@@ -197,6 +207,7 @@ class HaciendaAPI(models.AbstractModel):
                 'refresh_token': token_data.get('refresh_token', ''),
                 'expires_at': now + expires_in - 30,  # 30 second safety margin
                 'refresh_expires_at': now + refresh_expires_in - 30,
+                'credential_hash': self._credential_hash(company.l10n_cr_active_username),
             }
 
     @api.model
@@ -207,6 +218,18 @@ class HaciendaAPI(models.AbstractModel):
                 _TOKEN_CACHE.pop(company_id, None)
             else:
                 _TOKEN_CACHE.clear()
+
+    @staticmethod
+    def _credential_hash(username):
+        """Return a short hash of the username for cache invalidation on credential change."""
+        return hashlib.sha256((username or '').encode()).hexdigest()[:16]
+
+    @classmethod
+    def invalidate_token_cache(cls, company_id):
+        """Invalidate the token cache for a company. Call when API credentials are written."""
+        with _TOKEN_CACHE_LOCK:
+            _TOKEN_CACHE.pop(company_id, None)
+        _logger.info('Token cache invalidated for company %s due to credential change', company_id)
 
     @api.model
     def _get_auth_headers(self):
@@ -1044,9 +1067,17 @@ class HaciendaAPI(models.AbstractModel):
 
             # Wait before retrying (except on last attempt)
             if attempt < MAX_RETRY_ATTEMPTS:
-                _logger.info(f'Retrying in {retry_delay} seconds...')
-                time.sleep(retry_delay)
-                retry_delay = retry_delay * RETRY_BACKOFF_FACTOR  # Exponential backoff
+                is_cron = self.env.context.get('cron', False)
+                if is_cron:
+                    # Cron/background jobs: full exponential backoff is acceptable
+                    _logger.info(f'Retrying in {retry_delay} seconds...')
+                    time.sleep(retry_delay)
+                    retry_delay = retry_delay * RETRY_BACKOFF_FACTOR  # Exponential backoff
+                else:
+                    # User-facing request: don't block the worker thread with sleep.
+                    # Fail fast after first retryable error so the user gets feedback quickly.
+                    _logger.info('User-facing request -- skipping retry sleep, raising immediately')
+                    break
 
         # All retries exhausted
         error_message = _('Falló después de %d intentos. Último error: %s') % (MAX_RETRY_ATTEMPTS, last_error)

@@ -364,8 +364,9 @@ class TestTaxReportAPIIntegration(EInvoiceTestCase):
 
         mock_post.side_effect = [mock_token_response, mock_response_error, mock_token_response, mock_response_success]
 
-        # Submit (should retry and succeed)
-        d150.action_submit_to_hacienda()
+        # Submit with cron context so exponential backoff retry is exercised
+        # (user-facing requests skip retry sleep for fast feedback)
+        d150.with_context(cron=True).action_submit_to_hacienda()
 
         # Should succeed after retry
         self.assertEqual(d150.state, 'submitted')

@@ -4,6 +4,7 @@ import logging
 import pprint
 
 from odoo import http
+from odoo.exceptions import ValidationError
 from odoo.http import request
 
 from odoo.addons.payment_tilopay import const
@@ -65,7 +66,7 @@ class TilopayController(http.Controller):
         # Verify HMAC hash
         try:
             tx_sudo._tilopay_verify_hash(data)
-        except Exception:
+        except ValidationError:
             _logger.exception("Tilopay hash verification failed for tx %s", tx_sudo.reference)
             return
 

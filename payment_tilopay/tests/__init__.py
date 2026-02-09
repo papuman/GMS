@@ -30,7 +30,4 @@ try:
 except ImportError as e:
     _logger.warning("Skipping test_tilopay_payment_transaction: %s", e)
 
-try:
-    from . import test_tilopay_webhook
-except ImportError as e:
-    _logger.warning("Skipping test_tilopay_webhook: %s", e)
+from . import test_tilopay_webhook
