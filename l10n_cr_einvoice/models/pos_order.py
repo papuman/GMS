@@ -102,10 +102,10 @@ class PosOrder(models.Model):
         fields['l10n_cr_is_einvoice'] = ui_order.get('l10n_cr_is_einvoice', False)
         fields['einvoice_type'] = ui_order.get('einvoice_type', 'TE')
 
-        # Customer snapshot fields from POS UI
-        fields['l10n_cr_customer_id_number'] = ui_order.get('l10n_cr_customer_id_number', '')
-        fields['l10n_cr_customer_name'] = ui_order.get('l10n_cr_customer_name', '')
-        fields['l10n_cr_customer_email'] = ui_order.get('l10n_cr_customer_email', '')
+        # NOTE: Do NOT set l10n_cr_customer_id_number/name/email here.
+        # These are related+store=True fields that auto-populate from partner_id.
+        # Writing to them in _order_fields would propagate back to the partner
+        # record, corrupting partner data instead of snapshotting it.
 
         return fields
 

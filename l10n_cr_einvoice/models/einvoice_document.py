@@ -459,10 +459,9 @@ class EInvoiceDocument(models.Model):
         except Exception as e:
             error_msg = str(e)
             _logger.error(f'Error generating XML for {self.name}: {error_msg}')
-            self.write({
-                'state': 'generation_error',
-                'error_message': error_msg,
-            })
+            # Persist error state in a separate cursor so it survives the
+            # transaction rollback triggered by UserError.
+            self._write_error_state_safe('generation_error', error_msg)
             raise UserError(_('Error generating XML: %s') % error_msg)
 
     def action_sign_xml(self):
@@ -515,10 +514,7 @@ class EInvoiceDocument(models.Model):
         except Exception as e:
             error_msg = str(e)
             _logger.error(f'Error signing XML for {self.name}: {error_msg}')
-            self.write({
-                'state': 'signing_error',
-                'error_message': error_msg,
-            })
+            self._write_error_state_safe('signing_error', error_msg)
             raise UserError(_('Error signing XML: %s') % error_msg)
 
     def _validate_before_submission(self):
@@ -652,11 +648,10 @@ class EInvoiceDocument(models.Model):
         except Exception as e:
             error_msg = str(e)
             _logger.error(f'Error submitting {self.name} to Hacienda: {error_msg}')
-            self.write({
-                'state': 'submission_error',
-                'error_message': error_msg,
-                'retry_count': self.retry_count + 1,
-            })
+            self._write_error_state_safe(
+                'submission_error', error_msg,
+                extra_vals={'retry_count': self.retry_count + 1},
+            )
             raise UserError(_('Error submitting to Hacienda: %s') % error_msg)
 
     def action_check_status(self):
@@ -1170,6 +1165,38 @@ class EInvoiceDocument(models.Model):
         except Exception as e:
             _logger.warning("Failed to parse MensajeHacienda XML: %s", str(e))
             return {}
+
+    def _write_error_state_safe(self, state, error_msg, extra_vals=None):
+        """Write error state using a separate DB cursor so it survives rollback.
+
+        When a UserError is raised after writing error state, Odoo rolls back
+        the entire transaction — erasing the error state we just wrote. This
+        method uses a fresh cursor to persist the error state independently,
+        so the document shows the correct error even after rollback.
+        """
+        vals = {'state': state, 'error_message': error_msg}
+        if extra_vals:
+            vals.update(extra_vals)
+        try:
+            registry = self.env.registry
+            with registry.cursor() as new_cr:
+                new_cr.execute(
+                    """UPDATE l10n_cr_einvoice_document
+                       SET state = %s, error_message = %s, write_date = NOW()
+                       WHERE id = %s""",
+                    (state, error_msg, self.id),
+                )
+                if extra_vals and 'retry_count' in extra_vals:
+                    new_cr.execute(
+                        """UPDATE l10n_cr_einvoice_document
+                           SET retry_count = %s WHERE id = %s""",
+                        (extra_vals['retry_count'], self.id),
+                    )
+        except Exception:
+            _logger.warning(
+                'Failed to persist error state for %s via separate cursor',
+                self.name, exc_info=True,
+            )
 
     def _process_hacienda_response(self, response):
         """
