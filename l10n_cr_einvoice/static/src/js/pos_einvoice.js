@@ -1,10 +1,11 @@
 /** @odoo-module **/
 
 import { PaymentScreen } from "@point_of_sale/app/screens/payment_screen/payment_screen";
+import { ReceiptScreen } from "@point_of_sale/app/screens/receipt_screen/receipt_screen";
 import { PosOrder } from "@point_of_sale/app/models/pos_order";
 import { patch } from "@web/core/utils/patch";
 import { useService } from "@web/core/utils/hooks";
-import { onMounted } from "@odoo/owl";
+import { onMounted, useState } from "@odoo/owl";
 import { _t } from "@web/core/l10n/translation";
 import { AlertDialog } from "@web/core/confirmation_dialog/confirmation_dialog";
 
@@ -50,7 +51,7 @@ patch(PosOrder.prototype, {
         }
 
         // After Oct 6, 2025: CIIU code required
-        if (new Date() >= CIIU_MANDATORY_DATE && !partner.l10n_cr_economic_activity_id) {
+        if (new Date() >= CIIU_MANDATORY_DATE && !partner.l10n_cr_activity_code) {
             return false;
         }
 
@@ -96,7 +97,12 @@ patch(PosOrder.prototype, {
 });
 
 /**
- * Patch PaymentScreen for E-Invoice UI controls
+ * Patch PaymentScreen for E-Invoice UI controls.
+ *
+ * POS model records are NOT individually reactive (only RecordStore is).
+ * Direct property assignment (order.field = value) doesn't trigger re-renders.
+ * We use useState() to create a reactive trigger — when einvoiceState changes,
+ * the component re-renders, re-evaluating canBeValidated() with the updated values.
  */
 patch(PaymentScreen.prototype, {
     setup() {
@@ -104,27 +110,35 @@ patch(PaymentScreen.prototype, {
         this.notification = useService("notification");
         this.dialog = useService("dialog");
 
-        onMounted(() => {
-            const order = this.currentOrder;
-            if (order) {
-                // Default is NO e-invoice (user must explicitly enable)
-                if (order.l10n_cr_is_einvoice === undefined) {
-                    order.l10n_cr_is_einvoice = false;
-                }
+        // Reactive state for e-invoice UI — drives component re-renders
+        const order = this.currentOrder;
+        const enabled = order ? (order.l10n_cr_is_einvoice || false) : false;
+        let type = 'TE';
+        if (enabled && order) {
+            const partner = order.getPartner();
+            type = (partner && partner.vat) ? 'FE' : 'TE';
+        }
+        this.einvoiceState = useState({ enabled, type });
 
-                // Smart default for document type
-                if (order.l10n_cr_is_einvoice && !order.einvoice_type) {
-                    const partner = order.getPartner();
-                    order.einvoice_type = (partner && partner.vat) ? 'FE' : 'TE';
-                }
-            }
-        });
+        // Sync initial state to order
+        if (order) {
+            order.l10n_cr_is_einvoice = this.einvoiceState.enabled;
+            order.einvoice_type = this.einvoiceState.type;
+        }
+    },
+
+    get einvoiceEnabled() {
+        return this.einvoiceState.enabled;
+    },
+
+    get einvoiceType() {
+        return this.einvoiceState.type;
     },
 
     async validateOrder(isForceValidate) {
         // Check e-invoice requirements before proceeding
         const order = this.currentOrder;
-        if (order && order.l10n_cr_is_einvoice && order.einvoice_type === 'FE') {
+        if (order && this.einvoiceState.enabled && this.einvoiceState.type === 'FE') {
             const partner = order.getPartner();
             const missing = [];
 
@@ -135,7 +149,7 @@ patch(PaymentScreen.prototype, {
                 if (!partner.vat) missing.push(_t('Cédula / Tax ID'));
                 if (!partner.email) missing.push(_t('Email Address'));
                 // Only check CIIU after Oct 6, 2025
-                if (new Date() >= CIIU_MANDATORY_DATE && !partner.l10n_cr_economic_activity_id) {
+                if (new Date() >= CIIU_MANDATORY_DATE && !partner.l10n_cr_activity_code) {
                     missing.push(_t('Economic Activity (CIIU Code)'));
                 }
             }
@@ -155,20 +169,64 @@ patch(PaymentScreen.prototype, {
 
     toggleEinvoiceEnabled() {
         const order = this.currentOrder;
-        order.l10n_cr_is_einvoice = !order.l10n_cr_is_einvoice;
+        const newEnabled = !this.einvoiceState.enabled;
+        let newType = this.einvoiceState.type;
 
-        if (order.l10n_cr_is_einvoice) {
+        if (newEnabled) {
             // Just enabled - set document type based on partner
             const partner = order.getPartner();
-            order.einvoice_type = (partner && partner.vat) ? 'FE' : 'TE';
+            newType = (partner && partner.vat) ? 'FE' : 'TE';
         }
+
+        // Update reactive state (triggers re-render → canBeValidated() re-evaluated)
+        this.einvoiceState.enabled = newEnabled;
+        this.einvoiceState.type = newType;
+
+        // Sync to order for persistence/serialization
+        order.l10n_cr_is_einvoice = newEnabled;
+        order.einvoice_type = newType;
     },
 
     selectTiquete() {
+        this.einvoiceState.type = 'TE';
         this.currentOrder.einvoice_type = 'TE';
     },
 
     selectFactura() {
+        this.einvoiceState.type = 'FE';
         this.currentOrder.einvoice_type = 'FE';
+    },
+});
+
+/**
+ * Patch ReceiptScreen to show e-invoice feedback notification.
+ * After order sync, Hacienda has already responded (synchronous flow).
+ * We fetch the result and show a toast: green=accepted, red=rejected, etc.
+ */
+patch(ReceiptScreen.prototype, {
+    setup() {
+        super.setup();
+
+        onMounted(async () => {
+            const order = this.currentOrder;
+            if (order && order.l10n_cr_is_einvoice) {
+                await this._showEinvoiceFeedback(order);
+            }
+        });
+    },
+
+    async _showEinvoiceFeedback(order) {
+        try {
+            const result = await this.pos.data.call(
+                "pos.order",
+                "get_einvoice_feedback",
+                [[order.id]]
+            );
+            if (result && result.message) {
+                this.notification.add(result.message, { type: result.type });
+            }
+        } catch {
+            // Silent fail — never block the receipt screen
+        }
     },
 });

@@ -183,6 +183,65 @@ class PosOrder(models.Model):
         if self.l10n_cr_einvoice_document_id:
             return self.l10n_cr_einvoice_document_id.action_submit_to_hacienda()
 
+    def get_einvoice_feedback(self):
+        """Return e-invoice notification data for POS ReceiptScreen.
+
+        Called via RPC from ReceiptScreen after order sync to show
+        a toast notification about the Hacienda submission result.
+
+        Returns:
+            dict: {type: 'success'|'danger'|'warning'|'info', message: str}
+                  or empty dict if no e-invoice on this order.
+        """
+        self.ensure_one()
+        if not self.l10n_cr_is_einvoice or not self.l10n_cr_einvoice_document_id:
+            return {}
+
+        doc = self.l10n_cr_einvoice_document_id
+        doc_label = 'Factura Electrónica' if doc.document_type == 'FE' else 'Tiquete Electrónico'
+
+        if doc.state == 'accepted':
+            return {'type': 'success', 'message': '%s aceptada por Hacienda' % doc_label}
+        elif doc.state == 'rejected':
+            reason = self._map_hacienda_error_for_pos(doc.error_message or '')
+            return {'type': 'danger', 'message': '%s rechazada: %s' % (doc_label, reason)}
+        elif doc.state in ('submitted', 'signed'):
+            return {'type': 'info', 'message': '%s enviada a Hacienda' % doc_label}
+        elif doc.state == 'error':
+            reason = self._map_hacienda_error_for_pos(doc.error_message or '')
+            return {'type': 'warning', 'message': 'Error enviando %s: %s' % (doc_label, reason)}
+        return {}
+
+    def _map_hacienda_error_for_pos(self, error_message):
+        """Map Hacienda technical errors to plain-language Spanish for POS cashiers.
+
+        Cashiers can't fix technical issues, so we translate errors into
+        actionable messages or generic "contact admin" fallbacks.
+        """
+        msg = (error_message or '').lower()
+
+        MAPPING = [
+            ('identificacion', 'Falta cédula del cliente'),
+            ('receptor', 'Datos del cliente incompletos'),
+            ('duplicad', 'Factura duplicada'),
+            ('certificado', 'Certificado vencido - contacte administrador'),
+            ('firma', 'Error de firma - contacte administrador'),
+            ('xml', 'Error interno - contacte administrador'),
+            ('esquema', 'Error interno - contacte administrador'),
+            ('no disponible', 'Hacienda no disponible - se reintentará'),
+            ('timeout', 'Hacienda no disponible - se reintentará'),
+            ('connection', 'Sin conexión a Hacienda - se reintentará'),
+        ]
+
+        for keyword, friendly_msg in MAPPING:
+            if keyword in msg:
+                return friendly_msg
+
+        # Fallback: truncate for POS display
+        if error_message and len(error_message) > 80:
+            return error_message[:77] + '...'
+        return error_message or 'Error desconocido'
+
     def action_generate_einvoice_retroactive(self, partner_id=None, partner_vat=None, partner_email=None):
         """
         Generate e-invoice after order completion.
