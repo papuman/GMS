@@ -9,6 +9,7 @@ _logger = logging.getLogger(__name__)
 
 class CIIUCode(models.Model):
     _name = 'l10n_cr.ciiu.code'
+    _inherit = ['pos.load.mixin']
     _description = 'CIIU 4 Economic Activity Codes for Costa Rica'
     _order = 'code'
     _rec_name = 'complete_name'
@@ -73,6 +74,16 @@ class CIIUCode(models.Model):
     )
 
     _code_unique = models.Constraint('unique(code)', 'CIIU code must be unique!')
+
+    # ===== POS DATA LOADING =====
+
+    @api.model
+    def _load_pos_data_fields(self, config):
+        return ['code', 'name', 'complete_name']
+
+    @api.model
+    def _load_pos_data_domain(self, data, config):
+        return [('active', '=', True)]
 
     @api.depends('code', 'name')
     def _compute_complete_name(self):
