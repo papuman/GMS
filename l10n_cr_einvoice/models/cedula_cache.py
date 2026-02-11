@@ -560,6 +560,9 @@ class L10nCrCedulaCache(models.Model):
         """
         Attempt to match primary activity code to CIIU catalog.
 
+        Hacienda returns 6-digit codes (e.g., 931100) but our CIIU catalog
+        stores 4-digit codes (e.g., 9311). We truncate to 4 digits for matching.
+
         If match found, link to l10n_cr.ciiu.code record.
         """
         self.ensure_one()
@@ -567,16 +570,21 @@ class L10nCrCedulaCache(models.Model):
         if not self.primary_activity:
             return
 
+        # Strip decimal (e.g., "4690.0" → "4690"), then truncate to 4 digits if needed
+        code = self.primary_activity.split('.')[0]
+        if len(code) > 4:
+            code = code[:4]
+
         # Search CIIU catalog
         ciiu = self.env['l10n_cr.ciiu.code'].search([
-            ('code', '=', self.primary_activity),
+            ('code', '=', code),
         ], limit=1)
 
         if ciiu:
             self.ciiu_code_id = ciiu
             _logger.debug(
-                'Auto-assigned CIIU %s to cédula %s',
-                ciiu.code, self.cedula
+                'Auto-assigned CIIU %s to cédula %s (from Hacienda code %s)',
+                ciiu.code, self.cedula, self.primary_activity
             )
 
     # =============================================================================

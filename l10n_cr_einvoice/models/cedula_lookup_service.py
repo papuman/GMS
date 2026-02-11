@@ -595,7 +595,10 @@ class CedulaLookupService(models.AbstractModel):
         economic_activities = api_result.get('economic_activities', [])
         primary_activity = None
         if economic_activities:
-            primary_activity = economic_activities[0].get('code')
+            raw_code = economic_activities[0].get('code', '')
+            # Hacienda returns decimal codes (e.g., "4690.0"), strip decimal part
+            if raw_code:
+                primary_activity = raw_code.split('.')[0]
 
         return {
             'cedula': cedula,
@@ -603,7 +606,7 @@ class CedulaLookupService(models.AbstractModel):
             'company_type': self._infer_company_type(api_result.get('tax_regime', '')),
             'tax_regime': api_result.get('tax_regime', ''),
             'tax_status': 'inscrito',  # If API returns data, it's active
-            'economic_activities': economic_activities,
+            'economic_activities': economic_activities,  # Keep full 6-digit codes for XML
             'primary_activity': primary_activity,
             'raw_response': json.dumps(api_result.get('raw_data', {})),
         }
@@ -640,7 +643,10 @@ class CedulaLookupService(models.AbstractModel):
 
         primary_activity = None
         if economic_activities:
-            primary_activity = economic_activities[0].get('code')
+            raw_code = economic_activities[0].get('code', '')
+            # GoMeta returns decimal codes (e.g., "4690.0"), strip decimal part
+            if raw_code:
+                primary_activity = raw_code.split('.')[0]
 
         return {
             'cedula': cedula,
@@ -648,7 +654,7 @@ class CedulaLookupService(models.AbstractModel):
             'company_type': 'other',  # GoMeta doesn't provide detailed type
             'tax_regime': api_data.get('regimen', {}).get('descripcion', '') if isinstance(api_data.get('regimen'), dict) else '',
             'tax_status': 'inscrito',
-            'economic_activities': economic_activities,
+            'economic_activities': economic_activities,  # Keep full codes for XML
             'primary_activity': primary_activity,
             'raw_response': json.dumps(api_data),
         }

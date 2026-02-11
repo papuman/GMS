@@ -281,25 +281,21 @@
         </field>
     </record>
 
-    <!-- TODO: CIIU Code Search View needs deeper Odoo 19 investigation -->
-    <!-- Commenting out - has validation issues beyond expand attribute -->
-    <!--
     <record id="view_ciiu_code_search" model="ir.ui.view">
         <field name="name">l10n_cr.ciiu.code.search</field>
         <field name="model">l10n_cr.ciiu.code</field>
         <field name="arch" type="xml">
             <search string="CIIU Codes">
-                <field name="code"/>
-                <field name="name"/>
-                <field name="section"/>
+                <field name="code" string="Code"/>
+                <field name="name" string="Activity Name"/>
+                <field name="complete_name" string="Full Name"/>
                 <filter name="active" string="Active" domain="[('active', '=', True)]"/>
                 <filter name="inactive" string="Archived" domain="[('active', '=', False)]"/>
                 <separator/>
-                    <filter name="group_by_section" string="Section" context="{'group_by': 'section'}"/>
+                <filter name="group_by_section" string="Section" context="{'group_by': 'section'}"/>
             </search>
         </field>
     </record>
-    -->
 
     <!-- CIIU Code Action -->
     <record id="action_ciiu_code" model="ir.actions.act_window">

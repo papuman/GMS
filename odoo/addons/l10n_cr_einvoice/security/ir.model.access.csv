@@ -1,4 +1,0 @@
-id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
-access_einvoice_document_user,einvoice.document.user,model_l10n_cr_einvoice_document,account.group_account_invoice,1,1,1,0
-access_einvoice_document_manager,einvoice.document.manager,model_l10n_cr_einvoice_document,account.group_account_manager,1,1,1,1
-access_einvoice_document_readonly,einvoice.document.readonly,model_l10n_cr_einvoice_document,account.group_account_readonly,1,0,0,0

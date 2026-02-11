@@ -987,20 +987,318 @@ class ResPartner(models.Model):
                 }
             }
 
-    @api.model
-    def _auto_lookup_on_vat_change(self):
+    def _resolve_ciiu_from_hacienda_code(self, hacienda_code):
         """
-        Auto-trigger cédula lookup when VAT is entered/changed.
+        Resolve a Hacienda activity code to a CIIU catalog record.
 
-        This is called from onchange handler in form view.
-        Returns suggestion to user without forcing update.
+        Hacienda returns 6-digit codes (e.g., 931100) but our CIIU catalog
+        stores 4-digit codes (e.g., 9311). This method:
+        1. Tries exact match first (handles pre-normalized 4-digit codes)
+        2. Truncates to 4 digits if exact match fails
+        3. Auto-creates the CIIU record if code is not in catalog
+
+        Args:
+            hacienda_code (str): Activity code from Hacienda (4 or 6 digits)
 
         Returns:
-            dict: {'warning': {...}} with lookup results
+            l10n_cr.ciiu.code record or False
         """
-        # This method is triggered by onchange in the view
-        # It's a non-blocking suggestion system
-        pass
+        if not hacienda_code:
+            return False
+
+        code = str(hacienda_code).strip()
+        if not code:
+            return False
+
+        # Strip decimal part first (e.g., "4690.0" → "4690")
+        code = code.split('.')[0]
+
+        # Truncate to 4 digits if still longer (e.g., "469000" → "4690")
+        if len(code) > 4:
+            code = code[:4]
+
+        CiiuCode = self.env['l10n_cr.ciiu.code']
+
+        # Try match with normalized code
+        ciiu = CiiuCode.search([('code', '=', code)], limit=1)
+        if ciiu:
+            return ciiu
+
+        # Auto-create if code not in catalog
+        # Infer CIIU section letter from division number (first 2 digits)
+        code_4 = code
+        if len(code_4) == 4 and code_4.isdigit():
+            section = self._infer_ciiu_section(code_4)
+            try:
+                ciiu = CiiuCode.sudo().create({
+                    'code': code_4,
+                    'name': f'Activity {code_4} (auto-created from Hacienda)',
+                    'section': section,
+                })
+                _logger.info(
+                    'Auto-created CIIU code %s (section %s) from Hacienda code %s',
+                    code_4, section, hacienda_code,
+                )
+                return ciiu
+            except Exception as e:
+                _logger.warning(
+                    'Failed to auto-create CIIU code %s: %s',
+                    code_4, str(e),
+                )
+
+        return False
+
+    @api.model
+    def _infer_ciiu_section(self, code):
+        """
+        Infer CIIU section letter from 4-digit code's division (first 2 digits).
+
+        Based on ISIC Rev.4 / CIIU Rev.4 structure.
+
+        Args:
+            code (str): 4-digit CIIU code
+
+        Returns:
+            str: Section letter (A-U)
+        """
+        division = int(code[:2])
+        # ISIC Rev.4 division → section mapping
+        if division <= 3:
+            return 'A'       # Agriculture
+        elif division <= 9:
+            return 'B'       # Mining
+        elif division <= 33:
+            return 'C'       # Manufacturing
+        elif division == 35:
+            return 'D'       # Electricity/Gas
+        elif division <= 39:
+            return 'E'       # Water/Waste
+        elif division <= 43:
+            return 'F'       # Construction
+        elif division <= 47:
+            return 'G'       # Wholesale/Retail
+        elif division <= 53:
+            return 'H'       # Transportation
+        elif division <= 56:
+            return 'I'       # Accommodation/Food
+        elif division <= 63:
+            return 'J'       # Information/Communication
+        elif division <= 66:
+            return 'K'       # Financial
+        elif division == 68:
+            return 'L'       # Real Estate
+        elif division <= 75:
+            return 'M'       # Professional/Scientific
+        elif division <= 82:
+            return 'N'       # Administrative
+        elif division == 84:
+            return 'O'       # Public Administration
+        elif division == 85:
+            return 'P'       # Education
+        elif division <= 88:
+            return 'Q'       # Health
+        elif division <= 93:
+            return 'R'       # Arts/Entertainment
+        elif division <= 96:
+            return 'S'       # Other Services
+        elif division <= 98:
+            return 'T'       # Households
+        elif division == 99:
+            return 'U'       # Extraterritorial
+        else:
+            return 'S'       # Default fallback
+
+    @api.onchange('vat')
+    def _onchange_vat_lookup_ciiu(self):
+        """
+        Auto-populate CIIU from cédula cache when VAT is entered.
+
+        Cache-only — no API calls, instant (<500ms).
+        If no cache entry exists, does nothing (user selects manually
+        or write/create hooks trigger API lookup on save).
+
+        Guards:
+        - Only for Costa Rica partners
+        - Only when VAT is a valid CR cédula (9-12 digits)
+        - Only when CIIU is not already set (don't overwrite)
+        - Silent failure on errors (never blocks the form)
+        """
+        if not self.vat:
+            return
+
+        # Guard: only for CR partners (or partners without country yet)
+        costa_rica = self.env.ref('base.cr', raise_if_not_found=False)
+        if self.country_id and costa_rica and self.country_id != costa_rica:
+            return
+
+        # Guard: validate cédula format (9-12 digits)
+        vat_clean = (self.vat or '').replace('-', '').replace(' ', '').strip()
+        if not vat_clean.isdigit() or len(vat_clean) < 9 or len(vat_clean) > 12:
+            return
+
+        # Guard: don't overwrite existing CIIU
+        if self.l10n_cr_economic_activity_id:
+            return
+
+        try:
+            # Cache-only lookup — no API calls
+            cache = self.env['l10n_cr.cedula.cache'].search([
+                ('cedula', '=', vat_clean),
+                ('company_id', '=', self.env.company.id),
+            ], limit=1)
+
+            if not cache:
+                return
+
+            # Auto-fill CIIU from cached primary activity
+            if cache.ciiu_code_id:
+                self.l10n_cr_economic_activity_id = cache.ciiu_code_id
+            elif cache.primary_activity:
+                ciiu = self._resolve_ciiu_from_hacienda_code(cache.primary_activity)
+                if ciiu:
+                    self.l10n_cr_economic_activity_id = ciiu
+
+            # Auto-fill name if empty
+            if not self.name and cache.name:
+                self.name = cache.name
+
+        except Exception:
+            # Silent failure — never block the form
+            _logger.debug(
+                'CIIU cache lookup failed for VAT %s (non-blocking)',
+                vat_clean, exc_info=True,
+            )
+
+    # =============================================================================
+    # WRITE/CREATE HOOKS FOR CIIU AUTO-POPULATE
+    # =============================================================================
+
+    @api.model_create_multi
+    def create(self, vals_list):
+        """Override create to auto-populate CIIU from API on partner creation."""
+        records = super().create(vals_list)
+        records._auto_populate_ciiu_on_save()
+        return records
+
+    def write(self, vals):
+        """Override write to auto-populate CIIU when VAT changes."""
+        result = super().write(vals)
+        # Only trigger if VAT was changed
+        if 'vat' in vals:
+            self._auto_populate_ciiu_on_save()
+        return result
+
+    def _auto_populate_ciiu_on_save(self):
+        """
+        Auto-populate CIIU from cache or GoMeta API when a partner is saved.
+
+        Called from create() and write() hooks. Only triggers when:
+        - Partner has a valid CR cédula
+        - CIIU is not already set
+        - Not in a recursive call (skip_ciiu_auto_populate context flag)
+
+        Strategy:
+        1. Check cache first (instant)
+        2. If no cache → single GoMeta API call (3s timeout, no retry)
+        3. Cache result for future instant lookups
+        4. If fails → leave empty silently
+        """
+        if self.env.context.get('skip_ciiu_auto_populate'):
+            return
+
+        costa_rica = self.env.ref('base.cr', raise_if_not_found=False)
+        if not costa_rica:
+            return
+
+        for partner in self:
+            # Guard: only for CR partners with VAT and no CIIU
+            if partner.l10n_cr_economic_activity_id:
+                continue
+            if partner.country_id and partner.country_id != costa_rica:
+                continue
+
+            vat_clean = (partner.vat or '').replace('-', '').replace(' ', '').strip()
+            if not vat_clean.isdigit() or len(vat_clean) < 9 or len(vat_clean) > 12:
+                continue
+
+            try:
+                ciiu = self._try_populate_ciiu_from_cache_or_api(partner, vat_clean)
+                if ciiu:
+                    partner.with_context(skip_ciiu_auto_populate=True).write({
+                        'l10n_cr_economic_activity_id': ciiu.id,
+                    })
+                    _logger.info(
+                        'Auto-populated CIIU %s for partner %s (VAT: %s)',
+                        ciiu.code, partner.name, vat_clean,
+                    )
+            except Exception:
+                _logger.debug(
+                    'CIIU auto-populate failed for partner %s (non-blocking)',
+                    partner.id, exc_info=True,
+                )
+
+    def _try_populate_ciiu_from_cache_or_api(self, partner, vat_clean):
+        """
+        Try to resolve CIIU code from cache, then GoMeta API.
+
+        Args:
+            partner: res.partner record
+            vat_clean: normalized cédula (digits only)
+
+        Returns:
+            l10n_cr.ciiu.code record or False
+        """
+        # Step 1: Check cache (instant)
+        cache = self.env['l10n_cr.cedula.cache'].search([
+            ('cedula', '=', vat_clean),
+            ('company_id', '=', partner.company_id.id or self.env.company.id),
+        ], limit=1)
+
+        if cache:
+            if cache.ciiu_code_id:
+                return cache.ciiu_code_id
+            if cache.primary_activity:
+                ciiu = self._resolve_ciiu_from_hacienda_code(cache.primary_activity)
+                if ciiu:
+                    return ciiu
+
+        # Step 2: Single GoMeta API call (3s timeout, no retry, no rate limiter)
+        import requests as _requests
+        try:
+            url = f'https://apis.gometa.org/cedulas/{vat_clean}'
+            resp = _requests.get(url, timeout=3)
+            if resp.status_code != 200:
+                return False
+
+            api_data = resp.json()
+            actividades = api_data.get('actividades', [])
+            if not actividades:
+                return False
+
+            raw_code = actividades[0].get('codigo', '')
+            if not raw_code:
+                return False
+
+            # Normalize: strip decimal part
+            code = str(raw_code).split('.')[0]
+            if len(code) > 4:
+                code = code[:4]
+
+            ciiu = self._resolve_ciiu_from_hacienda_code(code)
+
+            # Cache result for future instant lookups
+            try:
+                lookup_service = self.env['l10n_cr.cedula.lookup.service']
+                normalized = lookup_service._normalize_gometa_response(api_data, vat_clean)
+                lookup_service._save_to_cache(vat_clean, normalized, 'gometa')
+            except Exception:
+                _logger.debug('Failed to cache GoMeta result for %s', vat_clean)
+
+            return ciiu
+
+        except Exception:
+            _logger.debug('GoMeta API call failed for %s (non-blocking)', vat_clean)
+            return False
 
     def _apply_lookup_result(self, result):
         """
@@ -1023,11 +1321,9 @@ class ResPartner(models.Model):
         if not self.name and data.get('name'):
             updates['name'] = data['name']
 
-        # Update CIIU if empty and available
+        # Update CIIU if empty and available (uses resolver for 6→4 digit handling)
         if not self.l10n_cr_economic_activity_id and data.get('primary_activity'):
-            ciiu = self.env['l10n_cr.ciiu.code'].search([
-                ('code', '=', data['primary_activity'])
-            ], limit=1)
+            ciiu = self._resolve_ciiu_from_hacienda_code(data['primary_activity'])
             if ciiu:
                 updates['l10n_cr_economic_activity_id'] = ciiu.id
 
