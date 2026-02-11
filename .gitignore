@@ -1,3 +1,7 @@
+# =============================================================================
+# GMS Project .gitignore
+# =============================================================================
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -54,7 +58,7 @@ ENV/
 env.bak/
 venv.bak/
 
-# Sensitive deployment files (credentials, passwords)
+# Sensitive deployment files
 deployment/.env
 **/docker/.env
 **/docker/.env.*
@@ -71,15 +75,105 @@ deployment/.env
 .DS_Store
 Thumbs.db
 
-# Odoo specific
+# =============================================================================
+# Odoo source (runs in Docker, never track)
+# =============================================================================
+odoo/
+
+# Odoo runtime / config
 *.pyc
 *.log
 .tx/
 filestore/
 sessions/
+odoo.pid
+odoo.conf
+odoo.conf.vanilla
 
-# Auto Claude data directory
+# Python packaging (from Odoo source, not our modules)
+/PKG-INFO
+/MANIFEST.in
+/setup.py
+/setup.cfg
+/requirements.txt
+/LICENSE
+/CONTRIBUTING.md
+/doc/
+/setup/
+
+# =============================================================================
+# Git worktrees (never track snapshots)
+# =============================================================================
+.worktrees/
+
+# =============================================================================
+# BMAD framework & output
+# =============================================================================
+_bmad/
+_bmad-output/
+
+# =============================================================================
+# Archives, backups, scratch files
+# =============================================================================
+_archive/
+odoo_backups/
+plan.md
+
+# Test/debug XML artifacts at root
+/test_einvoice_*.xml
+/signed_xml_*.xml
+/einvoice_*.xml
+
+# =============================================================================
+# Claude Code local config
+# =============================================================================
 .auto-claude/
+.auto-claude-security.json
+.claude_settings.json
 
-# Large binary captures (too large for GitHub)
-_bmad-output/planning-artifacts/MobileApps Captures/
+# =============================================================================
+# Sensitive files (certificates, credentials)
+# =============================================================================
+*.p12
+*.pfx
+docs/Tribu-CR/certificado.p12
+
+# =============================================================================
+# Third-party scraped docs & large binaries (not our code)
+# =============================================================================
+docs/TiloPayAccess/
+docs/SampleData/
+docs/UI AI Studio/
+
+# =============================================================================
+# Transient reports & status docs (not evergreen documentation)
+# =============================================================================
+CODE_REVIEW_REPORT.md
+GMS-README.md
+
+# AI-generated phase completion/status reports inside modules
+**/PHASE*-*.md
+**/PHASE*_*.md
+**/ALL_FIXES_COMPLETE.md
+**/FIXES_APPLIED.md
+**/COMPREHENSIVE_TEST*.md
+**/STAGING_*.md
+**/DEPLOYMENT_CHECKLIST.md
+**/DEPLOYMENT_INFRASTRUCTURE_SUMMARY.md
+**/TEST_SUITE_INDEX.md
+**/POS_MEMBERSHIP_QUICK_ACTIONS_GUIDE.md
+**/VOID_WIZARD_QUICK_START.md
+**/CODE_QUALITY_AUDIT.md
+**/DOCUMENTATION_COMPLETE.md
+**/PAYMENT_PORTAL_UI_UX.md
+**/QUICK_START_MOCKUPS.md
+**/TESTING_CHECKLIST.md
+**/TESTING_QUICK_START.md
+**/MOCKUP_README.md
+**/RATE_LIMITER_ARCHITECTURE.md
+**/RATE_LIMITER_README.md
+**/PRE_DEPLOYMENT_CHECKLIST.md
+
+# Misc scratch files
+/scripts/
+docs/Tribu-CR/tico-*.txt
